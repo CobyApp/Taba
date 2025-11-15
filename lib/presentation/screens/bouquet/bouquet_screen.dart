@@ -1,22 +1,73 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/bouquet.dart';
 import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class BouquetScreen extends StatefulWidget {
-  const BouquetScreen({super.key, required this.folders});
-  final List<BouquetFolder> folders;
+  const BouquetScreen({super.key, required this.friendBouquets});
+
+  final List<FriendBouquet> friendBouquets;
 
   @override
   State<BouquetScreen> createState() => _BouquetScreenState();
 }
 
 class _BouquetScreenState extends State<BouquetScreen> {
-  int _selectedFolder = 0;
+  int _selectedIndex = 0;
+  late Set<String> _readFlowerIds;
+  final Map<String, String> _customBouquetNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _readFlowerIds = {
+      for (final bouquet in widget.friendBouquets)
+        ...bouquet.sharedFlowers
+            .where((flower) => flower.isRead || flower.sentByMe)
+            .map((flower) => flower.id),
+    };
+  }
+
+  FriendBouquet get _selectedBouquet => widget.friendBouquets[_selectedIndex];
+  String _resolveBouquetName(FriendBouquet bouquet) =>
+      _customBouquetNames[bouquet.friend.user.id] ?? bouquet.bouquetName;
+
+  void _selectFriend(int index) {
+    if (index == _selectedIndex) return;
+    setState(() => _selectedIndex = index);
+  }
+
+  int _unreadFor(FriendBouquet bouquet) {
+    return bouquet.sharedFlowers
+        .where(
+          (flower) =>
+              !flower.sentByMe && !_readFlowerIds.contains(flower.id),
+        )
+        .length;
+  }
+
+  void _openFlower(SharedFlower flower) {
+    if (!flower.sentByMe && !_readFlowerIds.contains(flower.id)) {
+      setState(() {
+        _readFlowerIds.add(flower.id);
+      });
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _BouquetLetterPage(letter: flower.letter),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final folder = widget.folders[_selectedFolder];
+    final selected = _selectedBouquet;
+    final unread = _unreadFor(selected);
 
     return Container(
       decoration: const BoxDecoration(
@@ -29,202 +80,390 @@ class _BouquetScreenState extends State<BouquetScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('내 꽃다발 💐'),
+          title: const Text('내 꽃다발'),
           centerTitle: false,
-          actions: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.dashboard_customize_outlined),
-            ),
-          ],
         ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              height: 48,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemBuilder: (context, index) {
-                  final f = widget.folders[index];
-                  final selected = index == _selectedFolder;
-                  return ChoiceChip(
-                    label: Text('${f.name} (${f.count})'),
-                    selected: selected,
-                    onSelected: (_) => setState(() => _selectedFolder = index),
-                    selectedColor: Colors.white.withAlpha(30),
-                    backgroundColor: Colors.white.withAlpha(20),
-                    labelStyle: TextStyle(
-                      color: selected ? Colors.white : AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    avatar: selected
-                        ? Icon(Icons.auto_awesome, color: f.color, size: 18)
-                        : null,
-                  );
-                },
-                separatorBuilder: (context, index) => const SizedBox(width: 10),
-                itemCount: widget.folders.length,
+        body: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _FriendStoryStrip(
+                  bouquets: widget.friendBouquets,
+                  selectedIndex: _selectedIndex,
+                  unreadResolver: _unreadFor,
+                  onSelect: _selectFriend,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      folder.color.withAlpha(150),
-                      folder.color.withAlpha(40),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: _FriendSummaryCard(
+                    bouquet: selected,
+                    unreadCount: unread,
+                    bouquetName: _resolveBouquetName(selected),
+                    onTap: () => _openBouquetDetail(selected),
                   ),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withAlpha(60)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: folder.color.withAlpha(80),
-                      blurRadius: 30,
-                      offset: const Offset(0, 18),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '오늘의 꽃다발',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${folder.count}개의 편지가 꽃병에 담겨 있어요.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withAlpha(217),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 130,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: folder.letters.length,
-                        itemBuilder: (context, index) {
-                          final letter = folder.letters[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: _BouquetFlower(letter: letter),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                sliver: _SharedLetterSliver(
+                  flowers: selected.sharedFlowers,
+                  readFlowerIds: _readFlowerIds,
+                  onOpen: _openFlower,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _shareBouquet(FriendBouquet bouquet) {
+    final snippet = bouquet.sharedFlowers
+        .take(4)
+        .map((f) => '• ${f.title} (${f.flower.emoji})')
+        .join('\n');
+    final shareText = '''
+[Taba 꽃다발 공유]
+${bouquet.friend.user.nickname}과 나눈 꽃 ${bouquet.totalFlowers}개
+
+$snippet
+
+Taba에서 씨앗을 잡아 나와 친구가 되어줘!
+초대 코드: ${bouquet.friend.inviteCode}
+''';
+    Clipboard.setData(ClipboardData(text: shareText));
+    showTabaNotice(
+      context,
+      title: '꽃다발 공유 링크 복사',
+      message: '${bouquet.friend.user.nickname}과의 꽃다발을 친구에게 전해보세요.',
+      icon: Icons.share,
+    );
+  }
+
+  void _openBouquetDetail(FriendBouquet bouquet) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.midnightSoft,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) {
+        final controller =
+            TextEditingController(text: _resolveBouquetName(bouquet));
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.86,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: ListView(
+                controller: scrollController,
                 children: [
-                  Text('편지 목록', style: Theme.of(context).textTheme.titleLarge),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.sort_rounded),
+                  Row(
+                    children: [
+                      Text(
+                        '꽃다발 상세',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(color: Colors.white),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${bouquet.friend.user.nickname}과 만든 꽃다발',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: '꽃다발 이름',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
+                    onSubmitted: (value) {
+                      final trimmed = value.trim();
+                      if (trimmed.isEmpty) return;
+                      _saveBouquetName(bouquet, trimmed);
+                      showTabaNotice(
+                        context,
+                        title: '꽃다발 이름을 저장했어요',
+                        message: trimmed,
+                        icon: Icons.local_florist,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: bouquet.sharedFlowers
+                        .map(
+                          (flower) => Container(
+                            width: 150,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              color: AppColors.midnightGlass,
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  flower.flower.emoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  flower.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  flower.preview,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () => _shareBouquet(bouquet),
+                    icon: const Icon(Icons.share),
+                    label: const Text('꽃다발 공유하기'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _saveBouquetName(FriendBouquet bouquet, String name) {
+    if (name.isEmpty) return;
+    setState(() {
+      _customBouquetNames[bouquet.friend.user.id] = name;
+    });
+  }
+}
+
+class _FriendStoryStrip extends StatelessWidget {
+  const _FriendStoryStrip({
+    required this.bouquets,
+    required this.selectedIndex,
+    required this.unreadResolver,
+    required this.onSelect,
+  });
+
+  final List<FriendBouquet> bouquets;
+  final int selectedIndex;
+  final int Function(FriendBouquet) unreadResolver;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        itemBuilder: (context, index) {
+          final bouquet = bouquets[index];
+          final selected = index == selectedIndex;
+          final unread = unreadResolver(bouquet);
+          return GestureDetector(
+            onTap: () => onSelect(index),
+            child: SizedBox(
+              width: 90,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? Colors.white
+                                : Colors.white.withAlpha(60),
+                            width: selected ? 3 : 1.5,
+                          ),
+                          boxShadow: [
+                            if (selected)
+                              BoxShadow(
+                                color: bouquet
+                                    .resolveTheme(AppColors.neonPink)
+                                    .withAlpha(120),
+                                blurRadius: 18,
+                                spreadRadius: 2,
+                              ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          backgroundImage:
+                              NetworkImage(bouquet.friend.user.avatarUrl),
+                        ),
+                      ),
+                      if (unread > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.neonPink,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$unread',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 80,
+                    child: Text(
+                      bouquet.friend.user.nickname,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withAlpha(selected ? 255 : 200),
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemCount: bouquets.length,
+      ),
+    );
+  }
+}
+
+class _FriendSummaryCard extends StatelessWidget {
+  const _FriendSummaryCard({
+    required this.bouquet,
+    required this.unreadCount,
+    required this.bouquetName,
+    required this.onTap,
+  });
+
+  final FriendBouquet bouquet;
+  final int unreadCount;
+  final String bouquetName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = bouquet.resolveTheme(AppColors.neonPink);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            colors: [
+              color.withAlpha(220),
+              Colors.white.withAlpha(16),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          children: [
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: folder.letters.length,
-                itemBuilder: (context, index) {
-                  final letter = folder.letters[index];
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.midnightGlass,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.outline),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: folder.color.withAlpha(90),
-                          child: Text(letter.flower.emoji),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                letter.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                letter.preview,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Colors.white.withAlpha(204),
-                                    ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.favorite_border,
-                                    size: 16,
-                                    color: AppColors.neonPink,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${letter.likes}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Icon(
-                                    Icons.visibility_outlined,
-                                    size: 16,
-                                    color: Colors.white70,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${letter.views}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {},
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    bouquetName,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${bouquet.friend.user.nickname} · 꽃 ${bouquet.totalFlowers}개',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bloom ${(bouquet.bloomLevel * 100).round()}% · 신뢰 ${bouquet.trustScore}%',
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ],
               ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  unreadCount > 0 ? '$unreadCount' : '0',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  unreadCount > 0 ? '읽지 않은 꽃' : '모든 꽃 읽음',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
             ),
           ],
         ),
@@ -233,52 +472,242 @@ class _BouquetScreenState extends State<BouquetScreen> {
   }
 }
 
-class _BouquetFlower extends StatelessWidget {
-  const _BouquetFlower({required this.letter});
+class _SharedLetterSliver extends StatelessWidget {
+  const _SharedLetterSliver({
+    required this.flowers,
+    required this.readFlowerIds,
+    required this.onOpen,
+  });
+
+  final List<SharedFlower> flowers;
+  final Set<String> readFlowerIds;
+  final ValueChanged<SharedFlower> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final separatedCount = math.max(0, flowers.length * 2 - 1);
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index.isOdd) return const SizedBox(height: 12);
+          final flowerIndex = index ~/ 2;
+          final flower = flowers[flowerIndex];
+          final isUnread =
+              !flower.sentByMe && !readFlowerIds.contains(flower.id);
+          return _LetterTile(
+            flower: flower,
+            isUnread: isUnread,
+            onTap: () => onOpen(flower),
+          );
+        },
+        childCount: separatedCount,
+      ),
+    );
+  }
+}
+
+class _LetterTile extends StatelessWidget {
+  const _LetterTile({
+    required this.flower,
+    required this.isUnread,
+    required this.onTap,
+  });
+
+  final SharedFlower flower;
+  final bool isUnread;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final directionColor = flower.sentByMe ? AppColors.neonBlue : Colors.white;
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.midnightGlass,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isUnread ? AppColors.neonPink.withAlpha(120) : Colors.white24,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFFFF), Color(0x33FFFFFF)],
+                ),
+                border: Border.all(color: Colors.white30),
+              ),
+              child: Center(
+                child: Text(
+                  flower.flower.emoji,
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          flower.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (isUnread)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.neonPink,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    flower.preview,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        flower.sentByMe
+                            ? Icons.north_east
+                            : Icons.south_west,
+                        size: 16,
+                        color: directionColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        flower.directionLabel,
+                        style: TextStyle(
+                          color: directionColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        flower.seedId,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _timeAgo(flower.sentAt),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}분 전';
+    }
+    if (diff.inHours < 24) {
+      return '${diff.inHours}시간 전';
+    }
+    return '${diff.inDays}일 전';
+  }
+}
+
+class _BouquetLetterPage extends StatelessWidget {
+  const _BouquetLetterPage({required this.letter});
+
   final Letter letter;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
+    final style = letter.template;
+    final textColor = style?.textColor ?? AppColors.midnight;
+    return Scaffold(
+      backgroundColor: AppColors.midnightSoft,
+      appBar: AppBar(
+        title: Text(letter.title),
+        backgroundColor: Colors.transparent,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white.withAlpha(40), Colors.white.withAlpha(10)],
-            ),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: Colors.white.withAlpha(60)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white24),
             boxShadow: [
               BoxShadow(
-                color: Colors.white.withAlpha(40),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
+                color: Colors.black.withAlpha(80),
+                blurRadius: 28,
+                offset: const Offset(0, 18),
               ),
             ],
           ),
-          child: Center(
-            child: Text(
-              letter.flower.emoji,
-              style: const TextStyle(fontSize: 32),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  letter.senderDisplay,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: textColor),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  letter.content,
+                  style: TextStyle(
+                    color: textColor,
+                    fontFamily: style?.fontFamily,
+                    fontSize: style?.fontSize ?? 16,
+                    height: 1.6,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: 80,
-          child: Text(
-            letter.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.white),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
+
+

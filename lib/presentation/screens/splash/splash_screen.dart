@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -36,8 +37,8 @@ class SplashScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 140,
-                    height: 140,
+                    width: 150,
+                    height: 150,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(40),
                       gradient: const LinearGradient(
@@ -57,10 +58,9 @@ class SplashScreen extends StatelessWidget {
                         width: 2,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.local_florist_rounded,
-                      color: Colors.white,
-                      size: 64,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SvgPicture.asset('assets/svg/app_icon.svg'),
                     ),
                   ),
                   const SizedBox(height: 28),

@@ -6,6 +6,7 @@ class FriendProfile {
     required this.lastLetterAt,
     required this.friendCount,
     required this.sentLetters,
+    required this.inviteCode,
     this.group = '전체',
   });
 
@@ -13,6 +14,7 @@ class FriendProfile {
   final DateTime lastLetterAt;
   final int friendCount;
   final int sentLetters;
+  final String inviteCode;
   final String group;
 
   String get lastLetterAgo {

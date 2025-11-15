@@ -11,16 +11,17 @@ class SkyScreen extends StatelessWidget {
     super.key,
     required this.letters,
     required this.notifications,
+    this.unreadBouquetCount = 0,
     this.onOpenBouquet,
-    this.onOpenProfile,
-    this.onCompose,
+    this.onOpenSettings,
   });
 
   final List<Letter> letters;
   final List<NotificationItem> notifications;
+  final int unreadBouquetCount;
   final VoidCallback? onOpenBouquet;
-  final VoidCallback? onOpenProfile;
-  final VoidCallback? onCompose;
+  final VoidCallback? onOpenSettings;
+  static final _random = math.Random();
 
   LinearGradient _gradientForNow() {
     final hour = DateTime.now().hour;
@@ -77,25 +78,14 @@ class SkyScreen extends StatelessWidget {
                       icon: Icons.local_florist_outlined,
                       tooltip: '내 꽃다발',
                       onPressed: onOpenBouquet!,
+                      badge: unreadBouquetCount,
                     ),
-                  if (onOpenProfile != null)
+                  if (onOpenSettings != null)
                     _HeaderIconButton(
-                      icon: Icons.person_outline,
-                      tooltip: '내 정보',
-                      onPressed: onOpenProfile!,
+                      icon: Icons.settings_outlined,
+                      tooltip: '설정',
+                      onPressed: onOpenSettings!,
                     ),
-                  if (onCompose != null)
-                    _HeaderIconButton(
-                      icon: Icons.edit_outlined,
-                      tooltip: '편지 쓰기',
-                      onPressed: onCompose!,
-                    ),
-                  _HeaderIconButton(
-                    icon: Icons.notifications_outlined,
-                    tooltip: '알림',
-                    onPressed: () => _openNotificationSheet(context),
-                    badge: notifications.length,
-                  ),
                 ],
               ),
             ),
@@ -106,7 +96,7 @@ class SkyScreen extends StatelessWidget {
                   Positioned.fill(
                     child: _FloatingFlowerField(
                       letters: letters,
-                      onTap: (letter) => _openLetterPreview(context, letter),
+                      onTap: (letter) => _openSeedBloom(context, letter),
                     ),
                   ),
                   Positioned(
@@ -198,15 +188,39 @@ class SkyScreen extends StatelessWidget {
     );
   }
 
-  void _openLetterPreview(BuildContext context, Letter letter) {
-    showModalBottomSheet<void>(
+  Future<void> _openSeedBloom(BuildContext context, Letter letter) async {
+    final bloomFlower = _bloomCatalog[_random.nextInt(_bloomCatalog.length)];
+    final shouldOpen = await showGeneralDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      enableDrag: true,
-      isDismissible: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _LetterPreviewSheet(letter: letter),
+      barrierDismissible: false,
+      barrierLabel: 'seed',
+      barrierColor: Colors.black.withAlpha(220),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return _SeedBloomOverlay(letter: letter, bloomFlower: bloomFlower);
+      },
+    );
+    if (shouldOpen == true && context.mounted) {
+      _openLetterPreview(context, letter);
+    }
+  }
+
+  void _openLetterPreview(BuildContext context, Letter letter) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withAlpha(204),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            _LetterBloomPage(letter: letter),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          );
+        },
+      ),
     );
   }
 }
@@ -220,6 +234,25 @@ class _FloatingFlowerField extends StatefulWidget {
   @override
   State<_FloatingFlowerField> createState() => _FloatingFlowerFieldState();
 }
+
+class _BloomSpec {
+  const _BloomSpec(this.name, this.emoji);
+  final String name;
+  final String emoji;
+}
+
+const List<_BloomSpec> _bloomCatalog = [
+  _BloomSpec('네온 장미', '🌹'),
+  _BloomSpec('핑크 튤립', '🌷'),
+  _BloomSpec('라일락', '💜'),
+  _BloomSpec('스파클 사쿠라', '🌸'),
+  _BloomSpec('글로우 해바라기', '🌻'),
+  _BloomSpec('코스믹 데이지', '🌼'),
+  _BloomSpec('미드나잇 아이리스', '🌺'),
+  _BloomSpec('홀로그램 라넌큘러스', '🌼'),
+  _BloomSpec('아우로라 라일락', '💠'),
+  _BloomSpec('메탈릭 포피', '🌺'),
+];
 
 class _HeaderIconButton extends StatelessWidget {
   const _HeaderIconButton({
@@ -394,7 +427,31 @@ class _FloatingFlowerFieldState extends State<_FloatingFlowerField>
               _dragOffsets[particle.letter.id] = current + details.delta;
             });
           },
-          child: _NeonPetal(letter: particle.letter, scale: particle.scale),
+          child: _SeedOrb(letter: particle.letter, scale: particle.scale),
+        ),
+      ),
+    );
+  }
+}
+
+class _SeedOrb extends StatelessWidget {
+  const _SeedOrb({required this.letter, required this.scale});
+
+  final Letter? letter;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 52.0 * scale;
+    return Semantics(
+      label: letter != null ? '${letter!.flower.label} 씨앗' : '씨앗',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        width: size,
+        height: size,
+        child: SvgPicture.asset(
+          'assets/svg/seed_bubble.svg',
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -444,6 +501,116 @@ class _NeonPetal extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SeedBloomOverlay extends StatefulWidget {
+  const _SeedBloomOverlay({
+    required this.letter,
+    required this.bloomFlower,
+  });
+
+  final Letter letter;
+  final _BloomSpec bloomFlower;
+
+  @override
+  State<_SeedBloomOverlay> createState() => _SeedBloomOverlayState();
+}
+
+class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1500),
+  )..repeat(reverse: true);
+  bool _isBlooming = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleBloom() async {
+    if (_isBlooming) return;
+    setState(() => _isBlooming = true);
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              color: const Color(0xCC060018),
+              border: Border.all(color: Colors.white12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 30,
+                  spreadRadius: 8,
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    final scale = 1 + (_controller.value * 0.08);
+                    return Transform.scale(
+                      scale: scale,
+                      child: child,
+                    );
+                  },
+                  child: _SeedOrb(
+                    letter: widget.letter,
+                    scale: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  '씨앗을 꽃피워볼까요?',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${widget.bloomFlower.name}이 피어나면 편지를 볼 수 있어요.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.white70),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _isBlooming ? null : _handleBloom,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(_isBlooming ? '꽃 피우는 중...' : '꽃 피우기'),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.bloomFlower.emoji,
+                  style: const TextStyle(fontSize: 36),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -505,135 +672,148 @@ class _FlowerAvatar extends StatelessWidget {
   }
 }
 
-class _LetterPreviewSheet extends StatelessWidget {
-  const _LetterPreviewSheet({required this.letter});
+class _LetterBloomPage extends StatelessWidget {
+  const _LetterBloomPage({required this.letter});
 
   final Letter letter;
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: .62,
-      maxChildSize: .95,
-      builder: (context, controller) {
-        return Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF0C011E), Color(0xFF1D0141)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: const EdgeInsets.all(24),
+    final style = letter.template;
+    final background = style?.background ?? Colors.white;
+    final textColor =
+        style?.textColor ?? _contrastOn(background);
+    final titleStyle =
+        Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor);
+
+    return Scaffold(
+      backgroundColor: AppColors.midnightSoft,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
               Row(
                 children: [
-                  _FlowerAvatar(type: letter.flower),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        letter.senderDisplay,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        '${letter.sentAt.year}.${letter.sentAt.month}.${letter.sentAt.day}  ·  ${letter.timeAgo()}',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
+                  const Spacer(),
+                  Text(
+                    letter.flower.emoji,
+                    style: const TextStyle(fontSize: 28),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    letter.flower.label,
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(width: 12),
                 ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                letter.title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: controller,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _resolveLetterBackground(letter),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      letter.content,
-                      style: TextStyle(
-                        color: _resolveLetterTextColor(letter),
-                        fontFamily: letter.template?.fontFamily,
-                        fontSize: letter.template?.fontSize ?? 16,
-                        height: 1.6,
-                      ),
-                    ),
-                  ),
-                ),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  _ActionButton(icon: Icons.favorite_border, label: '좋아요'),
-                  _ActionButton(icon: Icons.reply, label: '답장'),
-                  _ActionButton(
-                    icon: Icons.local_florist_outlined,
-                    label: '꽃다발',
+              Expanded(
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(.35),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: Colors.white10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(150),
+                          blurRadius: 32,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: background,
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      padding: const EdgeInsets.all(22),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                _FlowerAvatar(type: letter.flower),
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      letter.senderDisplay,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      letter.timeAgo(),
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(.6),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            Text(letter.title, style: titleStyle),
+                            const SizedBox(height: 12),
+                            Text(
+                              letter.content,
+                              style: TextStyle(
+                                color: textColor,
+                                fontFamily: style?.fontFamily,
+                                fontSize: style?.fontSize ?? 16,
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: const [
+                                _LetterAction(
+                                    icon: Icons.favorite_border, label: '좋아요'),
+                                _LetterAction(
+                                    icon: Icons.reply_outlined, label: '답장'),
+                                _LetterAction(
+                                  icon: Icons.local_florist_outlined,
+                                  label: '꽃다발',
+                                ),
+                                _LetterAction(
+                                    icon: Icons.share_outlined, label: '공유'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  _ActionButton(icon: Icons.share, label: '공유'),
-                  _ActionButton(icon: Icons.more_horiz, label: '더보기'),
-                ],
+                ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
-  }
-
-  Color _resolveLetterBackground(Letter letter) {
-    final base = letter.template?.background ?? Colors.white;
-    final luminance = base.computeLuminance();
-    return luminance > 0.6 ? base.withAlpha(90) : base.withAlpha(180);
-  }
-
-  Color _resolveLetterTextColor(Letter letter) {
-    final custom = letter.template?.textColor;
-    if (custom != null) return custom;
-    final background = _resolveLetterBackground(letter);
-    return background.computeLuminance() > 0.5
-        ? AppColors.midnight
-        : Colors.white;
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.label});
+class _LetterAction extends StatelessWidget {
+  const _LetterAction({required this.icon, required this.label});
+
   final IconData icon;
   final String label;
 
@@ -642,13 +822,22 @@ class _ActionButton extends StatelessWidget {
     return Column(
       children: [
         CircleAvatar(
-          radius: 22,
-          backgroundColor: AppColors.card,
-          child: Icon(icon, color: AppColors.textPrimary),
+          radius: 24,
+          backgroundColor: Colors.white.withAlpha(30),
+          child: Icon(icon, color: Colors.white),
         ),
         const SizedBox(height: 6),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
       ],
     );
   }
 }
+
+Color _contrastOn(Color background) {
+  final luminance = background.computeLuminance();
+  return luminance > 0.6 ? AppColors.midnight : Colors.white;
+}
+

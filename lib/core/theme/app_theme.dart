@@ -10,6 +10,7 @@ class AppTheme {
     final displayFont = GoogleFonts.pixelifySans();
     final bodyFont = GoogleFonts.spaceGrotesk();
 
+    final mutedBody = AppColors.textPrimary.withOpacity(.82);
     final textTheme = TextTheme(
       displayLarge: displayFont.copyWith(
         color: AppColors.textPrimary,
@@ -43,7 +44,7 @@ class AppTheme {
         fontWeight: FontWeight.w500,
       ),
       bodyLarge: bodyFont.copyWith(color: AppColors.textPrimary, fontSize: 16),
-      bodyMedium: bodyFont.copyWith(color: AppColors.textSecondary),
+      bodyMedium: bodyFont.copyWith(color: mutedBody),
       bodySmall: bodyFont.copyWith(
         color: AppColors.textSecondary,
         fontSize: 12,

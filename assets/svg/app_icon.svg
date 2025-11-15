@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1200FF"/>
+      <stop offset="100%" stop-color="#FF2EB6"/>
+    </linearGradient>
+    <linearGradient id="petal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFC6F1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
+  <g transform="translate(256 256)">
+    <circle r="160" fill="url(#petal)" opacity="0.25"/>
+    <g fill="#FFFFFF" opacity="0.9">
+      <path d="M0-120 C40-80 60-20 40 20 C20 60 -20 60 -40 20 C-60-20 -40-80 0-120Z"/>
+      <path d="M120 0 C80 40 20 60 -20 40 C-60 20 -60-20 -20-40 C20-60 80-40 120 0Z"/>
+      <path d="M0 120 C-40 80 -60 20 -40-20 C-20-60 20-60 40-20 C60 20 40 80 0 120Z"/>
+      <path d="M-120 0 C-80-40 -20-60 20-40 C60-20 60 20 20 40 C-20 60 -80 40 -120 0Z"/>
+    </g>
+    <circle r="52" fill="#FF2EB6"/>
+  </g>
+  <text x="50%" y="82%" text-anchor="middle" font-family="Poppins, 'Helvetica Neue', sans-serif"
+        font-size="96" font-weight="700" fill="#FFFFFF" letter-spacing="12">TABA</text>
+</svg>
+

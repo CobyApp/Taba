@@ -13,8 +13,8 @@ class MockDataRepository {
 
   final List<TabaUser> users = [];
   final List<Letter> letters = [];
-  final List<BouquetFolder> folders = [];
   final List<FriendProfile> friends = [];
+  final List<FriendBouquet> friendBouquets = [];
   final List<NotificationItem> notifications = [];
 
   bool _seeded = false;
@@ -210,43 +210,104 @@ class MockDataRepository {
       ),
     ]);
 
-    folders.addAll([
-      BouquetFolder(
-        id: 'f1',
-        name: '전체',
-        color: AppColors.neonPink,
-        letters: letters,
+    final mintFriend = FriendProfile(
+      user: users[1],
+      lastLetterAt: DateTime.now().subtract(const Duration(hours: 5)),
+      friendCount: 32,
+      sentLetters: 15,
+      inviteCode: 'MINT-SEED',
+      group: '친한 친구',
+    );
+    final neonFriend = FriendProfile(
+      user: users[2],
+      lastLetterAt: DateTime.now().subtract(
+        const Duration(days: 1, hours: 3),
       ),
-      BouquetFolder(
-        id: 'f2',
-        name: '응원',
-        color: AppColors.neonBlue,
-        letters: letters.take(2).toList(),
-      ),
-      BouquetFolder(
-        id: 'f3',
-        name: '추억',
-        color: AppColors.neonPurple,
-        letters: letters.skip(1).toList(),
-      ),
-    ]);
+      friendCount: 18,
+      sentLetters: 23,
+      inviteCode: 'NEON-SEED',
+      group: '동료',
+    );
+    friends.addAll([mintFriend, neonFriend]);
 
-    friends.addAll([
-      FriendProfile(
-        user: users[1],
-        lastLetterAt: DateTime.now().subtract(const Duration(hours: 5)),
-        friendCount: 32,
-        sentLetters: 15,
-        group: '친한 친구',
+    friendBouquets.addAll([
+      FriendBouquet(
+        friend: mintFriend,
+        bloomLevel: .86,
+        trustScore: 78,
+        bouquetName: '새벽 민트 정원',
+        themeColor: AppColors.neonPink,
+        sharedFlowers: [
+          SharedFlower(
+            id: 'sf1',
+            letter: letters[2],
+            sentAt: DateTime.now().subtract(const Duration(hours: 2)),
+            sentByMe: false,
+            seedId: 'SEED-817',
+            energy: .7,
+            isRead: false,
+          ),
+          SharedFlower(
+            id: 'sf2',
+            letter: letters[4],
+            sentAt: DateTime.now().subtract(const Duration(hours: 5)),
+            sentByMe: true,
+            seedId: 'SEED-420',
+            energy: .65,
+          ),
+          SharedFlower(
+            id: 'sf3',
+            letter: letters[3],
+            sentAt: DateTime.now().subtract(const Duration(days: 1)),
+            sentByMe: false,
+            seedId: 'SEED-195',
+            energy: .58,
+            isRead: true,
+          ),
+          SharedFlower(
+            id: 'sf4',
+            letter: letters[6],
+            sentAt: DateTime.now().subtract(const Duration(days: 3)),
+            sentByMe: true,
+            seedId: 'SEED-322',
+            energy: .62,
+          ),
+        ],
       ),
-      FriendProfile(
-        user: users[2],
-        lastLetterAt: DateTime.now().subtract(
-          const Duration(days: 1, hours: 3),
-        ),
-        friendCount: 18,
-        sentLetters: 23,
-        group: '동료',
+      FriendBouquet(
+        friend: neonFriend,
+        bloomLevel: .64,
+        trustScore: 65,
+        bouquetName: '네온 빛 파노라마',
+        themeColor: AppColors.neonBlue,
+        sharedFlowers: [
+          SharedFlower(
+            id: 'sf5',
+            letter: letters[1],
+            sentAt: DateTime.now().subtract(const Duration(hours: 4)),
+            sentByMe: false,
+            seedId: 'SEED-909',
+            energy: .68,
+            isRead: false,
+          ),
+          SharedFlower(
+            id: 'sf6',
+            letter: letters[5],
+            sentAt: DateTime.now().subtract(const Duration(hours: 12)),
+            sentByMe: true,
+            seedId: 'SEED-144',
+            energy: .52,
+          ),
+          SharedFlower(
+            id: 'sf7',
+            letter: letters[7],
+            sentAt: DateTime.now().subtract(const Duration(days: 2)),
+            sentByMe: false,
+            seedId: 'SEED-771',
+            energy: .6,
+            isRead: true,
+          ),
+        ],
       ),
     ]);
 
