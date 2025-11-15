@@ -65,11 +65,11 @@ class SplashScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
                   Text(
-                    'TABA',
+                    'Taba',
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      fontSize: 56,
-                      letterSpacing: 8,
-                    ),
+                          fontSize: 56,
+                          letterSpacing: 8,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   Text(

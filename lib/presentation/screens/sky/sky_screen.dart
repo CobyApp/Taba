@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
@@ -9,10 +11,16 @@ class SkyScreen extends StatelessWidget {
     super.key,
     required this.letters,
     required this.notifications,
+    this.onOpenBouquet,
+    this.onOpenProfile,
+    this.onCompose,
   });
 
   final List<Letter> letters;
   final List<NotificationItem> notifications;
+  final VoidCallback? onOpenBouquet;
+  final VoidCallback? onOpenProfile;
+  final VoidCallback? onCompose;
 
   LinearGradient _gradientForNow() {
     final hour = DateTime.now().hour;
@@ -40,15 +48,6 @@ class SkyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gradient = _gradientForNow();
-    final filters = [
-      '전체',
-      '장미 🌹',
-      '튤립 🌷',
-      '해바라기 🌻',
-      '벚꽃 🌸',
-      '데이지 🌼',
-      '라벤더 💜',
-    ];
 
     return Container(
       decoration: BoxDecoration(gradient: gradient),
@@ -58,118 +57,46 @@ class SkyScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: Colors.white.withAlpha(77),
-                    child: const Icon(
-                      Icons.local_florist_outlined,
+                  Text(
+                    'Taba',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontSize: 28,
+                      letterSpacing: 4,
                       color: Colors.white,
+                      fontFamily: Theme.of(
+                        context,
+                      ).textTheme.displayLarge?.fontFamily,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Letters to Neon Skies',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.headlineSmall?.copyWith(fontSize: 22),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '지금 하늘은 레트로 글리치 모드예요. 떠다니는 꽃을 잡아 이야기를 열어보세요.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                  const Spacer(),
+                  if (onOpenBouquet != null)
+                    _HeaderIconButton(
+                      icon: Icons.local_florist_outlined,
+                      tooltip: '내 꽃다발',
+                      onPressed: onOpenBouquet!,
                     ),
-                  ),
-                  Stack(
-                    children: [
-                      IconButton(
-                        onPressed: () => _openNotificationSheet(context),
-                        icon: const Icon(
-                          Icons.notifications_active_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppColors.neonPink,
-                                AppColors.neonPurple,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${notifications.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  if (onOpenProfile != null)
+                    _HeaderIconButton(
+                      icon: Icons.person_outline,
+                      tooltip: '내 정보',
+                      onPressed: onOpenProfile!,
+                    ),
+                  if (onCompose != null)
+                    _HeaderIconButton(
+                      icon: Icons.edit_outlined,
+                      tooltip: '편지 쓰기',
+                      onPressed: onCompose!,
+                    ),
+                  _HeaderIconButton(
+                    icon: Icons.notifications_outlined,
+                    tooltip: '알림',
+                    onPressed: () => _openNotificationSheet(context),
+                    badge: notifications.length,
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 46,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                scrollDirection: Axis.horizontal,
-                itemCount: filters.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final selected = index == 0;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: selected
-                          ? const LinearGradient(
-                              colors: [
-                                AppColors.neonPink,
-                                AppColors.neonPurple,
-                              ],
-                            )
-                          : null,
-                      color: selected ? null : Colors.white.withAlpha(28),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white.withAlpha(40)),
-                    ),
-                    child: Text(
-                      filters[index],
-                      style: TextStyle(
-                        color: selected
-                            ? Colors.white
-                            : Colors.white.withAlpha(220),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
             const SizedBox(height: 12),
@@ -177,23 +104,9 @@ class SkyScreen extends StatelessWidget {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                        itemCount: letters.length,
-                        itemBuilder: (context, index) {
-                          final letter = letters[index];
-                          return _FloatingFlowerCard(
-                            letter: letter,
-                            delay: index * 300,
-                            onTap: () => _openLetterPreview(context, letter),
-                          );
-                        },
-                      ),
+                    child: _FloatingFlowerField(
+                      letters: letters,
+                      onTap: (letter) => _openLetterPreview(context, letter),
                     ),
                   ),
                   Positioned(
@@ -235,6 +148,10 @@ class SkyScreen extends StatelessWidget {
   void _openNotificationSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: false,
+      enableDrag: true,
+      isDismissible: true,
+      useSafeArea: true,
       backgroundColor: AppColors.midnightSoft,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -285,38 +202,106 @@ class SkyScreen extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      enableDrag: true,
+      isDismissible: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _LetterPreviewSheet(letter: letter),
     );
   }
 }
 
-class _FloatingFlowerCard extends StatefulWidget {
-  const _FloatingFlowerCard({
-    required this.letter,
-    required this.delay,
-    required this.onTap,
-  });
+class _FloatingFlowerField extends StatefulWidget {
+  const _FloatingFlowerField({required this.letters, required this.onTap});
 
-  final Letter letter;
-  final int delay;
-  final VoidCallback onTap;
+  final List<Letter> letters;
+  final ValueChanged<Letter> onTap;
 
   @override
-  State<_FloatingFlowerCard> createState() => _FloatingFlowerCardState();
+  State<_FloatingFlowerField> createState() => _FloatingFlowerFieldState();
 }
 
-class _FloatingFlowerCardState extends State<_FloatingFlowerCard>
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.badge = 0,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onPressed,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(icon, color: Colors.white),
+              ),
+              if (badge > 0)
+                Positioned(
+                  right: -2,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonPink,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$badge',
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingFlowerFieldState extends State<_FloatingFlowerField>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
+  late List<_FlowerParticle> _particles;
+  final Map<String, Offset> _dragOffsets = {};
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
+      duration: const Duration(seconds: 18),
+    )..repeat();
+    _particles = _generateParticles(widget.letters);
+  }
+
+  @override
+  void didUpdateWidget(covariant _FloatingFlowerField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _particles = _generateParticles(widget.letters);
+    _cleanupDragOffsets();
   }
 
   @override
@@ -325,83 +310,161 @@ class _FloatingFlowerCardState extends State<_FloatingFlowerCard>
     super.dispose();
   }
 
+  List<_FlowerParticle> _generateParticles(List<Letter> letters) {
+    if (letters.isEmpty) return [];
+    final random = math.Random();
+    return letters.map((letter) {
+      return _FlowerParticle(
+        letter: letter,
+        base: Offset(random.nextDouble(), random.nextDouble()),
+        amplitude: random.nextDouble() * 0.08 + 0.02,
+        scale: random.nextDouble() * 0.5 + 0.6,
+        phase: random.nextDouble(),
+        speed: random.nextDouble() * 0.6 + 0.4,
+      );
+    }).toList();
+  }
+
+  double _wrap(double value) {
+    final result = value % 1;
+    return result < 0 ? result + 1 : result;
+  }
+
+  void _cleanupDragOffsets() {
+    final ids = _particles.map((p) => p.letter.id).toSet();
+    _dragOffsets.removeWhere((key, value) => !ids.contains(key));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final offset = (_controller.value - 0.5) * 10;
-        return Transform.translate(offset: Offset(0, offset), child: child);
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white.withAlpha(30), Colors.white.withAlpha(12)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withAlpha(40)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.neonPink.withAlpha(40),
-                blurRadius: 30,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return Stack(
               children: [
-                _FlowerAvatar(type: widget.letter.flower),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.letter.senderDisplay,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.letter.preview,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule,
-                            size: 16,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.letter.timeAgo(),
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                for (final particle in _particles)
+                  _buildFlower(
+                    context,
+                    particle,
+                    constraints.maxWidth,
+                    constraints.maxHeight,
                   ),
-                ),
-                const Icon(Icons.keyboard_arrow_right_rounded),
               ],
-            ),
-          ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFlower(
+    BuildContext context,
+    _FlowerParticle particle,
+    double width,
+    double height,
+  ) {
+    final time = _controller.value;
+    final horizontal =
+        (particle.base.dx +
+                math.sin((time + particle.phase) * 2 * math.pi) *
+                    particle.amplitude)
+            .clamp(0.05, 0.95);
+    final travel = _wrap(
+      particle.base.dy + time * particle.speed + particle.phase,
+    );
+    var left = horizontal * width;
+    var top = travel * height;
+    final dragOffset = _dragOffsets[particle.letter.id] ?? Offset.zero;
+    left = (left + dragOffset.dx).clamp(16.0, math.max(width - 16.0, 16.0));
+    top = (top + dragOffset.dy).clamp(80.0, math.max(height - 32.0, 80.0));
+    final rotation = math.sin((time + particle.phase) * 2 * math.pi) * 0.4;
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: Transform.rotate(
+        angle: rotation,
+        child: GestureDetector(
+          onTap: () => widget.onTap(particle.letter),
+          onPanUpdate: (details) {
+            setState(() {
+              final current = _dragOffsets[particle.letter.id] ?? Offset.zero;
+              _dragOffsets[particle.letter.id] = current + details.delta;
+            });
+          },
+          child: _NeonPetal(letter: particle.letter, scale: particle.scale),
         ),
       ),
     );
   }
+}
+
+class _NeonPetal extends StatelessWidget {
+  const _NeonPetal({required this.letter, required this.scale});
+
+  final Letter letter;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = 80 * scale + 28;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.white.withAlpha(32), Colors.white.withAlpha(10)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withAlpha(70)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withAlpha(24),
+            blurRadius: 20,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(letter.flower.emoji, style: TextStyle(fontSize: size * 0.35)),
+          const SizedBox(height: 6),
+          Text(
+            letter.senderDisplay,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Colors.white,
+              letterSpacing: 0.4,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlowerParticle {
+  const _FlowerParticle({
+    required this.letter,
+    required this.base,
+    required this.amplitude,
+    required this.scale,
+    required this.phase,
+    required this.speed,
+  });
+
+  final Letter letter;
+  final Offset base;
+  final double amplitude;
+  final double scale;
+  final double phase;
+  final double speed;
 }
 
 class _FlowerAvatar extends StatelessWidget {
@@ -455,7 +518,11 @@ class _LetterPreviewSheet extends StatelessWidget {
       builder: (context, controller) {
         return Container(
           decoration: const BoxDecoration(
-            color: Colors.white,
+            gradient: LinearGradient(
+              colors: [Color(0xFF0C011E), Color(0xFF1D0141)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
             borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           padding: const EdgeInsets.all(24),
@@ -467,7 +534,7 @@ class _LetterPreviewSheet extends StatelessWidget {
                   width: 56,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.outline,
+                    color: Colors.white24,
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -485,11 +552,12 @@ class _LetterPreviewSheet extends StatelessWidget {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
+                          color: Colors.white,
                         ),
                       ),
                       Text(
                         '${letter.sentAt.year}.${letter.sentAt.month}.${letter.sentAt.day}  ·  ${letter.timeAgo()}',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        style: const TextStyle(color: Colors.white70),
                       ),
                     ],
                   ),
@@ -501,6 +569,7 @@ class _LetterPreviewSheet extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 12),
@@ -509,16 +578,15 @@ class _LetterPreviewSheet extends StatelessWidget {
                   controller: controller,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: letter.template?.background ?? Colors.white,
+                      color: _resolveLetterBackground(letter),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: AppColors.outline),
+                      border: Border.all(color: Colors.white24),
                     ),
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       letter.content,
                       style: TextStyle(
-                        color:
-                            letter.template?.textColor ?? AppColors.textPrimary,
+                        color: _resolveLetterTextColor(letter),
                         fontFamily: letter.template?.fontFamily,
                         fontSize: letter.template?.fontSize ?? 16,
                         height: 1.6,
@@ -546,6 +614,21 @@ class _LetterPreviewSheet extends StatelessWidget {
         );
       },
     );
+  }
+
+  Color _resolveLetterBackground(Letter letter) {
+    final base = letter.template?.background ?? Colors.white;
+    final luminance = base.computeLuminance();
+    return luminance > 0.6 ? base.withAlpha(90) : base.withAlpha(180);
+  }
+
+  Color _resolveLetterTextColor(Letter letter) {
+    final custom = letter.template?.textColor;
+    if (custom != null) return custom;
+    final background = _resolveLetterBackground(letter);
+    return background.computeLuminance() > 0.5
+        ? AppColors.midnight
+        : Colors.white;
   }
 }
 

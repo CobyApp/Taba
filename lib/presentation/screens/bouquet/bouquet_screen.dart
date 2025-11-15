@@ -98,12 +98,16 @@ class _BouquetScreenState extends State<BouquetScreen> {
                   children: [
                     Text(
                       '오늘의 꽃다발',
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${folder.count}개의 편지가 꽃병에 담겨 있어요.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withAlpha(217),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -170,6 +174,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
+                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -177,7 +182,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
                                 letter.preview,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Colors.white.withAlpha(204),
+                                    ),
                               ),
                               const SizedBox(height: 6),
                               Row(
@@ -188,15 +196,21 @@ class _BouquetScreenState extends State<BouquetScreen> {
                                     color: AppColors.neonPink,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text('${letter.likes}'),
+                                  Text(
+                                    '${letter.likes}',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
                                   const SizedBox(width: 12),
                                   const Icon(
                                     Icons.visibility_outlined,
                                     size: 16,
-                                    color: AppColors.textSecondary,
+                                    color: Colors.white70,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text('${letter.views}'),
+                                  Text(
+                                    '${letter.views}',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
                                 ],
                               ),
                             ],
@@ -259,7 +273,9 @@ class _BouquetFlower extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.white),
           ),
         ),
       ],

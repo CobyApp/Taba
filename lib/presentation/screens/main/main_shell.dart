@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/mock/mock_data.dart';
 import 'package:taba_app/presentation/screens/bouquet/bouquet_screen.dart';
-import 'package:taba_app/presentation/screens/friends/friends_screen.dart';
 import 'package:taba_app/presentation/screens/profile/profile_screen.dart';
 import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
 
@@ -14,72 +13,57 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _index = 0;
-
   @override
   Widget build(BuildContext context) {
     final repo = MockDataRepository.instance;
-    final tabs = [
-      SkyScreen(letters: repo.letters, notifications: repo.notifications),
-      BouquetScreen(folders: repo.folders),
-      FriendsScreen(friends: repo.friends),
-      ProfileScreen(currentUser: repo.users.first),
-    ];
-
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: tabs[_index],
+      body: SkyScreen(
+        letters: repo.letters,
+        notifications: repo.notifications,
+        onOpenBouquet: () => _openBouquet(context, repo),
+        onOpenProfile: () => _openProfile(context, repo),
+        onCompose: () => _openWriteSheet(context),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withAlpha(18),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withAlpha(30)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(80),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            currentIndex: _index,
-            onTap: (value) => setState(() => _index = value),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.cloud_queue),
-                label: '하늘',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.local_florist),
-                label: '꽃다발',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                label: '친구',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                label: '프로필',
-              ),
-            ],
-          ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openWriteSheet(context),
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text('편지 쓰기'),
+      ),
+    );
+  }
+
+  void _openBouquet(BuildContext context, MockDataRepository repo) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: BouquetScreen(folders: repo.folders),
         ),
       ),
-      floatingActionButton: _index == 0
-          ? FloatingActionButton.extended(
-              onPressed: () => _openWriteSheet(context),
-              icon: const Icon(Icons.edit_rounded),
-              label: const Text('편지 쓰기'),
-            )
-          : null,
+    );
+  }
+
+  void _openProfile(BuildContext context, MockDataRepository repo) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: ProfileScreen(currentUser: repo.users.first),
+        ),
+      ),
     );
   }
 
@@ -87,6 +71,9 @@ class _MainShellState extends State<MainShell> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      enableDrag: true,
+      isDismissible: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const _WriteLetterSheet(),
     );

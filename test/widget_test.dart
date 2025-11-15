@@ -13,6 +13,6 @@ void main() {
     await tester.pumpWidget(const TabaApp());
 
     // initial frame should show splash title
-    expect(find.text('TABA'), findsOneWidget);
+    expect(find.text('Taba'), findsOneWidget);
   });
 }

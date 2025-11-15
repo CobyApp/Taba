@@ -87,21 +87,28 @@ class FriendsScreen extends StatelessWidget {
                                 friend.user.nickname,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
+                                  color: Colors.white,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(friend.user.statusMessage),
+                              Text(
+                                friend.user.statusMessage,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
                               const SizedBox(height: 6),
                               Row(
                                 children: [
                                   const Icon(
                                     Icons.mail_outline,
                                     size: 14,
-                                    color: AppColors.textSecondary,
+                                    color: Colors.white70,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '보낸 ${friend.sentLetters} · ${friend.lastLetterAgo}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -161,14 +168,14 @@ class _TabButton extends StatelessWidget {
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: isActive ? Colors.white : AppColors.textSecondary,
+                color: isActive ? Colors.white : Colors.white70,
               ),
             ),
             if (count != null)
               Text(
                 '$count',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.white70,
                   fontWeight: FontWeight.bold,
                 ),
               ),

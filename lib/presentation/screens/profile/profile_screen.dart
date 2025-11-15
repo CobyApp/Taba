@@ -54,14 +54,19 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         Text(
                           currentUser.nickname,
-                          style: Theme.of(context).textTheme.headlineSmall,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(color: Colors.white),
                         ),
                         Text(
                           '@${currentUser.username}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white70),
                         ),
                         const SizedBox(height: 8),
-                        Text(currentUser.statusMessage),
+                        Text(
+                          currentUser.statusMessage,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         const SizedBox(height: 14),
                         Row(
                           children: const [
@@ -154,14 +159,15 @@ class _StatChip extends StatelessWidget {
           children: [
             Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.white,
+              ),
             ),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
             ),
           ],
         ),
@@ -180,7 +186,11 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -211,8 +221,8 @@ class _MenuTile extends StatelessWidget {
           backgroundColor: Colors.white.withAlpha(30),
           child: Icon(icon, color: AppColors.textPrimary),
         ),
-        title: Text(title),
-        subtitle: Text(subtitle),
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white70)),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {},
       ),
