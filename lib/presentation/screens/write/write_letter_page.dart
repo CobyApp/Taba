@@ -9,11 +9,33 @@ class WriteLetterPage extends StatefulWidget {
   State<WriteLetterPage> createState() => _WriteLetterPageState();
 }
 
+class _NotesController extends TextEditingController {
+  _NotesController({required this.titleStyle, required this.bodyStyle, this.firstGapHeight = 2.2});
+  TextStyle titleStyle;
+  TextStyle bodyStyle;
+  double firstGapHeight;
+
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    final full = value.text;
+    final nl = full.indexOf('\n');
+    final hasBody = nl >= 0;
+    final title = hasBody ? full.substring(0, nl) : full;
+    final body = hasBody ? full.substring(nl + 1) : '';
+    final children = <InlineSpan>[
+      TextSpan(text: title, style: titleStyle),
+      if (hasBody) ...[
+        TextSpan(text: '\n', style: bodyStyle.copyWith(height: firstGapHeight)),
+        TextSpan(text: body, style: bodyStyle),
+      ],
+    ];
+    return TextSpan(style: bodyStyle, children: children);
+  }
+}
+
 class _WriteLetterPageState extends State<WriteLetterPage> {
   final _controller = TextEditingController();
   final _titleController = TextEditingController();
-  int _step = 0;
-  final _maxLength = 2000;
   bool _sendToFriend = false;
   String? _fontFamily;
   static const double _editorFontSize = 18;
@@ -34,45 +56,46 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       name: '네온 그리드',
       background: Color(0xFF0A0024), // deep midnight
       textColor: Colors.white,
-      previewGradient: [Color(0xFF6A00FF), Color(0xFFFF2EB6)],
+      previewGradient: [Color(0xFF0A0024), Color(0xFF0A0024)],
     ),
     _TemplateOption(
       id: 'retro_paper',
       name: '레트로 페이퍼',
-      background: Color(0xFFFFF3D6), // warm paper
-      textColor: Color(0xFF3D2A1E),
-      previewGradient: [Color(0xFFFFD9A0), Color(0xFFFFF1D8)],
+      background: Color(0xFF1E1A14), // dark warm paper
+      textColor: Colors.white,
+      previewGradient: [Color(0xFF1E1A14), Color(0xFF1E1A14)],
     ),
     _TemplateOption(
       id: 'mint_terminal',
       name: '민트 터미널',
       background: Color(0xFF061A17),
-      textColor: Color(0xFF9FFFE0),
-      previewGradient: [Color(0xFF003F33), Color(0xFF00A389)],
+      textColor: Colors.white,
+      previewGradient: [Color(0xFF061A17), Color(0xFF061A17)],
     ),
     _TemplateOption(
       id: 'holo_purple',
       name: '홀로 퍼플',
-      background: Color(0xFFEDE6FF),
-      textColor: Color(0xFF2B1B57),
-      previewGradient: [Color(0xFFA58DFF), Color(0xFFC7B7FF)],
+      background: Color(0xFF1D1433),
+      textColor: Colors.white,
+      previewGradient: [Color(0xFF1D1433), Color(0xFF1D1433)],
     ),
     _TemplateOption(
       id: 'pixel_blue',
       name: '픽셀 블루',
       background: Color(0xFF001133),
-      textColor: Color(0xFFB3C7FF),
-      previewGradient: [Color(0xFF002B8A), Color(0xFF0044CC)],
+      textColor: Colors.white,
+      previewGradient: [Color(0xFF001133), Color(0xFF001133)],
     ),
     _TemplateOption(
       id: 'sunset_grid',
       name: '선셋 그리드',
-      background: Color(0xFF2B0010),
-      textColor: Color(0xFFFFE1E1),
-      previewGradient: [Color(0xFFFF5E7E), Color(0xFFFFA06B)],
+      background: Color(0xFF210014),
+      textColor: Colors.white,
+      previewGradient: [Color(0xFF210014), Color(0xFF210014)],
     ),
   ];
   late _TemplateOption _selectedTemplate = _templateOptions.first;
+  late _NotesController _notesController;
 
   String _recommendedFontForTemplate(String templateId) {
     switch (templateId) {
@@ -93,16 +116,41 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     }
   }
 
+  void _applyFont(String family) {
+    setState(() => _fontFamily = family);
+    _updateNotesStyles();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  TextStyle _titleStyle() => (_fontFamily != null
+      ? GoogleFonts.getFont(_fontFamily!, color: _selectedTemplate.textColor)
+      : TextStyle(color: _selectedTemplate.textColor)).copyWith(fontSize: 26, fontWeight: FontWeight.w800);
+
+  TextStyle _bodyStyle() => (_fontFamily != null
+      ? GoogleFonts.getFont(_fontFamily!, color: _selectedTemplate.textColor)
+      : TextStyle(color: _selectedTemplate.textColor)).copyWith(fontSize: _editorFontSize, height: 1.8);
+
+  void _updateNotesStyles() {
+    _notesController
+      ..titleStyle = _titleStyle()
+      ..bodyStyle = _bodyStyle()
+      ..firstGapHeight = 2.2; // slightly larger gap between title and first body line
+  }
+
   @override
   void initState() {
     super.initState();
     _fontFamily = _recommendedFontForTemplate(_selectedTemplate.id);
+    _notesController = _NotesController(titleStyle: _titleStyle(), bodyStyle: _bodyStyle(), firstGapHeight: 2.2);
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _titleController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -154,112 +202,284 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final steps = [
-      _StepData('씨앗 템플릿 고르기', '씨앗을 감쌀 편지 템플릿을 골라요.'),
-      _StepData('씨앗 속 마음 쓰기', '마음을 담아 최대 2000자까지 적어보세요.'),
-      _StepData('씨앗 날릴 설정', '씨앗이 피어날 순간과 범위를 결정해요.'),
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('씨앗 보내기'),
+  void _openTemplatePicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.midnightSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF080016), Color(0xFF140035), Color(0xFF220058)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      builder: (context) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: _TemplateSelector(
+              templates: _templateOptions,
+              selected: _selectedTemplate,
+              onSelect: (template) {
+                setState(() {
+                  _selectedTemplate = template;
+                });
+                _applyFont(_recommendedFontForTemplate(template.id));
+                Navigator.of(context).pop();
+              },
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    steps.length,
-                    (index) => Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        height: 5,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(100),
-                          color: index <= _step
-                              ? AppColors.neonPink
-                              : Colors.white.withAlpha(40),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  steps[_step].title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  steps[_step].subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      if (_step == 0)
-                        _TemplateSelector(
-                          templates: _templateOptions,
-                          selected: _selectedTemplate,
-                          onSelect: (template) {
-                            setState(() {
-                              _selectedTemplate = template;
-                              _fontFamily = _recommendedFontForTemplate(template.id);
-                            });
-                          },
-                        ),
-                      if (_step == 1) _buildEditor(context),
-                      if (_step == 2) _buildSendSettings(context),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
+        );
+      },
+    );
+  }
+
+  void _openFontPicker() {
+    final enFonts = <String>['Press Start 2P', 'VT323', 'IBM Plex Mono', 'Bungee'];
+    final krFonts = <String>['Jua', 'Sunflower'];
+    final jpFonts = <String>['DotGothic16', 'Kosugi Maru'];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.midnightSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        Widget buildGroup(String label, List<String> fonts, {required String langBadge}) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                child: Row(
                   children: [
-                    if (_step > 0)
-                      OutlinedButton(
-                        onPressed: () => setState(() => _step--),
-                        child: const Text('이전'),
+                    Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(28),
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                    const Spacer(),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IntrinsicWidth(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (_step < steps.length - 1) {
-                              setState(() => _step++);
-                            } else {
-                              await _showSeedSentDialog();
-                              if (mounted) Navigator.of(context).pop();
-                            }
-                          },
-                          child: Text(_step == steps.length - 1 ? '씨앗 뿌리기' : '다음'),
-                        ),
-                      ),
+                      child: Text(langBadge, style: const TextStyle(fontSize: 10)),
                     ),
                   ],
                 ),
+              ),
+              ...fonts.map((f) => ListTile(
+                    title: Text(f, style: GoogleFonts.getFont(f, color: Colors.white)),
+                    subtitle: Text('$langBadge font', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                    onTap: () {
+                      _applyFont(f);
+                      Navigator.of(context).pop();
+                    },
+                  )),
+              const Divider(color: Colors.white24, height: 12),
+            ],
+          );
+        }
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildGroup('영어', enFonts, langBadge: 'EN'),
+                buildGroup('한국어', krFonts, langBadge: 'KO'),
+                buildGroup('日本語', jpFonts, langBadge: 'JP'),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _openSendSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.midnightSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // Local state for the sheet
+        bool localSendToFriend = _sendToFriend;
+        _FriendOption? localFriend = _selectedFriend;
+        bool localReserve = _reserveSend;
+        DateTime? localDate = _scheduledDate;
+        TimeOfDay? localTime = _scheduledTime;
+        return StatefulBuilder(
+          builder: (context, setLocal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                left: 16, right: 16, top: 16,
+              ),
+              child: SingleChildScrollView(
+            child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                      children: [
+                        const Text('보내기 설정', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        ChoiceChip(
+                          label: const Text('전체 공개'),
+                          selected: !localSendToFriend,
+                          onSelected: (_) => setLocal(() => localSendToFriend = false),
+                        ),
+                        const SizedBox(width: 8),
+                        ChoiceChip(
+                          label: const Text('친구에게'),
+                          selected: localSendToFriend,
+                          onSelected: (_) => setLocal(() => localSendToFriend = true),
+                        ),
+                      ],
+                    ),
+                    if (localSendToFriend) ...[
+                      const SizedBox(height: 12),
+                      const Text('친구 선택'),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _friends.length,
+                        separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 8),
+                        itemBuilder: (context, index) {
+                          final option = _friends[index];
+                          final selected = localFriend == option;
+                          return ListTile(
+                            onTap: () => setLocal(() => localFriend = option),
+                            leading: CircleAvatar(backgroundImage: NetworkImage(option.avatarUrl)),
+                            title: Text(option.name),
+                            trailing: Icon(selected ? Icons.check_circle : Icons.circle_outlined,
+                                color: selected ? AppColors.neonPink : Colors.white54),
+                          );
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      value: localReserve,
+                      onChanged: (v) => setLocal(() => localReserve = v),
+                      title: const Text('예약 발송'),
+                      subtitle: const Text('씨앗이 피어날 시간을 지정합니다'),
+                    ),
+                    if (localReserve) ...[
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.calendar_month),
+                        title: Text(
+                          localDate != null
+                              ? '${localDate!.year}.${localDate!.month}.${localDate!.day}'
+                              : '날짜 선택',
+                        ),
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: localDate ?? now,
+                            firstDate: now,
+                            lastDate: now.add(const Duration(days: 365)),
+                          );
+                          if (picked != null) setLocal(() => localDate = picked);
+                        },
+                      ),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.schedule),
+                        title: Text(localTime != null ? localTime!.format(context) : '시간 선택'),
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: localTime ?? TimeOfDay.now(),
+                          );
+                          if (picked != null) setLocal(() => localTime = picked);
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          // Commit local state to parent, then send
+                            setState(() {
+                            _sendToFriend = localSendToFriend;
+                            _selectedFriend = localFriend;
+                            _reserveSend = localReserve;
+                            _scheduledDate = localDate;
+                            _scheduledTime = localTime;
+                          });
+                          await _showSeedSentDialog();
+                          if (mounted) Navigator.of(context).pop(); // close sheet
+                          if (mounted) Navigator.of(context).pop(); // close editor
+                        },
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text('씨앗 뿌리기'),
+                      ),
+                    ),
+                    ],
+                  ),
+                ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _selectedTemplate.background,
+      extendBodyBehindAppBar: false,
+      appBar: AppBar(
+        title: const SizedBox.shrink(),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          IconButton(
+            tooltip: '템플릿',
+            icon: const Icon(Icons.layers_outlined),
+            onPressed: _openTemplatePicker,
+          ),
+          IconButton(
+            tooltip: '폰트',
+            icon: const Icon(Icons.font_download_outlined),
+            onPressed: _openFontPicker,
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+          child: SingleChildScrollView(
+            child: _buildEditor(context),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openSendSheet,
+              icon: const Icon(Icons.send_rounded),
+              label: const Text('보내기'),
             ),
           ),
         ),
@@ -268,104 +488,34 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   }
 
   Widget _buildEditor(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: _selectedTemplate.background,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withAlpha(60)),
-            boxShadow: [
-              BoxShadow(
-                color: _selectedTemplate.background.withOpacity(.35),
-                blurRadius: 24,
-                offset: const Offset(0, 14),
-              ),
-            ],
-          ),
-          child: DefaultTextStyle(
-            style: (_fontFamily != null
-                ? GoogleFonts.getFont(_fontFamily!, color: _selectedTemplate.textColor)
-                : TextStyle(color: _selectedTemplate.textColor)),
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                Text(
-                  '제목',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: _selectedTemplate.textColor),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _titleController,
-                  maxLines: 1,
-                  maxLength: 50,
-                  cursorColor: _selectedTemplate.textColor,
-                  decoration: InputDecoration(
-                    hintText: '제목을 입력하세요',
-                    hintStyle: TextStyle(color: _selectedTemplate.textColor.withOpacity(.6)),
-                    counterText: '',
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: _selectedTemplate.textColor.withOpacity(.4)),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: _selectedTemplate.textColor),
-                    ),
-                  ),
-                  style: (_fontFamily != null
-                          ? GoogleFonts.getFont(
-                              _fontFamily!,
-                              color: _selectedTemplate.textColor,
-                              fontSize: _editorFontSize,
-                            )
-                          : const TextStyle(fontSize: _editorFontSize))
-                      .copyWith(color: _selectedTemplate.textColor),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '씨앗 속 메시지',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: _selectedTemplate.textColor),
-                ),
-                const SizedBox(height: 8),
-              TextField(
-                controller: _controller,
-                maxLines: 8,
-                maxLength: _maxLength,
-                cursorColor: _selectedTemplate.textColor,
-                decoration: InputDecoration.collapsed(
-                  hintText: '씨앗 속에 담을 이야기를 적어주세요...',
-                  hintStyle: TextStyle(
-                    color: _selectedTemplate.textColor.withOpacity(.7),
-                  ),
-                ),
-                style: (_fontFamily != null
-                        ? GoogleFonts.getFont(
-                            _fontFamily!,
-                            color: _selectedTemplate.textColor,
-                            fontSize: _editorFontSize,
-                          )
-                        : const TextStyle(fontSize: _editorFontSize)).copyWith(
-                            color: _selectedTemplate.textColor),
-              ),
-              const SizedBox(height: 16),
-              _EditorToolbar(
-                fontFamily: _fontFamily,
-                onFontFamilyChanged: (v) => setState(() => _fontFamily = v),
-                textColor: _selectedTemplate.textColor,
-                onInsertEmoji: _openEmojiPicker,
-              ),
-            ],
-            ),
-          ),
+    final localInputTheme = const InputDecorationTheme(
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      disabledBorder: InputBorder.none,
+      errorBorder: InputBorder.none,
+      focusedErrorBorder: InputBorder.none,
+      isCollapsed: true,
+      contentPadding: EdgeInsets.zero,
+    );
+
+    return Theme(
+      data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
+      child: TextField(
+        controller: _notesController,
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+        cursorColor: _selectedTemplate.textColor,
+        decoration: InputDecoration(
+          hintText: '제목\n내용을 입력하세요... ',
+          hintStyle: (_fontFamily != null
+                  ? GoogleFonts.getFont(_fontFamily!, color: _selectedTemplate.textColor)
+                  : TextStyle(color: _selectedTemplate.textColor))
+              .copyWith(color: _selectedTemplate.textColor.withOpacity(.5), height: 1.8),
         ),
-      ],
+        style: _bodyStyle(),
+      ),
     );
   }
 
@@ -620,11 +770,7 @@ class _TemplateSelector extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   width: 150,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: template.previewGradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: template.background,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: isSelected
@@ -635,8 +781,7 @@ class _TemplateSelector extends StatelessWidget {
                     boxShadow: [
                       if (isSelected)
                         BoxShadow(
-                          color: template.previewGradient.first
-                              .withOpacity(.4),
+                          color: template.background.withOpacity(.35),
                           blurRadius: 18,
                           offset: const Offset(0, 10),
                         ),
