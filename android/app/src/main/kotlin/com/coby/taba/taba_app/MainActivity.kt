@@ -1,4 +1,4 @@
-package com.coby.taba.taba_app
+package com.coby.taba
 
 import io.flutter.embedding.android.FlutterActivity
 
