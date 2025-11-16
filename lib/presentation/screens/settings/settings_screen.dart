@@ -1,11 +1,10 @@
 import 'dart:math' as math;
 
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.currentUser});
@@ -18,8 +17,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _pushEnabled = true;
-  bool _emailEnabled = false;
-  bool _darkTheme = true;
   String? _inviteCode;
   DateTime? _codeGeneratedAt;
 
@@ -46,27 +43,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _pushEnabled,
             onChanged: (value) => setState(() => _pushEnabled = value),
           ),
-          SwitchListTile(
-            title: const Text('이메일 알림'),
-            subtitle: const Text('주간 리포트와 소식을 이메일로 받아요'),
-            value: _emailEnabled,
-            onChanged: (value) => setState(() => _emailEnabled = value),
-          ),
           const SizedBox(height: 24),
-          const _SectionHeader(title: '화면'),
-          SwitchListTile(
-            title: const Text('네온 다크 테마'),
-            subtitle: const Text('눈부심을 줄이는 밤 모드'),
-            value: _darkTheme,
-            onChanged: (value) => setState(() => _darkTheme = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('테마 컬러'),
-            subtitle: const Text('핑크 · 블루 · 민트 등'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
-          ),
+          // 화면 테마 및 다크모드 설정 제거 (앱 전역 테마 고정)
           const SizedBox(height: 24),
           const _SectionHeader(title: '친구 초대'),
           Card(
@@ -128,6 +106,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('비밀번호 변경'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {},
+          ),
+          const SizedBox(height: 8),
+          const _SectionHeader(title: '언어'),
+          DropdownButtonFormField<Locale>(
+            value: AppLocaleController.localeNotifier.value,
+            items: AppLocaleController.supportedLocales
+                .map(
+                  (l) => DropdownMenuItem(
+                    value: l,
+                    child: Text(
+                      {'en': 'English', 'ko': '한국어', 'ja': '日本語'}[l.languageCode] ?? l.languageCode,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                AppLocaleController.localeNotifier.value = value;
+              }
+            },
+            decoration: const InputDecoration(
+              labelText: '앱 언어',
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.shield_outlined),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 
 class WriteLetterPage extends StatefulWidget {
@@ -10,9 +11,12 @@ class WriteLetterPage extends StatefulWidget {
 
 class _WriteLetterPageState extends State<WriteLetterPage> {
   final _controller = TextEditingController();
+  final _titleController = TextEditingController();
   int _step = 0;
   final _maxLength = 2000;
   bool _sendToFriend = false;
+  String? _fontFamily;
+  static const double _editorFontSize = 18;
   late final List<_FriendOption> _friends = const [
     _FriendOption('민트클라우드', 'https://i.pravatar.cc/150?img=12'),
     _FriendOption('네온', 'https://i.pravatar.cc/150?img=5'),
@@ -26,47 +30,128 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   TimeOfDay? _scheduledTime;
   late final List<_TemplateOption> _templateOptions = const [
     _TemplateOption(
-      id: 'cotton',
-      name: '코튼 캔디',
-      background: Color(0xFFFFF1F7),
-      textColor: Color(0xFF3C1A4A),
-      previewGradient: [Color(0xFFFF9FD9), Color(0xFFFFC0E9)],
-    ),
-    _TemplateOption(
-      id: 'aurora',
-      name: '오로라 글로우',
-      background: Color(0xFF101633),
+      id: 'neon_grid',
+      name: '네온 그리드',
+      background: Color(0xFF0A0024), // deep midnight
       textColor: Colors.white,
-      previewGradient: [Color(0xFF3B56FF), Color(0xFF8B67F5)],
+      previewGradient: [Color(0xFF6A00FF), Color(0xFFFF2EB6)],
     ),
     _TemplateOption(
-      id: 'mint',
-      name: '미드나잇 민트',
-      background: Color(0xFFE4FFF7),
-      textColor: Color(0xFF003F2C),
-      previewGradient: [Color(0xFF6CEBC5), Color(0xFFADF7E2)],
+      id: 'retro_paper',
+      name: '레트로 페이퍼',
+      background: Color(0xFFFFF3D6), // warm paper
+      textColor: Color(0xFF3D2A1E),
+      previewGradient: [Color(0xFFFFD9A0), Color(0xFFFFF1D8)],
     ),
     _TemplateOption(
-      id: 'sunset',
-      name: '네온 선셋',
-      background: Color(0xFFFFF4E6),
-      textColor: Color(0xFF4A1D0E),
-      previewGradient: [Color(0xFFFF9A62), Color(0xFFFFC77F)],
+      id: 'mint_terminal',
+      name: '민트 터미널',
+      background: Color(0xFF061A17),
+      textColor: Color(0xFF9FFFE0),
+      previewGradient: [Color(0xFF003F33), Color(0xFF00A389)],
     ),
     _TemplateOption(
-      id: 'hologram',
-      name: '홀로그램 글라스',
-      background: Color(0xFFEAE7FF),
-      textColor: Color(0xFF1B0C31),
-      previewGradient: [Color(0xFF8D9EFF), Color(0xFFB28DFF)],
+      id: 'holo_purple',
+      name: '홀로 퍼플',
+      background: Color(0xFFEDE6FF),
+      textColor: Color(0xFF2B1B57),
+      previewGradient: [Color(0xFFA58DFF), Color(0xFFC7B7FF)],
+    ),
+    _TemplateOption(
+      id: 'pixel_blue',
+      name: '픽셀 블루',
+      background: Color(0xFF001133),
+      textColor: Color(0xFFB3C7FF),
+      previewGradient: [Color(0xFF002B8A), Color(0xFF0044CC)],
+    ),
+    _TemplateOption(
+      id: 'sunset_grid',
+      name: '선셋 그리드',
+      background: Color(0xFF2B0010),
+      textColor: Color(0xFFFFE1E1),
+      previewGradient: [Color(0xFFFF5E7E), Color(0xFFFFA06B)],
     ),
   ];
   late _TemplateOption _selectedTemplate = _templateOptions.first;
 
+  String _recommendedFontForTemplate(String templateId) {
+    switch (templateId) {
+      case 'neon_grid':
+        return 'Bungee';
+      case 'retro_paper':
+        return 'Sunflower';
+      case 'mint_terminal':
+        return 'VT323';
+      case 'holo_purple':
+        return 'IBM Plex Mono';
+      case 'pixel_blue':
+        return 'Press Start 2P';
+      case 'sunset_grid':
+        return 'Jua';
+      default:
+        return 'Jua';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fontFamily = _recommendedFontForTemplate(_selectedTemplate.id);
+  }
+
   @override
   void dispose() {
     _controller.dispose();
+    _titleController.dispose();
     super.dispose();
+  }
+
+  void _openEmojiPicker() {
+    // 피처폰/카오모지 스타일 이모티콘
+    final emojis = [
+      '( •_•)ノ✿', '(｡•̀ᴗ-)✧', '(๑˃̵ᴗ˂̵)و', '( ﾟ▽ﾟ)/', '(╯°□°）╯︵ ┻━┻', '┬─┬ ノ( ゜-゜ノ)',
+      '(>_<)', '(T_T)', '(＾▽＾)', '(¬‿¬)', '(•̀ᴗ•́)و ̑̑', '(づ｡◕‿‿◕｡)づ', '(≧∇≦)/', '٩(๑❛ᴗ❛๑)۶',
+      '(ᵔᴥᵔ)', '(*´∀｀*)', '(๑•̀ㅂ•́)و✧', '(◕‿◕✿)', '(ノ^_^)ノ', '(☞ﾟヮﾟ)☞', 'ʕ•ᴥ•ʔ', 'ʕ•̀ω•́ʔ✧',
+      '(｡•́‿•̀｡)', '( ◜‿◝ )♡', '(*´ω｀*)', '(´▽`ʃ♡ƪ)', '( •̀ .̫ •́ )✧', '( ˘ ³˘)♥', '(ง •̀_•́)ง',
+      '(*•̀ᴗ•́*)و ̑̑', '(￣ー￣)ゞ', '(o_ _)ﾉ彡☆', '(╥_╥)', '(＾ω＾)', '☆〜（ゝ。∂）', '(ノಠ益ಠ)ノ彡',
+      '(^_−)−☆', '(￣3￣)', '(∩^o^)⊃━☆ﾟ.*･｡', '(っ˘ڡ˘ς)', '( ͡° ͜ʖ ͡°)', '( •̀ὤ•́ )', '(๑˘︶˘๑)',
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.midnightSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: emojis.length,
+              separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 8),
+              itemBuilder: (context, index) {
+                final e = emojis[index];
+                return ListTile(
+                  title: Text(e, style: const TextStyle(fontFamily: 'monospace')),
+                  onTap: () {
+                    final text = _controller.text;
+                    final sel = _controller.selection;
+                    final insertAt = sel.start >= 0 ? sel.start : text.length;
+                    final newText = text.replaceRange(insertAt, insertAt, e);
+                    _controller.value = TextEditingValue(
+                      text: newText,
+                      selection: TextSelection.collapsed(offset: insertAt + e.length),
+                    );
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -127,7 +212,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                         color: Colors.white70,
                       ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Expanded(
                   child: ListView(
                     children: [
@@ -138,7 +223,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           onSelect: (template) {
                             setState(() {
                               _selectedTemplate = template;
-                              _step = 1;
+                              _fontFamily = _recommendedFontForTemplate(template.id);
                             });
                           },
                         ),
@@ -147,17 +232,32 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_step < steps.length - 1) {
-                      setState(() => _step++);
-                    } else {
-                      await _showSeedSentDialog();
-                      if (mounted) Navigator.of(context).pop();
-                    }
-                  },
-                  child: Text(_step == steps.length - 1 ? '씨앗 뿌리기' : '다음'),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (_step > 0)
+                      OutlinedButton(
+                        onPressed: () => setState(() => _step--),
+                        child: const Text('이전'),
+                      ),
+                    const Spacer(),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IntrinsicWidth(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (_step < steps.length - 1) {
+                              setState(() => _step++);
+                            } else {
+                              await _showSeedSentDialog();
+                              if (mounted) Navigator.of(context).pop();
+                            }
+                          },
+                          child: Text(_step == steps.length - 1 ? '씨앗 뿌리기' : '다음'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -185,17 +285,55 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
               ),
             ],
           ),
-          child: Column(
+          child: DefaultTextStyle(
+            style: (_fontFamily != null
+                ? GoogleFonts.getFont(_fontFamily!, color: _selectedTemplate.textColor)
+                : TextStyle(color: _selectedTemplate.textColor)),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '씨앗 속 메시지',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(color: _selectedTemplate.textColor),
-              ),
-              const SizedBox(height: 12),
+                Text(
+                  '제목',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: _selectedTemplate.textColor),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _titleController,
+                  maxLines: 1,
+                  maxLength: 50,
+                  cursorColor: _selectedTemplate.textColor,
+                  decoration: InputDecoration(
+                    hintText: '제목을 입력하세요',
+                    hintStyle: TextStyle(color: _selectedTemplate.textColor.withOpacity(.6)),
+                    counterText: '',
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: _selectedTemplate.textColor.withOpacity(.4)),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: _selectedTemplate.textColor),
+                    ),
+                  ),
+                  style: (_fontFamily != null
+                          ? GoogleFonts.getFont(
+                              _fontFamily!,
+                              color: _selectedTemplate.textColor,
+                              fontSize: _editorFontSize,
+                            )
+                          : const TextStyle(fontSize: _editorFontSize))
+                      .copyWith(color: _selectedTemplate.textColor),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '씨앗 속 메시지',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(color: _selectedTemplate.textColor),
+                ),
+                const SizedBox(height: 8),
               TextField(
                 controller: _controller,
                 maxLines: 8,
@@ -207,21 +345,24 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                     color: _selectedTemplate.textColor.withOpacity(.7),
                   ),
                 ),
-                style: TextStyle(color: _selectedTemplate.textColor),
+                style: (_fontFamily != null
+                        ? GoogleFonts.getFont(
+                            _fontFamily!,
+                            color: _selectedTemplate.textColor,
+                            fontSize: _editorFontSize,
+                          )
+                        : const TextStyle(fontSize: _editorFontSize)).copyWith(
+                            color: _selectedTemplate.textColor),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: const [
-                  _ChipIcon(icon: Icons.font_download_rounded, label: '폰트'),
-                  _ChipIcon(icon: Icons.format_size, label: '크기'),
-                  _ChipIcon(icon: Icons.palette_outlined, label: '색상'),
-                  _ChipIcon(icon: Icons.emoji_emotions_outlined, label: '스티커'),
-                  _ChipIcon(icon: Icons.undo, label: '실행취소'),
-                ],
+              _EditorToolbar(
+                fontFamily: _fontFamily,
+                onFontFamilyChanged: (v) => setState(() => _fontFamily = v),
+                textColor: _selectedTemplate.textColor,
+                onInsertEmoji: _openEmojiPicker,
               ),
             ],
+            ),
           ),
         ),
       ],
@@ -393,6 +534,60 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     if (picked != null) {
       setState(() => _scheduledTime = picked);
     }
+  }
+}
+
+class _EditorToolbar extends StatelessWidget {
+  const _EditorToolbar({
+    required this.fontFamily,
+    required this.onFontFamilyChanged,
+    required this.textColor,
+    required this.onInsertEmoji,
+  });
+
+  final String? fontFamily;
+  final ValueChanged<String?> onFontFamilyChanged;
+  final Color textColor;
+  final VoidCallback onInsertEmoji;
+
+  @override
+  Widget build(BuildContext context) {
+    // 뉴트로 감성 위주의 폰트만 제공
+    final fonts = <String>[
+      'Press Start 2P',  // 픽셀/레트로 콘솔
+      'VT323',           // 그린 터미널
+      'IBM Plex Mono',   // 모노 레트로
+      'Bungee',          // 네온 간판
+      'DotGothic16',     // 일본 레트로
+      'Kosugi Maru',     // 일본 라운드
+      'Jua',             // 한국 레트로 라운드
+      'Sunflower',       // 한국 레트로 명조
+    ];
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: fontFamily,
+            items: fonts
+                .map((f) => DropdownMenuItem(
+                      value: f,
+                      child: Text(f, style: GoogleFonts.getFont(f, color: textColor)),
+                    ))
+                .toList(),
+            onChanged: onFontFamilyChanged,
+            decoration: const InputDecoration(
+              labelText: '레트로 폰트',
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          tooltip: '이모지',
+          onPressed: onInsertEmoji,
+          icon: const Icon(Icons.emoji_emotions_outlined),
+        ),
+      ],
+    );
   }
 }
 

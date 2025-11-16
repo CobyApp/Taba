@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/presentation/screens/common/letter_detail_screen.dart';
 import 'package:taba_app/data/models/notification.dart';
 
 class SkyScreen extends StatelessWidget {
@@ -64,13 +65,11 @@ class SkyScreen extends StatelessWidget {
                   Text(
                     'Taba',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 28,
-                      letterSpacing: 4,
-                      color: Colors.white,
-                      fontFamily: Theme.of(
-                        context,
-                      ).textTheme.displayLarge?.fontFamily,
-                    ),
+                          fontSize: 28,
+                          letterSpacing: 2,
+                          color: Colors.white,
+                          fontFamily: Theme.of(context).textTheme.displayLarge?.fontFamily,
+                        ),
                   ),
                   const Spacer(),
                   if (onOpenBouquet != null)
@@ -209,15 +208,13 @@ class SkyScreen extends StatelessWidget {
       PageRouteBuilder(
         opaque: false,
         barrierColor: Colors.black.withAlpha(204),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            _LetterBloomPage(letter: letter),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        pageBuilder: (context, animation, secondaryAnimation) {
           return FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeInOut,
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+            child: LetterDetailScreen( // unified detail
+              letter: letter,
+              friendName: letter.isAnonymous ? null : letter.sender.nickname,
             ),
-            child: child,
           );
         },
       ),

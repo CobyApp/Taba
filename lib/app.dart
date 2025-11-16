@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 import 'package:taba_app/core/theme/app_theme.dart';
 import 'package:taba_app/data/mock/mock_data.dart';
 import 'package:taba_app/presentation/screens/auth/login_screen.dart';
@@ -62,14 +64,26 @@ class _TabaAppState extends State<TabaApp> {
         child = const MainShell();
     }
 
-    return MaterialApp(
-      title: 'Taba',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        child: child,
-      ),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppLocaleController.localeNotifier,
+      builder: (context, locale, _) {
+        return MaterialApp(
+          title: 'Taba',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          locale: locale,
+          supportedLocales: AppLocaleController.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          home: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

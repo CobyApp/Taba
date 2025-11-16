@@ -21,31 +21,27 @@ class _TutorialScreenState extends State<TutorialScreen> {
 
   final List<_TutorialPage> _pages = const [
     _TutorialPage(
-      title: 'Neon Lettering',
-      subtitle: '편지를 꽃으로 변환해 밤하늘로 날려보내요.',
-      emoji: '🌸',
-      badge: 'WELCOME',
+      title: 'Welcome to Taba',
+      subtitle: '떠다니는 씨앗을 잡아 꽃을 피워보세요.',
+      emoji: '🌱',
       gradient: AppColors.gradientHeroPink,
     ),
     _TutorialPage(
-      title: 'Make It Retro',
-      subtitle: 'Y2K 템플릿, 픽셀 폰트, 스티커로 마음껏 꾸며보세요.',
-      emoji: '💌',
-      badge: 'STEP 1',
+      title: 'Catch seeds',
+      subtitle: '하늘에서 반짝이는 씨앗을 탭해 편지를 열어봐요.',
+      emoji: '✨',
       gradient: AppColors.gradientHeroBlue,
     ),
     _TutorialPage(
-      title: 'Catch Floating Letters',
-      subtitle: '하늘에 떠다니는 꽃을 탭해 익명의 편지를 읽어봐요.',
-      emoji: '🌈',
-      badge: 'STEP 2',
+      title: 'Bloom flowers',
+      subtitle: '씨앗을 피워 꽃과 함께 마음을 주고받아요.',
+      emoji: '🌸',
       gradient: AppColors.gradientSky,
     ),
     _TutorialPage(
-      title: 'Curate Your Bouquet',
-      subtitle: '마음에 드는 편지를 모아 나만의 꽃다발을 완성하세요.',
+      title: 'Your bouquet',
+      subtitle: '좋아하는 편지를 모아 나만의 꽃다발을 만들어요.',
       emoji: '💐',
-      badge: 'FINAL',
       gradient: AppColors.gradientDusk,
     ),
   ];
@@ -76,21 +72,18 @@ class _TutorialScreenState extends State<TutorialScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
-                    Text(
-                      'Neo Tutorial',
-                      style: Theme.of(context).textTheme.labelLarge,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '튜토리얼',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: widget.onSkip,
-                      child: const Text('SKIP'),
-                    ),
+                    TextButton(onPressed: widget.onSkip, child: const Text('건너뛰기')),
                   ],
                 ),
               ),
@@ -102,101 +95,85 @@ class _TutorialScreenState extends State<TutorialScreen> {
                   itemBuilder: (context, index) {
                     final page = _pages[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 24,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: page.gradient,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(120),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: page.gradient,
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(32),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(120),
+                                    blurRadius: 40,
+                                    offset: const Offset(0, 20),
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(28),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Spacer(),
+                                    Text(page.emoji, style: const TextStyle(fontSize: 96)),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      page.title,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.headlineSmall,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      page.subtitle,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                                    ),
+                                    const Spacer(),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(28),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withAlpha(60),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(page.badge),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                page.title,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                page.subtitle,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const Spacer(),
-                              Align(
-                                alignment: Alignment.bottomRight,
-                                child: Text(
-                                  page.emoji,
-                                  style: const TextStyle(fontSize: 96),
-                                ),
-                              ),
-                            ],
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 24,
-                ),
-                child: Column(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Row(
                   children: [
-                    Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(30),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: (_index + 1) / _pages.length,
-                        child: Container(
+                    Row(
+                      children: List.generate(_pages.length, (i) {
+                        final active = i == _index;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: active ? 18 : 6,
+                          height: 6,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: AppColors.gradientHeroPink,
-                            ),
+                            color: active ? Colors.white : Colors.white38,
                             borderRadius: BorderRadius.circular(999),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     ),
-                    const SizedBox(height: 18),
-                    ElevatedButton(
-                      onPressed: _next,
-                      child: Text(
-                        _index == _pages.length - 1 ? 'NEON SKY 입장' : 'NEXT',
+                    const Spacer(),
+                    IntrinsicWidth(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: _next,
+                          child: Text(_index == _pages.length - 1 ? '시작하기' : '다음'),
+                        ),
                       ),
                     ),
                   ],
@@ -215,13 +192,11 @@ class _TutorialPage {
     required this.title,
     required this.subtitle,
     required this.emoji,
-    required this.badge,
     required this.gradient,
   });
 
   final String title;
   final String subtitle;
   final String emoji;
-  final String badge;
   final List<Color> gradient;
 }

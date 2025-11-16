@@ -6,6 +6,8 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/bouquet.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
+import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
+import 'package:taba_app/presentation/screens/common/letter_detail_screen.dart';
 
 class BouquetScreen extends StatefulWidget {
   const BouquetScreen({super.key, required this.friendBouquets});
@@ -59,7 +61,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _BouquetLetterPage(letter: flower.letter),
+        builder: (_) => LetterDetailScreen(
+          letter: flower.letter,
+          friendName: _selectedBouquet.friend.user.nickname,
+        ),
       ),
     );
   }
@@ -80,8 +85,21 @@ class _BouquetScreenState extends State<BouquetScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('내 꽃다발'),
+          title: const SizedBox.shrink(),
           centerTitle: false,
+        ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _composeLetterToSelectedFriend,
+                icon: const Icon(Icons.edit),
+                label: const Text('이 친구에게 편지 보내기'),
+              ),
+            ),
+          ),
         ),
         body: SafeArea(
           child: CustomScrollView(
@@ -108,10 +126,11 @@ class _BouquetScreenState extends State<BouquetScreen> {
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                sliver: _SharedLetterSliver(
+                sliver: _ChatMessagesSliver(
                   flowers: selected.sharedFlowers,
                   readFlowerIds: _readFlowerIds,
                   onOpen: _openFlower,
+                  friendAvatarUrl: selected.friend.user.avatarUrl,
                 ),
               ),
             ],
@@ -270,6 +289,14 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
     setState(() {
       _customBouquetNames[bouquet.friend.user.id] = name;
     });
+  }
+
+  void _composeLetterToSelectedFriend() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const WriteLetterPage(),
+      ),
+    );
   }
 }
 
@@ -648,66 +675,179 @@ class _LetterTile extends StatelessWidget {
   }
 }
 
-class _BouquetLetterPage extends StatelessWidget {
-  const _BouquetLetterPage({required this.letter});
+class _ChatMessagesSliver extends StatelessWidget {
+  const _ChatMessagesSliver({
+    required this.flowers,
+    required this.readFlowerIds,
+    required this.onOpen,
+    required this.friendAvatarUrl,
+  });
 
-  final Letter letter;
+  final List<SharedFlower> flowers;
+  final Set<String> readFlowerIds;
+  final ValueChanged<SharedFlower> onOpen;
+  final String friendAvatarUrl;
 
   @override
   Widget build(BuildContext context) {
-    final style = letter.template;
-    final textColor = style?.textColor ?? AppColors.midnight;
-    return Scaffold(
-      backgroundColor: AppColors.midnightSoft,
-      appBar: AppBar(
-        title: Text(letter.title),
-        backgroundColor: Colors.transparent,
+    final separatedCount = math.max(0, flowers.length * 2 - 1);
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index.isOdd) return const SizedBox(height: 8);
+          final i = index ~/ 2;
+          final item = flowers[i];
+          final isUnread = !item.sentByMe && !readFlowerIds.contains(item.id);
+          return _ChatBubble(
+            contentTitle: item.title,
+            contentPreview: item.preview,
+            emoji: item.flower.emoji,
+            isMine: item.sentByMe,
+            timeLabel: _timeAgoStatic(item.sentAt),
+            isUnread: isUnread,
+            friendAvatarUrl: friendAvatarUrl,
+            onTap: () => onOpen(item),
+          );
+        },
+        childCount: separatedCount,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(80),
-                blurRadius: 28,
-                offset: const Offset(0, 18),
+    );
+  }
+
+  static String _timeAgoStatic(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    return '${diff.inDays}일 전';
+  }
+}
+
+class _ChatBubble extends StatelessWidget {
+  const _ChatBubble({
+    required this.contentTitle,
+    required this.contentPreview,
+    required this.emoji,
+    required this.isMine,
+    required this.timeLabel,
+    required this.isUnread,
+    required this.friendAvatarUrl,
+    required this.onTap,
+  });
+
+  final String contentTitle;
+  final String contentPreview;
+  final String emoji;
+  final bool isMine;
+  final String timeLabel;
+  final bool isUnread;
+  final String friendAvatarUrl;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bubbleColor = isMine ? AppColors.neonBlue.withAlpha(40) : AppColors.midnightGlass;
+    final align = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final radius = BorderRadius.only(
+      topLeft: const Radius.circular(20),
+      topRight: const Radius.circular(20),
+      bottomLeft: Radius.circular(isMine ? 20 : 4),
+      bottomRight: Radius.circular(isMine ? 4 : 20),
+    );
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bubbleMaxWidth = screenWidth * 0.98;
+
+    final bubble = InkWell(
+      borderRadius: radius,
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bubbleColor,
+          borderRadius: radius,
+          border: Border.all(
+            color: isUnread ? AppColors.neonPink.withAlpha(120) : Colors.white24,
+          ),
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      contentTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (isUnread)
+                    Container(
+                      margin: const EdgeInsets.only(left: 6),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.neonPink,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                contentPreview,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
             ],
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  letter.senderDisplay,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: textColor),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  letter.content,
-                  style: TextStyle(
-                    color: textColor,
-                    fontFamily: style?.fontFamily,
-                    fontSize: style?.fontSize ?? 16,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
     );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        crossAxisAlignment: align,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (!isMine) ...[
+                CircleAvatar(radius: 14, backgroundImage: NetworkImage(friendAvatarUrl)),
+                const SizedBox(width: 8),
+                Flexible(child: bubble),
+                const Spacer(),
+              ] else ...[
+                const Spacer(),
+                Flexible(child: bubble),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: isMine ? 0 : 36, right: isMine ? 0 : 0),
+              child: Text(
+                timeLabel,
+                style: const TextStyle(color: Colors.white54, fontSize: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
-
 

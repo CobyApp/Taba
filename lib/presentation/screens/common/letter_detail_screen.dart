@@ -1,0 +1,299 @@
+import 'package:flutter/material.dart';
+import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
+
+class LetterDetailScreen extends StatelessWidget {
+  const LetterDetailScreen({
+    super.key,
+    required this.letter,
+    this.friendName,
+  });
+
+  final Letter letter;
+  final String? friendName; // if null and anonymous => '익명의 사용자'
+
+  String get _displaySender {
+    if (friendName != null && friendName!.trim().isNotEmpty) return friendName!;
+    if (letter.isAnonymous) return '익명의 사용자';
+    return letter.senderDisplay;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = letter.template;
+    // Force dark panel to avoid bright backgrounds
+    final Color panelBackground = AppColors.midnight;
+    final Color textColor = Colors.white;
+
+    return Scaffold(
+      backgroundColor: AppColors.midnightSoft,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: const SizedBox.shrink(),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const WriteLetterPage(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.reply_outlined),
+              label: const Text('답장하기'),
+            ),
+          ),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              children: [
+                // Header under navigation bar: profile + flower/time (left), report button (right)
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundImage: NetworkImage(letter.sender.avatarUrl),
+                      backgroundColor: Colors.white.withAlpha(20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _displaySender,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _RoleChip(isFriend: friendName != null, isAnonymous: letter.isAnonymous),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.local_florist_outlined, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  letter.flower.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(Icons.schedule, size: 14, color: Colors.white54),
+                              const SizedBox(width: 4),
+                              Text(letter.timeAgo(), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _openReportSheet(context),
+                      child: const Text('신고', style: TextStyle(color: Colors.redAccent)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: panelBackground,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: Colors.white24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(80),
+                          blurRadius: 28,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            letter.title,
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            letter.content,
+                            style: TextStyle(
+                              color: textColor,
+                              fontFamily: style?.fontFamily,
+                              fontSize: style?.fontSize ?? 16,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openReportSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.midnightSoft,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return const _ReportSheet();
+      },
+    );
+  }
+}
+
+Color _contrastOn(Color background) {
+  final luminance = background.computeLuminance();
+  return luminance > 0.6 ? AppColors.midnight : Colors.white;
+}
+
+class _RoleChip extends StatelessWidget {
+  const _RoleChip({required this.isFriend, required this.isAnonymous});
+  final bool isFriend;
+  final bool isAnonymous;
+
+  @override
+  Widget build(BuildContext context) {
+    String label;
+    if (isFriend) {
+      label = '친구';
+    } else if (isAnonymous) {
+      label = '익명';
+    } else {
+      label = '사용자';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(26),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white)),
+    );
+  }
+}
+
+class _ReportSheet extends StatefulWidget {
+  const _ReportSheet();
+
+  @override
+  State<_ReportSheet> createState() => _ReportSheetState();
+}
+
+class _ReportSheetState extends State<_ReportSheet> {
+  final _detailsCtrl = TextEditingController();
+  String _reason = '스팸/광고';
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _detailsCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('신고하기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _reason,
+              items: const [
+                DropdownMenuItem(value: '스팸/광고', child: Text('스팸/광고')),
+                DropdownMenuItem(value: '혐오/차별', child: Text('혐오/차별')),
+                DropdownMenuItem(value: '욕설/괴롭힘', child: Text('욕설/괴롭힘')),
+                DropdownMenuItem(value: '개인정보 노출', child: Text('개인정보 노출')),
+                DropdownMenuItem(value: '기타', child: Text('기타')),
+              ],
+              onChanged: (v) => setState(() => _reason = v ?? _reason),
+              decoration: const InputDecoration(labelText: '사유'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _detailsCtrl,
+              minLines: 3,
+              maxLines: 6,
+              decoration: const InputDecoration(
+                labelText: '상세 내용 (선택)',
+                hintText: '상세한 내용을 적어주세요',
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _submitting ? null : _submit,
+                icon: const Icon(Icons.send_rounded),
+                label: Text(_submitting ? '전송 중...' : '신고 접수'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.')),
+    );
+  }
+}
+
+
