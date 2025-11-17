@@ -59,7 +59,7 @@ class SkyScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
                   Text(
@@ -130,59 +130,6 @@ class SkyScreen extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(size),
         boxShadow: [BoxShadow(color: color, blurRadius: 24, spreadRadius: 6)],
-      ),
-    );
-  }
-
-  void _openNotificationSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: false,
-      enableDrag: true,
-      isDismissible: true,
-      useSafeArea: true,
-      backgroundColor: AppColors.midnightSoft,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.outline,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text('알림 센터', style: Theme.of(context).textTheme.titleLarge),
-                const Spacer(),
-                const Icon(Icons.tune_rounded, color: Colors.white),
-              ],
-            ),
-            const SizedBox(height: 18),
-            ...notifications.map(
-              (n) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.neonPink.withAlpha(60),
-                  child: Text(
-                    n.category.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                title: Text(n.title),
-                subtitle: Text('${n.subtitle} · ${n.timeAgo}'),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -455,53 +402,6 @@ class _SeedOrb extends StatelessWidget {
   }
 }
 
-class _NeonPetal extends StatelessWidget {
-  const _NeonPetal({required this.letter, required this.scale});
-
-  final Letter letter;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = 80 * scale + 28;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white.withAlpha(32), Colors.white.withAlpha(10)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white.withAlpha(70)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.white.withAlpha(24),
-            blurRadius: 20,
-            offset: const Offset(0, 14),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(letter.flower.emoji, style: TextStyle(fontSize: size * 0.35)),
-          const SizedBox(height: 6),
-          Text(
-            letter.senderDisplay,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white,
-              letterSpacing: 0.4,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _SeedBloomOverlay extends StatefulWidget {
   const _SeedBloomOverlay({
@@ -669,144 +569,6 @@ class _FlowerAvatar extends StatelessWidget {
   }
 }
 
-class _LetterBloomPage extends StatelessWidget {
-  const _LetterBloomPage({required this.letter});
-
-  final Letter letter;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = letter.template;
-    final background = style?.background ?? Colors.white;
-    final textColor =
-        style?.textColor ?? _contrastOn(background);
-    final titleStyle =
-        Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor);
-
-    return Scaffold(
-      backgroundColor: AppColors.midnightSoft,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  const Spacer(),
-                  Text(
-                    letter.flower.emoji,
-                    style: const TextStyle(fontSize: 28),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    letter.flower.label,
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 460),
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(.35),
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: Colors.white10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(150),
-                          blurRadius: 32,
-                          offset: const Offset(0, 18),
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: background,
-                        borderRadius: BorderRadius.circular(26),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      padding: const EdgeInsets.all(22),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                _FlowerAvatar(type: letter.flower),
-                                const SizedBox(width: 16),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      letter.senderDisplay,
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      letter.timeAgo(),
-                                      style: TextStyle(
-                                        color: textColor.withOpacity(.6),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                            Text(letter.title, style: titleStyle),
-                            const SizedBox(height: 12),
-                            Text(
-                              letter.content,
-                              style: TextStyle(
-                                color: textColor,
-                                fontFamily: style?.fontFamily,
-                                fontSize: style?.fontSize ?? 16,
-                                height: 1.6,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: const [
-                                _LetterAction(
-                                    icon: Icons.favorite_border, label: '좋아요'),
-                                _LetterAction(
-                                    icon: Icons.reply_outlined, label: '답장'),
-                                _LetterAction(
-                                  icon: Icons.local_florist_outlined,
-                                  label: '꽃다발',
-                                ),
-                                _LetterAction(
-                                    icon: Icons.share_outlined, label: '공유'),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _LetterAction extends StatelessWidget {
   const _LetterAction({required this.icon, required this.label});

@@ -16,7 +16,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
-  bool _staySignedIn = true;
 
   @override
   void dispose() {
@@ -52,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
                   child: Column(
@@ -76,16 +75,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 28),
                       Container(
-                        padding: const EdgeInsets.all(22),
+                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(80),
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(color: Colors.white.withAlpha(35)),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withAlpha(120),
-                              blurRadius: 30,
-                              offset: const Offset(0, 20),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -100,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintText: 'neon@taba.app',
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             TextField(
                               controller: _passwordCtrl,
                               obscureText: true,
@@ -109,8 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintText: '••••••••',
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
@@ -170,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

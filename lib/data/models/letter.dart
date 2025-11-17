@@ -56,6 +56,7 @@ class Letter {
     this.visibility = VisibilityScope.public,
     this.tags = const [],
     this.template,
+    this.attachedImages = const [],
   });
 
   final String id;
@@ -72,6 +73,7 @@ class Letter {
   final VisibilityScope visibility;
   final List<String> tags;
   final LetterStyle? template;
+  final List<String> attachedImages; // 사진 첨부 경로/URL 리스트
 
   String get senderDisplay => isAnonymous ? '익명' : sender.nickname;
 

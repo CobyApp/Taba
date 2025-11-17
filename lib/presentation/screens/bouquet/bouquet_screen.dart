@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/bouquet.dart';
-import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 import 'package:taba_app/presentation/screens/common/letter_detail_screen.dart';
@@ -90,7 +89,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
         ),
         bottomNavigationBar: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -125,7 +124,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                 sliver: _ChatMessagesSliver(
                   flowers: selected.sharedFlowers,
                   readFlowerIds: _readFlowerIds,
@@ -169,7 +168,7 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
       backgroundColor: AppColors.midnightSoft,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         final controller =
@@ -180,7 +179,7 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
           maxChildSize: 0.92,
           builder: (context, scrollController) {
             return Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               child: ListView(
                 controller: scrollController,
                 children: [
@@ -233,7 +232,7 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
                         .map(
                           (flower) => Container(
                             width: 150,
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
                               color: AppColors.midnightGlass,
@@ -373,7 +372,7 @@ class _FriendStoryStrip extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.neonPink,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
                               '$unread',
@@ -435,7 +434,7 @@ class _FriendSummaryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
               color.withAlpha(220),
@@ -499,40 +498,6 @@ class _FriendSummaryCard extends StatelessWidget {
   }
 }
 
-class _SharedLetterSliver extends StatelessWidget {
-  const _SharedLetterSliver({
-    required this.flowers,
-    required this.readFlowerIds,
-    required this.onOpen,
-  });
-
-  final List<SharedFlower> flowers;
-  final Set<String> readFlowerIds;
-  final ValueChanged<SharedFlower> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final separatedCount = math.max(0, flowers.length * 2 - 1);
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          if (index.isOdd) return const SizedBox(height: 12);
-          final flowerIndex = index ~/ 2;
-          final flower = flowers[flowerIndex];
-          final isUnread =
-              !flower.sentByMe && !readFlowerIds.contains(flower.id);
-          return _LetterTile(
-            flower: flower,
-            isUnread: isUnread,
-            onTap: () => onOpen(flower),
-          );
-        },
-        childCount: separatedCount,
-      ),
-    );
-  }
-}
-
 class _LetterTile extends StatelessWidget {
   const _LetterTile({
     required this.flower,
@@ -550,11 +515,11 @@ class _LetterTile extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
-      child: Ink(
-        padding: const EdgeInsets.all(18),
+        child: Ink(
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.midnightGlass,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isUnread ? AppColors.neonPink.withAlpha(120) : Colors.white24,
           ),
@@ -608,7 +573,7 @@ class _LetterTile extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     flower.preview,
                     maxLines: 2,
@@ -618,7 +583,7 @@ class _LetterTile extends StatelessWidget {
                         .bodySmall
                         ?.copyWith(color: Colors.white70),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Icon(
@@ -694,7 +659,7 @@ class _ChatMessagesSliver extends StatelessWidget {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          if (index.isOdd) return const SizedBox(height: 8);
+          if (index.isOdd) return const SizedBox(height: 12);
           final i = index ~/ 2;
           final item = flowers[i];
           final isUnread = !item.sentByMe && !readFlowerIds.contains(item.id);
@@ -761,7 +726,7 @@ class _ChatBubble extends StatelessWidget {
       borderRadius: radius,
       onTap: onTap,
       child: Ink(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: bubbleColor,
           borderRadius: radius,
@@ -778,7 +743,7 @@ class _ChatBubble extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   Text(emoji, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       contentTitle,

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/letter.dart';
@@ -34,7 +35,7 @@ class LetterDetailScreen extends StatelessWidget {
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -52,7 +53,7 @@ class LetterDetailScreen extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
@@ -66,7 +67,7 @@ class LetterDetailScreen extends StatelessWidget {
                       backgroundImage: NetworkImage(letter.sender.avatarUrl),
                       backgroundColor: Colors.white.withAlpha(20),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,11 +82,11 @@ class LetterDetailScreen extends StatelessWidget {
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 8),
                               _RoleChip(isFriend: friendName != null, isAnonymous: letter.isAnonymous),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
                               const Icon(Icons.local_florist_outlined, size: 14, color: Colors.white70),
@@ -98,9 +99,9 @@ class LetterDetailScreen extends StatelessWidget {
                                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               const Icon(Icons.schedule, size: 14, color: Colors.white54),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 8),
                               Text(letter.timeAgo(), style: const TextStyle(color: Colors.white54, fontSize: 12)),
                             ],
                           ),
@@ -113,23 +114,27 @@ class LetterDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
+                if (letter.attachedImages.isNotEmpty) ...[
+                  _buildImageGallery(context, letter.attachedImages),
+                  const SizedBox(height: 16),
+                ],
                 Expanded(
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: panelBackground,
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: Colors.white24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(80),
-                          blurRadius: 28,
-                          offset: const Offset(0, 18),
+                          color: Colors.black.withAlpha(120),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
+                    padding: const EdgeInsets.all(20),
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +143,7 @@ class LetterDetailScreen extends StatelessWidget {
                             letter.title,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           Text(
                             letter.content,
                             style: TextStyle(
@@ -161,6 +166,76 @@ class LetterDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildImageGallery(BuildContext context, List<String> images) {
+    if (images.isEmpty) return const SizedBox.shrink();
+    
+    return GestureDetector(
+      onTap: () => _openImageViewer(context, images),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppColors.midnight,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: PageView.builder(
+            itemCount: images.length,
+            itemBuilder: (context, index) {
+              final imagePath = images[index];
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 이미지가 파일 경로인지 URL인지 확인
+                  imagePath.startsWith('http')
+                      ? Image.network(
+                          imagePath,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54),
+                          ),
+                        )
+                      : Image.file(
+                          File(imagePath),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54),
+                          ),
+                        ),
+                  if (images.length > 1)
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '${index + 1} / ${images.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openImageViewer(BuildContext context, List<String> images) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _ImageViewerScreen(images: images),
+      ),
+    );
+  }
+
   void _openReportSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -174,11 +249,6 @@ class LetterDetailScreen extends StatelessWidget {
       },
     );
   }
-}
-
-Color _contrastOn(Color background) {
-  final luminance = background.computeLuminance();
-  return luminance > 0.6 ? AppColors.midnight : Colors.white;
 }
 
 class _RoleChip extends StatelessWidget {
@@ -292,6 +362,83 @@ class _ReportSheetState extends State<_ReportSheet> {
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.')),
+    );
+  }
+}
+
+class _ImageViewerScreen extends StatefulWidget {
+  const _ImageViewerScreen({required this.images});
+  final List<String> images;
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = 0;
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(
+          '${_currentIndex + 1} / ${widget.images.length}',
+          style: const TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: PageView.builder(
+        controller: _pageController,
+        itemCount: widget.images.length,
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        itemBuilder: (context, index) {
+          final imagePath = widget.images[index];
+          return Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 3.0,
+              child: imagePath.startsWith('http')
+                  ? Image.network(
+                      imagePath,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                      ),
+                    )
+                  : Image.file(
+                      File(imagePath),
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                      ),
+                    ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

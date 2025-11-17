@@ -72,17 +72,10 @@ class _TutorialScreenState extends State<TutorialScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '튜토리얼',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white70),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                     TextButton(onPressed: widget.onSkip, child: const Text('건너뛰기')),
                   ],
                 ),

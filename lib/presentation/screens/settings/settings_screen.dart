@@ -32,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('설정'), centerTitle: false),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           _ProfileCard(user: user),
           const SizedBox(height: 24),
@@ -44,12 +44,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (value) => setState(() => _pushEnabled = value),
           ),
           const SizedBox(height: 24),
-          // 화면 테마 및 다크모드 설정 제거 (앱 전역 테마 고정)
-          const SizedBox(height: 24),
           const _SectionHeader(title: '친구 초대'),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -193,12 +191,12 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0x33FFFFFF), Color(0x11FFFFFF)],
         ),
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withAlpha(60)),
       ),
       child: Row(
