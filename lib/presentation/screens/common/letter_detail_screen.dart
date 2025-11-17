@@ -4,6 +4,7 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 
 class LetterDetailScreen extends StatefulWidget {
@@ -363,20 +364,14 @@ class _ReportSheetState extends State<_ReportSheet> {
       
       if (success) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.')),
-        );
+        showTabaSuccess(context, message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('신고 접수에 실패했습니다. 다시 시도해주세요.')),
-        );
+        showTabaError(context, message: '신고 접수에 실패했습니다. 다시 시도해주세요.');
         setState(() => _submitting = false);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
-      );
+      showTabaError(context, message: '오류가 발생했습니다: $e');
       setState(() => _submitting = false);
     }
   }

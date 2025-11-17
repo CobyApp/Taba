@@ -52,9 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingSettings = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('설정을 불러오는데 실패했습니다: $e')),
-        );
+        showTabaError(context, message: '설정을 불러오는데 실패했습니다: $e');
       }
     }
   }
@@ -246,11 +244,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _copyInvite(String code) {
     Clipboard.setData(ClipboardData(text: code));
-    showTabaNotice(
+    showTabaSuccess(
       context,
       title: '초대 코드가 복사되었어요',
       message: '친구에게 코드를 공유해 함께 하늘을 채워보세요.',
-      icon: Icons.copy_all,
     );
   }
 
@@ -295,9 +292,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _addFriendByCode(String inviteCode) async {
     if (inviteCode.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('친구 코드를 입력해주세요')),
-      );
+        showTabaError(context, message: '친구 코드를 입력해주세요');
       return;
     }
 
@@ -306,28 +301,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       if (success) {
-        showTabaNotice(
+        showTabaSuccess(
           context,
           title: '친구가 추가되었어요',
           message: '이제 서로의 편지를 주고받을 수 있어요.',
-          icon: Icons.check_circle,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('친구 추가에 실패했습니다. 코드를 확인해주세요.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showTabaError(context, message: '친구 추가에 실패했습니다. 코드를 확인해주세요.');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('오류가 발생했습니다: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      showTabaError(context, message: '오류가 발생했습니다: $e');
     }
   }
 
@@ -339,9 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (!success) {
         setState(() => _pushEnabled = !enabled);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('알림 설정 변경에 실패했습니다')),
-        );
+        showTabaError(context, message: '알림 설정 변경에 실패했습니다');
       }
     } catch (e) {
       if (!mounted) return;
@@ -365,16 +347,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _inviteCode = code;
       _codeGeneratedAt = DateTime.now();
     });
-    showTabaNotice(
+    showTabaSuccess(
       context,
       title: '새 초대 코드 발급',
       message: '3분 동안 사용할 수 있는 코드를 만들었어요.',
-      icon: Icons.timelapse,
     );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('초대 코드 생성에 실패했습니다')),
-        );
+        showTabaError(context, message: '초대 코드 생성에 실패했습니다');
       }
     } catch (e) {
       if (!mounted) return;
@@ -444,9 +423,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       widget.onLogout?.call();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그아웃 중 오류가 발생했습니다: $e')),
-      );
+        showTabaError(context, message: '로그아웃 중 오류가 발생했습니다: $e');
     }
   }
 }
@@ -577,9 +554,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사진 선택 중 오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '사진 선택 중 오류가 발생했습니다: $e');
       }
     }
   }
@@ -600,9 +575,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사진 촬영 중 오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '사진 촬영 중 오류가 발생했습니다: $e');
       }
     }
   }
@@ -655,9 +628,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_nicknameCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('닉네임을 입력해주세요')),
-      );
+      showTabaError(context, message: '닉네임을 입력해주세요');
       return;
     }
 
@@ -688,16 +659,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         
         if (success) {
           Navigator.of(context).pop(true);
-          showTabaNotice(
+          showTabaSuccess(
             context,
             title: '프로필이 수정되었어요',
             message: '변경사항이 저장되었습니다.',
-            icon: Icons.check_circle,
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('프로필 수정에 실패했습니다')),
-          );
+          showTabaError(context, message: '프로필 수정에 실패했습니다');
         }
       }
     } catch (e) {

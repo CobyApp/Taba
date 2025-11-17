@@ -6,6 +6,7 @@ import 'package:taba_app/presentation/screens/bouquet/bouquet_screen.dart';
 import 'package:taba_app/presentation/screens/settings/settings_screen.dart';
 import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.onLogout});
@@ -71,12 +72,7 @@ class _MainShellState extends State<MainShell> {
           return;
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('데이터를 불러오는데 실패했습니다: $e'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        showTabaError(context, message: '데이터를 불러오는데 실패했습니다: $e');
       }
     }
   }
@@ -113,11 +109,9 @@ class _MainShellState extends State<MainShell> {
       if (!mounted) return;
       
       if (bouquets.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('아직 꽃다발이 없습니다. 친구와 편지를 주고받으면 꽃다발이 생겨요.'),
-            duration: Duration(seconds: 2),
-          ),
+        showTabaInfo(
+          context,
+          message: '아직 꽃다발이 없습니다. 친구와 편지를 주고받으면 꽃다발이 생겨요.',
         );
         return;
       }
@@ -132,9 +126,7 @@ class _MainShellState extends State<MainShell> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('꽃다발을 불러오는데 실패했습니다: $e')),
-      );
+      showTabaError(context, message: '꽃다발을 불러오는데 실패했습니다: $e');
     }
   }
 
@@ -145,13 +137,7 @@ class _MainShellState extends State<MainShell> {
       
       if (user == null) {
         if (!mounted) return;
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text('사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        showTabaError(context, message: '사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.');
         // 401 에러인 경우 자동 로그아웃
         widget.onLogout?.call();
         return;
@@ -186,13 +172,7 @@ class _MainShellState extends State<MainShell> {
         return;
       }
       
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('설정을 불러오는데 실패했습니다: $e'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      showTabaError(context, message: '설정을 불러오는데 실패했습니다: $e');
     }
   }
 

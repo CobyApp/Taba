@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -23,9 +24,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _sendReset() async {
     if (_emailCtrl.text.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이메일을 입력해주세요')),
-        );
+        showTabaError(context, message: '이메일을 입력해주세요');
       }
       return;
     }
@@ -38,21 +37,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('비밀번호 재설정 메일을 보냈어요.')),
-          );
+          showTabaSuccess(context, message: '비밀번호 재설정 메일을 보냈어요.');
           Navigator.of(context).pop();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('이메일 전송에 실패했습니다. 다시 시도해주세요.')),
-          );
+          showTabaError(context, message: '이메일 전송에 실패했습니다. 다시 시도해주세요.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {

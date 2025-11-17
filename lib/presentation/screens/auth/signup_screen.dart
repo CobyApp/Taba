@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/auth/terms_screen.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.onSuccess});
@@ -48,9 +49,7 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사진 선택 중 오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '사진 선택 중 오류가 발생했습니다: $e');
       }
     }
   }
@@ -126,18 +125,14 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _submit() async {
     if (!_agreeTerms || !_agreePrivacy) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이용약관과 개인정보처리방침에 동의해주세요')),
-        );
+        showTabaError(context, message: '이용약관과 개인정보처리방침에 동의해주세요');
       }
       return;
     }
     
     if (_passwordCtrl.text != _confirmCtrl.text) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('비밀번호가 일치하지 않습니다')),
-        );
+        showTabaError(context, message: '비밀번호가 일치하지 않습니다');
       }
       return;
     }
@@ -146,9 +141,7 @@ class _SignupScreenState extends State<SignupScreen> {
         _nicknameCtrl.text.isEmpty ||
         _passwordCtrl.text.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('모든 필드를 입력해주세요')),
-        );
+        showTabaError(context, message: '모든 필드를 입력해주세요');
       }
       return;
     }
@@ -171,16 +164,12 @@ class _SignupScreenState extends State<SignupScreen> {
           Navigator.of(context).pop();
           widget.onSuccess();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('회원가입에 실패했습니다. 다시 시도해주세요.')),
-          );
+          showTabaError(context, message: '회원가입에 실패했습니다. 다시 시도해주세요.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {

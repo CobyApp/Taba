@@ -6,6 +6,7 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/friend.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class WriteLetterPage extends StatefulWidget {
   const WriteLetterPage({
@@ -145,9 +146,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingFriends = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('친구 목록을 불러오는데 실패했습니다: $e')),
-        );
+        showTabaError(context, message: '친구 목록을 불러오는데 실패했습니다: $e');
       }
     }
   }
@@ -233,9 +232,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사진 선택 중 오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '사진 선택 중 오류가 발생했습니다: $e');
       }
     }
   }
@@ -733,9 +730,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     final text = _notesController.text.trim();
     if (text.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('편지 내용을 입력해주세요')),
-        );
+        showTabaError(context, message: '편지 내용을 입력해주세요');
       }
       return;
     }
@@ -747,9 +742,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     
     if (title.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('제목을 입력해주세요')),
-        );
+        showTabaError(context, message: '제목을 입력해주세요');
       }
       return;
     }
@@ -826,47 +819,36 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       if (!mounted) return;
 
       if (success) {
-        // 성공 다이얼로그 표시
-    final target = _sendToFriend
+        // 성공 메시지 표시
+        final target = _sendToFriend
             ? (_selectedFriend?.user.nickname ?? '친구')
-        : '전체 공개';
-    final scheduleSummary = _reserveSend && _scheduledDate != null
-        ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
-            '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
-        : '씨앗은 바로 네온 하늘로 날아가요.';
+            : '전체 공개';
+        final scheduleSummary = _reserveSend && _scheduledDate != null
+            ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
+                '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
+            : '씨앗은 바로 네온 하늘로 날아가요.';
         
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('씨앗을 뿌렸어요'),
-          content: Text('받는 대상: $target\n$scheduleSummary'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
-        );
-      },
-    );
-
         // 콜백 호출하여 메인 화면 새로고침
         widget.onSuccess?.call();
         
         // 화면 닫기
         if (mounted) Navigator.of(context).pop(); // close sheet
         if (mounted) Navigator.of(context).pop(); // close editor
+        
+        // 성공 알림 표시 (화면 닫은 후)
+        if (mounted) {
+          showTabaSuccess(
+            context,
+            title: '씨앗을 뿌렸어요',
+            message: '받는 대상: $target\n$scheduleSummary',
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('편지 전송에 실패했습니다. 다시 시도해주세요.')),
-    );
+        showTabaError(context, message: '편지 전송에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-    );
+        showTabaError(context, message: '오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {

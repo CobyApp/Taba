@@ -77,9 +77,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loadingFlowers[friendId] = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('편지 목록을 불러오는데 실패했습니다: $e')),
-        );
+        showTabaError(context, message: '편지 목록을 불러오는데 실패했습니다: $e');
       }
     }
   }
@@ -254,11 +252,10 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
 초대 코드: ${bouquet.friend.inviteCode}
 ''';
     Clipboard.setData(ClipboardData(text: shareText));
-    showTabaNotice(
+    showTabaSuccess(
       context,
       title: '꽃다발 공유 링크 복사',
       message: '${bouquet.friend.user.nickname}과의 꽃다발을 친구에게 전해보세요.',
-      icon: Icons.share,
     );
   }
 
@@ -316,11 +313,10 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
                       final trimmed = value.trim();
                       if (trimmed.isEmpty) return;
                       _saveBouquetName(bouquet, trimmed);
-                      showTabaNotice(
+                      showTabaSuccess(
                         context,
                         title: '꽃다발 이름을 저장했어요',
                         message: trimmed,
-                        icon: Icons.local_florist,
                       );
                     },
                   ),
@@ -329,53 +325,104 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
                     future: _repository.getFriendLetters(friendId: bouquet.friend.user.id),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                       }
-                      if (snapshot.hasError || !snapshot.hasData) {
-                        return const Text('편지를 불러올 수 없습니다', style: TextStyle(color: Colors.white70));
+                      if (snapshot.hasError) {
+                        print('편지 목록 로딩 에러: ${snapshot.error}');
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.white70, size: 48),
+                              const SizedBox(height: 12),
+                              Text(
+                                '편지를 불러올 수 없습니다',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${snapshot.error}',
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('편지를 불러올 수 없습니다', style: TextStyle(color: Colors.white70)),
+                        );
                       }
                       final flowers = snapshot.data!;
+                      print('편지 목록 로드 완료: ${flowers.length}개');
                       if (flowers.isEmpty) {
-                        return const Text('아직 편지가 없습니다', style: TextStyle(color: Colors.white70));
+                        return const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              Icon(Icons.local_florist_outlined, color: Colors.white38, size: 64),
+                              SizedBox(height: 16),
+                              Text(
+                                '아직 편지가 없습니다',
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '친구에게 편지를 보내보세요',
+                                style: TextStyle(color: Colors.white54, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        );
                       }
                       return Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         children: flowers
                             .map(
-                              (flower) => Container(
-                                width: 150,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                  color: AppColors.midnightGlass,
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      flower.flower.emoji,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      flower.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(color: Colors.white),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      flower.preview,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
+                              (flower) => GestureDetector(
+                                onTap: () => _openFlower(flower),
+                                child: Container(
+                                  width: 150,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: AppColors.midnightGlass,
+                                    border: Border.all(color: Colors.white24),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        flower.flower.emoji,
+                                        style: const TextStyle(fontSize: 24),
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        flower.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        flower.preview,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             )

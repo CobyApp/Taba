@@ -214,15 +214,49 @@ class DataRepository {
     int page = 0,
     int size = 20,
   }) async {
-    final response = await _bouquetService.getFriendLetters(
-      friendId: friendId,
-      page: page,
-      size: size,
-    );
-    if (response.isSuccess && response.data != null) {
-      return response.data!.content.map((dto) => dto.toModel()).toList();
+    try {
+      print('getFriendLetters 호출: friendId=$friendId, page=$page, size=$size');
+      final response = await _bouquetService.getFriendLetters(
+        friendId: friendId,
+        page: page,
+        size: size,
+      );
+      print('getFriendLetters 응답: success=${response.isSuccess}, error=${response.error?.message}');
+      
+      if (response.isSuccess && response.data != null) {
+        print('getFriendLetters 데이터: ${response.data!.content.length}개');
+        try {
+          final flowers = response.data!.content.map((dto) {
+            try {
+              return dto.toModel();
+            } catch (e, stackTrace) {
+              print('SharedFlowerDto toModel 에러: $e');
+              print('Stack trace: $stackTrace');
+              print('DTO: $dto');
+              rethrow;
+            }
+          }).toList();
+          print('getFriendLetters 변환 완료: ${flowers.length}개');
+          return flowers;
+        } catch (e, stackTrace) {
+          print('getFriendLetters 변환 에러: $e');
+          print('Stack trace: $stackTrace');
+          return [];
+        }
+      }
+      
+      if (response.error != null) {
+        print('getFriendLetters API 에러: ${response.error!.message}');
+        throw Exception(response.error!.message);
+      }
+      
+      print('getFriendLetters: 데이터 없음');
+      return [];
+    } catch (e, stackTrace) {
+      print('getFriendLetters 예외: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
-    return [];
   }
 
   // Notifications

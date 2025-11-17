@@ -4,6 +4,7 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/auth/signup_screen.dart';
 import 'package:taba_app/presentation/screens/auth/forgot_password_screen.dart';
+import 'package:taba_app/presentation/widgets/taba_notice.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onSuccess});
@@ -29,9 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (_emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요')),
-        );
+        showTabaError(context, message: '이메일과 비밀번호를 입력해주세요');
       }
       return;
     }
@@ -48,16 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
         if (success) {
           widget.onSuccess();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
-          );
+          showTabaError(context, message: '로그인에 실패했습니다. 다시 시도해주세요.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+        showTabaError(context, message: '오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {
