@@ -67,11 +67,11 @@ class SkyScreen extends StatelessWidget {
                   Text(
                     'Taba',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontSize: 28,
+                      fontSize: 28,
                           letterSpacing: 2,
-                          color: Colors.white,
+                      color: Colors.white,
                           fontFamily: Theme.of(context).textTheme.displayLarge?.fontFamily,
-                        ),
+                    ),
                   ),
                   const Spacer(),
                   if (onOpenBouquet != null)
@@ -131,13 +131,13 @@ class SkyScreen extends StatelessWidget {
                       ),
                     )
                   : Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _FloatingFlowerField(
-                            letters: letters,
-                            onTap: (letter) => _openSeedBloom(context, letter),
-                          ),
-                        ),
+                children: [
+                  Positioned.fill(
+                    child: _FloatingFlowerField(
+                      letters: letters,
+                      onTap: (letter) => _openSeedBloom(context, letter),
+                    ),
+                  ),
                   Positioned(
                     left: 32,
                     top: 32,
@@ -148,13 +148,13 @@ class SkyScreen extends StatelessWidget {
                     top: 120,
                     child: _glowDot(Colors.white.withAlpha(51), size: 22),
                   ),
-                        Positioned(
-                          right: 26,
-                          bottom: 150,
-                          child: _glowDot(Colors.white.withAlpha(64), size: 28),
-                        ),
-                      ],
-                    ),
+                  Positioned(
+                    right: 26,
+                    bottom: 150,
+                    child: _glowDot(Colors.white.withAlpha(64), size: 28),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

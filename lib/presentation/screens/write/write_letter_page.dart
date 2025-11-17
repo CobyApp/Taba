@@ -5,12 +5,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/friend.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/presentation/widgets/user_avatar.dart';
 
 class WriteLetterPage extends StatefulWidget {
-  const WriteLetterPage({super.key, this.onSuccess, this.initialRecipient});
+  const WriteLetterPage({
+    super.key, 
+    this.onSuccess, 
+    this.initialRecipient,
+    this.replyToLetterId, // 답장할 편지 ID
+  });
 
   final VoidCallback? onSuccess;
-  final String? initialRecipient; // 친구 ID
+  final String? initialRecipient; // 친구 ID (일반 편지 작성 시)
+  final String? replyToLetterId; // 답장할 편지 ID (답장 시)
 
   @override
   State<WriteLetterPage> createState() => _WriteLetterPageState();
@@ -251,7 +258,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         itemBuilder: (context, index) {
           final imagePath = _attachedImages[index];
           return Stack(
-            children: [
+              children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Image.file(
@@ -273,13 +280,13 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, size: 16, color: Colors.white),
-                  ),
-                ),
-              ),
+                        ),
+                      ),
+                    ),
             ],
           );
         },
-      ),
+                ),
     );
   }
 
@@ -291,23 +298,23 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       backgroundColor: AppColors.midnightSoft,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+                ),
       builder: (context) {
         return SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: _TemplateSelector(
-              templates: _templateOptions,
-              selected: _selectedTemplate,
-              onSelect: (template) {
-                setState(() {
-                  _selectedTemplate = template;
+                          templates: _templateOptions,
+                          selected: _selectedTemplate,
+                          onSelect: (template) {
+                            setState(() {
+                              _selectedTemplate = template;
                 });
                 _applyFont(_recommendedFontForTemplate(template.id));
                 Navigator.of(context).pop();
               },
             ),
-          ),
+                  ),
         );
       },
     );
@@ -326,7 +333,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       ),
       builder: (context) {
         Widget buildGroup(String label, List<String> fonts, {required String langBadge}) {
-          return Column(
+    return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
@@ -386,8 +393,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       ),
       builder: (context) {
         // Local state for the sheet
-        bool localSendToFriend = _sendToFriend;
-        FriendProfile? localFriend = _selectedFriend;
+        // 답장인 경우 항상 친구에게 보내기로 고정
+        bool localSendToFriend = widget.initialRecipient != null ? true : _sendToFriend;
+        FriendProfile? localFriend = widget.initialRecipient != null 
+            ? _selectedFriend 
+            : _selectedFriend;
         bool localReserve = _reserveSend;
         DateTime? localDate = _scheduledDate;
         TimeOfDay? localTime = _scheduledTime;
@@ -400,9 +410,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
               ),
               child: SingleChildScrollView(
             child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
-              children: [
+      children: [
                 Row(
                       children: [
                         const Text('보내기 설정', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -410,70 +420,137 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                         IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        ChoiceChip(
-                          label: const Text('전체 공개'),
-                          selected: !localSendToFriend,
-                          onSelected: (_) => setLocal(() => localSendToFriend = false),
+                    // 답장인 경우 visibility 선택 옵션 숨기기
+                    if (widget.initialRecipient == null) ...[
+                      const SizedBox(height: 16),
+        Row(
+          children: [
+            ChoiceChip(
+              label: const Text('전체 공개'),
+                            selected: !localSendToFriend,
+                            onSelected: (_) => setLocal(() => localSendToFriend = false),
+            ),
+            const SizedBox(width: 12),
+            ChoiceChip(
+                            label: const Text('친구에게'),
+                            selected: localSendToFriend,
+                            onSelected: (_) => setLocal(() => localSendToFriend = true),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      // 답장인 경우 자동으로 친구에게 보내기로 설정
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.neonPink.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.neonPink.withOpacity(0.3)),
                         ),
-                        const SizedBox(width: 12),
-                        ChoiceChip(
-                          label: const Text('친구에게'),
-                          selected: localSendToFriend,
-                          onSelected: (_) => setLocal(() => localSendToFriend = true),
+                        child: Row(
+                          children: [
+                            Icon(Icons.reply, color: AppColors.neonPink, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '답장은 자동으로 상대방에게 전송됩니다',
+                                style: TextStyle(color: AppColors.neonPink, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+                      ),
+                    ],
+                    if (localSendToFriend) ...[
+              const SizedBox(height: 16),
+                      // 답장인 경우 친구 선택 UI 숨기기 (이미 선택됨)
+                      if (widget.initialRecipient == null) ...[
+                        const Text('친구 선택'),
+                        if (_isLoadingFriends)
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (_friends.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text('친구가 없습니다', style: TextStyle(color: Colors.white70)),
+                          )
+                        else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _friends.length,
+                            separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 12),
+                itemBuilder: (context, index) {
+                              final friend = _friends[index];
+                              final selected = localFriend?.user.id == friend.user.id;
+                  return ListTile(
+                                onTap: () => setLocal(() => localFriend = friend),
+                                leading: UserAvatar(
+                                  user: friend.user,
+                                  radius: 20,
+                                ),
+                                title: Text(friend.user.nickname),
+                                trailing: Icon(selected ? Icons.check_circle : Icons.circle_outlined,
+                                    color: selected ? AppColors.neonPink : Colors.white54),
+                  );
+                },
+                          ),
+                      ] else if (localFriend != null) ...[
+                        // 답장인 경우 선택된 친구 정보만 표시
+        Container(
+                          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+                            color: AppColors.midnightGlass,
+                            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white24),
+          ),
+                          child: Row(
+                            children: [
+                              UserAvatar(
+                                user: localFriend!.user,
+                                radius: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+                                    Text(
+                                      localFriend!.user.nickname,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                                    ),
+                                    const Text(
+                                      '답장 수신자',
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.check_circle, color: AppColors.neonPink),
+                            ],
+                          ),
                         ),
                       ],
-                    ),
-                    if (localSendToFriend) ...[
-                      const SizedBox(height: 16),
-                      const Text('친구 선택'),
-                      if (_isLoadingFriends)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (_friends.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text('친구가 없습니다', style: TextStyle(color: Colors.white70)),
-                        )
-                      else
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _friends.length,
-                          separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 12),
-                          itemBuilder: (context, index) {
-                            final friend = _friends[index];
-                            final selected = localFriend?.user.id == friend.user.id;
-                            return ListTile(
-                              onTap: () => setLocal(() => localFriend = friend),
-                              leading: CircleAvatar(backgroundImage: NetworkImage(friend.user.avatarUrl)),
-                              title: Text(friend.user.nickname),
-                              trailing: Icon(selected ? Icons.check_circle : Icons.circle_outlined,
-                                  color: selected ? AppColors.neonPink : Colors.white54),
-                            );
-                          },
-                        ),
                     ],
                     const SizedBox(height: 16),
-                    SwitchListTile(
+              SwitchListTile(
                       value: localReserve,
                       onChanged: (v) => setLocal(() => localReserve = v),
                       title: const Text('예약 발송'),
                       subtitle: const Text('씨앗이 피어날 시간을 지정합니다'),
-                    ),
+              ),
                     if (localReserve) ...[
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.calendar_month),
-                        title: Text(
+                  title: Text(
                           localDate != null
                               ? '${localDate!.year}.${localDate!.month}.${localDate!.day}'
-                              : '날짜 선택',
-                        ),
+                        : '날짜 선택',
+                  ),
                         onTap: () async {
                           final now = DateTime.now();
                           final picked = await showDatePicker(
@@ -484,9 +561,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           );
                           if (picked != null) setLocal(() => localDate = picked);
                         },
-                      ),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.schedule),
                         title: Text(localTime != null ? localTime!.format(context) : '시간 선택'),
                         onTap: () async {
@@ -598,9 +675,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                 child: SingleChildScrollView(
                   child: _buildEditor(context),
                 ),
-              ),
-            ),
-          ],
+          ),
+        ),
+      ],
         ),
       ),
       bottomNavigationBar: SafeArea(
@@ -699,57 +776,80 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         );
       }
 
-      // 편지 생성
       // Color를 16진수 문자열로 변환 (#RRGGBB)
       String colorToHex(Color color) {
         return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
       }
       
-      final success = await _repository.createLetter(
-        title: title,
-        content: content.isNotEmpty ? content : title,
-        preview: content.isNotEmpty ? content.substring(0, content.length > 50 ? 50 : content.length) : title,
-        flowerType: 'ROSE', // API 명세서에 따라 대문자
-        visibility: _sendToFriend ? 'DIRECT' : 'PUBLIC', // API 명세서에 따라 대문자
-        isAnonymous: false,
-        template: {
-          'background': colorToHex(_selectedTemplate.background),
-          'textColor': colorToHex(_selectedTemplate.textColor),
-          'fontFamily': _fontFamily ?? 'Jua',
-          'fontSize': _editorFontSize,
-        },
-        attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
-        scheduledAt: scheduledAt,
-        recipientId: _sendToFriend ? _selectedFriend?.user.id : null,
-      );
+      final template = {
+        'background': colorToHex(_selectedTemplate.background),
+        'textColor': colorToHex(_selectedTemplate.textColor),
+        'fontFamily': _fontFamily ?? 'Jua',
+        'fontSize': _editorFontSize,
+      };
+      
+      final preview = content.isNotEmpty 
+          ? content.substring(0, content.length > 50 ? 50 : content.length) 
+          : title;
+      
+      bool success;
+      
+      // 답장인 경우 답장 API 사용, 일반 편지인 경우 일반 편지 작성 API 사용
+      if (widget.replyToLetterId != null) {
+        // 답장 API 사용 (자동 친구 추가)
+        success = await _repository.replyLetter(
+          letterId: widget.replyToLetterId!,
+          title: title,
+          content: content.isNotEmpty ? content : title,
+          preview: preview,
+          flowerType: 'ROSE',
+          isAnonymous: false,
+          template: template,
+          attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
+        );
+      } else {
+        // 일반 편지 작성 API 사용
+        success = await _repository.createLetter(
+          title: title,
+          content: content.isNotEmpty ? content : title,
+          preview: preview,
+          flowerType: 'ROSE', // API 명세서에 따라 대문자
+          visibility: _sendToFriend ? 'DIRECT' : 'PUBLIC', // API 명세서에 따라 대문자
+          isAnonymous: false,
+          template: template,
+          attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
+          scheduledAt: scheduledAt,
+          recipientId: _sendToFriend ? _selectedFriend?.user.id : null,
+        );
+      }
 
       if (!mounted) return;
 
       if (success) {
         // 성공 다이얼로그 표시
-        final target = _sendToFriend
+    final target = _sendToFriend
             ? (_selectedFriend?.user.nickname ?? '친구')
-            : '전체 공개';
-        final scheduleSummary = _reserveSend && _scheduledDate != null
-            ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
-                '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
-            : '씨앗은 바로 네온 하늘로 날아가요.';
+        : '전체 공개';
+    final scheduleSummary = _reserveSend && _scheduledDate != null
+        ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
+            '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
+        : '씨앗은 바로 네온 하늘로 날아가요.';
         
-        await showDialog<void>(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('씨앗을 뿌렸어요'),
-              content: Text('받는 대상: $target\n$scheduleSummary'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('확인'),
-                ),
-              ],
-            );
-          },
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('씨앗을 뿌렸어요'),
+          content: Text('받는 대상: $target\n$scheduleSummary'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
         );
+      },
+    );
 
         // 콜백 호출하여 메인 화면 새로고침
         widget.onSuccess?.call();
@@ -760,20 +860,20 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('편지 전송에 실패했습니다. 다시 시도해주세요.')),
-        );
+    );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+    );
       }
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
-      }
     }
   }
+}
 
 }
 

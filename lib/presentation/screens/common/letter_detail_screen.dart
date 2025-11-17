@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 
 class LetterDetailScreen extends StatefulWidget {
@@ -20,21 +21,6 @@ class LetterDetailScreen extends StatefulWidget {
 }
 
 class _LetterDetailScreenState extends State<LetterDetailScreen> {
-  final _repository = DataRepository.instance;
-  bool _isLiked = false;
-  bool _isSaved = false;
-  int _likeCount = 0;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // 초기 상태는 letter 모델에서 가져오거나 기본값
-    _likeCount = widget.letter.likeCount ?? widget.letter.likes;
-    _isLiked = widget.letter.isLiked ?? false;
-    _isSaved = widget.letter.isSaved ?? false;
-  }
-
   String get _displaySender {
     if (widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
       return widget.friendName!;
@@ -43,79 +29,20 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
     return widget.letter.senderDisplay;
   }
 
-  Future<void> _handleLike() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    
-    try {
-      final success = await _repository.likeLetter(widget.letter.id);
-      if (mounted) {
-        if (success) {
-          setState(() {
-            _isLiked = !_isLiked;
-            _likeCount += _isLiked ? 1 : -1;
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('좋아요 처리에 실패했습니다')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _handleSave() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    
-    try {
-      final success = await _repository.saveLetter(widget.letter.id);
-      if (mounted) {
-        if (success) {
-          setState(() => _isSaved = !_isSaved);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_isSaved ? '저장되었습니다' : '저장이 해제되었습니다'),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('저장 처리에 실패했습니다')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final style = widget.letter.template;
-    // Force dark panel to avoid bright backgrounds
-    final Color panelBackground = AppColors.midnight;
-    final Color textColor = Colors.white;
+    // 템플릿이 있으면 템플릿 색상 사용, 없으면 기본값
+    final Color panelBackground = style?.background ?? AppColors.midnight;
+    final Color textColor = style?.textColor ?? Colors.white;
+    // 전체 배경도 템플릿 색상으로 변경 (약간 어둡게)
+    final Color scaffoldBackground = style != null 
+        ? Color.alphaBlend(Colors.black.withOpacity(0.3), panelBackground)
+        : AppColors.midnightSoft;
 
     return Scaffold(
-      backgroundColor: AppColors.midnightSoft,
+      backgroundColor: scaffoldBackground,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         title: const SizedBox.shrink(),
@@ -130,6 +57,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => WriteLetterPage(
+                      replyToLetterId: widget.letter.id, // 답장 API 사용
                       initialRecipient: widget.friendName != null ? widget.letter.sender.id : null,
                     ),
                   ),
@@ -151,30 +79,21 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                 // Header under navigation bar: profile + flower/time (left), report button (right)
                 Row(
                   children: [
-                    CircleAvatar(
+                    UserAvatar(
+                      user: widget.letter.sender,
                       radius: 18,
-                      backgroundImage: NetworkImage(widget.letter.sender.avatarUrl),
                       backgroundColor: Colors.white.withAlpha(20),
-                      onBackgroundImageError: (_, __) {},
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _displaySender,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              _RoleChip(isFriend: widget.friendName != null, isAnonymous: widget.letter.isAnonymous),
-                            ],
+                          Text(
+                            _displaySender,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 8),
                           Row(
@@ -198,31 +117,9 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                         ],
                       ),
                     ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border),
-                          color: _isLiked ? Colors.red : Colors.white70,
-                          onPressed: _handleLike,
-                          tooltip: '좋아요',
-                        ),
-                        if (_likeCount > 0)
-                          Text(
-                            '$_likeCount',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border),
-                          color: _isSaved ? Colors.amber : Colors.white70,
-                          onPressed: _handleSave,
-                          tooltip: '저장',
-                        ),
-                        TextButton(
-                          onPressed: () => _openReportSheet(context),
-                          child: const Text('신고', style: TextStyle(color: Colors.redAccent)),
-                        ),
-                      ],
+                    TextButton(
+                      onPressed: () => _openReportSheet(context),
+                      child: const Text('신고', style: TextStyle(color: Colors.redAccent)),
                     ),
                   ],
                 ),
@@ -253,7 +150,13 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                         children: [
                           Text(
                             widget.letter.title,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor),
+                            style: TextStyle(
+                              color: textColor,
+                              fontFamily: style?.fontFamily,
+                              fontSize: (style?.fontSize ?? 18) * 1.2, // 제목은 본문보다 20% 크게
+                              fontWeight: FontWeight.bold,
+                              height: 1.4,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -363,32 +266,6 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   }
 }
 
-class _RoleChip extends StatelessWidget {
-  const _RoleChip({required this.isFriend, required this.isAnonymous});
-  final bool isFriend;
-  final bool isAnonymous;
-
-  @override
-  Widget build(BuildContext context) {
-    String label;
-    if (isFriend) {
-      label = '친구';
-    } else if (isAnonymous) {
-      label = '익명';
-    } else {
-      label = '사용자';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(26),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.white)),
-    );
-  }
-}
 
 class _ReportSheet extends StatefulWidget {
   const _ReportSheet({required this.letterId});

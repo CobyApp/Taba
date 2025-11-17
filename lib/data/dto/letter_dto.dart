@@ -11,16 +11,11 @@ class LetterDto {
   final String flowerType;
   final DateTime sentAt;
   final bool isAnonymous;
-  final int likes;
   final int views;
-  final int savedCount;
-  final int? likeCount; // 현재 좋아요 수 (API에서 제공될 수 있음)
   final String visibility;
   final List<String>? tags;
   final LetterTemplateDto? template;
   final List<String>? attachedImages;
-  final bool? isLiked;
-  final bool? isSaved;
   final Map<String, double>? position; // 하늘 화면용 좌표
 
   LetterDto({
@@ -32,16 +27,11 @@ class LetterDto {
     required this.flowerType,
     required this.sentAt,
     this.isAnonymous = false,
-    this.likes = 0,
     this.views = 0,
-    this.savedCount = 0,
-    this.likeCount,
     required this.visibility,
     this.tags,
     this.template,
     this.attachedImages,
-    this.isLiked,
-    this.isSaved,
     this.position,
   });
 
@@ -55,10 +45,7 @@ class LetterDto {
       flowerType: json['flowerType'] as String,
       sentAt: DateTime.parse(json['sentAt'] as String),
       isAnonymous: json['isAnonymous'] as bool? ?? false,
-      likes: json['likes'] as int? ?? 0,
       views: json['views'] as int? ?? 0,
-      savedCount: json['savedCount'] as int? ?? 0,
-      likeCount: json['likeCount'] as int?,
       visibility: json['visibility'] as String,
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
@@ -69,8 +56,6 @@ class LetterDto {
       attachedImages: json['attachedImages'] != null
           ? List<String>.from(json['attachedImages'] as List)
           : null,
-      isLiked: json['isLiked'] as bool?,
-      isSaved: json['isSaved'] as bool?,
       position: json['position'] != null
           ? Map<String, double>.from(
               (json['position'] as Map).map(
@@ -106,12 +91,7 @@ class LetterDto {
       sender: sender.toModel(),
       flower: _parseFlowerType(flowerType),
       isAnonymous: isAnonymous,
-      likes: likes,
       views: views,
-      savedCount: savedCount,
-      likeCount: likeCount,
-      isLiked: isLiked,
-      isSaved: isSaved,
       visibility: _parseVisibility(visibility),
       tags: tags ?? [],
       template: template?.toModel(),

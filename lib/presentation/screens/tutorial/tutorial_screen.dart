@@ -93,48 +93,48 @@ class _TutorialScreenState extends State<TutorialScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: page.gradient,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(32),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha(120),
-                                    blurRadius: 40,
-                                    offset: const Offset(0, 20),
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: Column(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: page.gradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(32),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(120),
+                              blurRadius: 40,
+                              offset: const Offset(0, 20),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(28),
+                          child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
+                            children: [
                                     const Spacer(),
                                     Text(page.emoji, style: const TextStyle(fontSize: 96)),
                                     const SizedBox(height: 16),
-                                    Text(
-                                      page.title,
+                              Text(
+                                page.title,
                                       textAlign: TextAlign.center,
                                       style: Theme.of(context).textTheme.headlineSmall,
-                                    ),
+                              ),
                                     const SizedBox(height: 10),
-                                    Text(
-                                      page.subtitle,
+                              Text(
+                                page.subtitle,
                                       textAlign: TextAlign.center,
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                                    ),
-                                    const Spacer(),
+                              ),
+                              const Spacer(),
                                   ],
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
+                                ),
+                              ),
+                            ],
                       ),
                     );
                   },
@@ -150,7 +150,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           width: active ? 18 : 6,
-                          height: 6,
+                      height: 6,
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           decoration: BoxDecoration(
                             color: active ? Colors.white : Colors.white38,

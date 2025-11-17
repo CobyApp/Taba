@@ -3,14 +3,14 @@ class ApiResponse<T> {
   final T? data;
   final String? message;
   final ApiError? error;
-
+  
   ApiResponse({
     required this.success,
     this.data,
     this.message,
     this.error,
   });
-
+  
   factory ApiResponse.fromJson(
     Map<String, dynamic> json,
     T Function(dynamic)? fromJsonT,
@@ -22,18 +22,18 @@ class ApiResponse<T> {
     
     if (json.containsKey('success')) {
       // ApiResponse 래퍼 형식
-      return ApiResponse<T>(
-        success: json['success'] ?? false,
-        data: json['data'] != null && fromJsonT != null
-            ? fromJsonT(json['data'])
-            : json['data'] as T?,
-        message: json['message'],
-        error: json['error'] != null
+    return ApiResponse<T>(
+      success: json['success'] ?? false,
+      data: json['data'] != null && fromJsonT != null
+          ? fromJsonT(json['data'])
+          : json['data'] as T?,
+      message: json['message'],
+      error: json['error'] != null
             ? ApiError.fromJson(json['error'] is Map<String, dynamic> 
                 ? json['error'] as Map<String, dynamic>
                 : {'code': 'ERROR', 'message': json['error'].toString()})
-            : null,
-      );
+          : null,
+    );
     } else if (json.containsKey('content') && json.containsKey('page')) {
       // Page 객체 형식 (페이징 응답)
       return ApiResponse<T>(
@@ -48,7 +48,7 @@ class ApiResponse<T> {
       );
     }
   }
-
+  
   bool get isSuccess => success && error == null;
   bool get isError => !success || error != null;
 }
@@ -57,13 +57,13 @@ class ApiError {
   final String code;
   final String message;
   final Map<String, dynamic>? details;
-
+  
   ApiError({
     required this.code,
     required this.message,
     this.details,
   });
-
+  
   factory ApiError.fromJson(Map<String, dynamic> json) {
     return ApiError(
       code: json['code'] ?? 'UNKNOWN_ERROR',
@@ -81,7 +81,7 @@ class PageResponse<T> {
   final int totalPages;
   final bool first;
   final bool last;
-
+  
   PageResponse({
     required this.content,
     required this.page,
@@ -91,7 +91,7 @@ class PageResponse<T> {
     required this.first,
     required this.last,
   });
-
+  
   factory PageResponse.fromJson(
     Map<String, dynamic> json,
     T Function(dynamic) fromJsonT,

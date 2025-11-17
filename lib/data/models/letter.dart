@@ -50,12 +50,7 @@ class Letter {
     required this.sender,
     required this.flower,
     this.isAnonymous = false,
-    this.likes = 0,
     this.views = 0,
-    this.savedCount = 0,
-    this.likeCount,
-    this.isLiked,
-    this.isSaved,
     this.visibility = VisibilityScope.public,
     this.tags = const [],
     this.template,
@@ -70,12 +65,7 @@ class Letter {
   final TabaUser sender;
   final FlowerType flower;
   final bool isAnonymous;
-  final int likes;
   final int views;
-  final int savedCount;
-  final int? likeCount; // 현재 좋아요 수
-  final bool? isLiked; // 현재 사용자가 좋아요 했는지
-  final bool? isSaved; // 현재 사용자가 저장했는지
   final VisibilityScope visibility;
   final List<String> tags;
   final LetterStyle? template;

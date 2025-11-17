@@ -112,6 +112,16 @@ class _MainShellState extends State<MainShell> {
       final bouquets = await _repository.getBouquets();
       if (!mounted) return;
       
+      if (bouquets.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('아직 꽃다발이 없습니다. 친구와 편지를 주고받으면 꽃다발이 생겨요.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      
       final navigator = Navigator.of(context);
       navigator.push(
         MaterialPageRoute<void>(
@@ -122,9 +132,7 @@ class _MainShellState extends State<MainShell> {
       );
     } catch (e) {
       if (!mounted) return;
-      
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('꽃다발을 불러오는데 실패했습니다: $e')),
       );
     }
@@ -151,14 +159,19 @@ class _MainShellState extends State<MainShell> {
       
       if (!mounted) return;
       final navigator = Navigator.of(context);
-      navigator.push(
-        MaterialPageRoute<void>(
+      final result = await navigator.push<bool>(
+        MaterialPageRoute<bool>(
           builder: (_) => SettingsScreen(
             currentUser: user,
             onLogout: widget.onLogout,
           ),
         ),
       );
+      
+      // 프로필이 수정되었으면 데이터 새로고침
+      if (result == true && mounted) {
+        _loadData();
+      }
     } catch (e) {
       if (!mounted) return;
       

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
@@ -9,45 +10,28 @@ class UserService {
 
   Future<ApiResponse<UserDto>> getCurrentUser() async {
     try {
-      // 먼저 /users/me 시도
-      try {
-        final response = await _apiClient.dio.get('/users/me');
-        
-        if (response.data is! Map<String, dynamic>) {
-          throw Exception('Invalid response format');
-        }
-
-        return ApiResponse<UserDto>.fromJson(
-          response.data as Map<String, dynamic>,
-          (data) => UserDto.fromJson(data as Map<String, dynamic>),
+      // userId로 조회 (API 명세서에 /users/me가 없음)
+      final tokenStorage = TokenStorage();
+      final userId = await tokenStorage.getUserId();
+      
+      if (userId == null) {
+        return ApiResponse<UserDto>(
+          success: false,
+          error: ApiError(
+            code: 'GET_CURRENT_USER_ERROR',
+            message: '사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.',
+          ),
         );
-      } on DioException catch (e) {
-        // 401 에러인 경우 바로 반환 (인증 실패)
-        if (e.response?.statusCode == 401) {
-          return ApiResponse<UserDto>(
-            success: false,
-            error: ApiError(
-              code: 'GET_CURRENT_USER_ERROR',
-              message: '인증이 필요합니다. 다시 로그인해주세요.',
-            ),
-          );
-        }
-        
-        // 404나 405 에러면 /users/{userId}로 fallback
-        if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
-          final tokenStorage = TokenStorage();
-          final userId = await tokenStorage.getUserId();
-          if (userId != null) {
-            return await getUser(userId);
-          }
-        }
-        rethrow;
       }
+      
+      return await getUser(userId);
     } on DioException catch (e) {
       // DioError 처리
       String errorMessage = '사용자 정보를 불러오는데 실패했습니다.';
       if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.statusCode == 403) {
+        errorMessage = '권한이 없습니다.';
       } else if (e.response?.statusCode == 404) {
         errorMessage = '사용자를 찾을 수 없습니다.';
       } else if (e.response?.statusCode == 500) {
@@ -143,16 +127,34 @@ class UserService {
     required String userId,
     String? nickname,
     String? statusMessage,
-    String? avatarUrl,
+    File? profileImage,
+    String? avatarUrl, // 이미지 제거 시 null
   }) async {
     try {
-      final response = await _apiClient.dio.put(
-        '/users/$userId',
-        data: {
+      FormData formData;
+      
+      if (profileImage != null) {
+        // multipart/form-data로 프로필 이미지 포함
+        formData = FormData.fromMap({
+          if (nickname != null) 'nickname': nickname,
+          if (statusMessage != null) 'statusMessage': statusMessage,
+          'profileImage': await MultipartFile.fromFile(
+            profileImage.path,
+            filename: profileImage.path.split('/').last,
+          ),
+        });
+      } else {
+        // 프로필 이미지 없이 일반 form-data
+        formData = FormData.fromMap({
           if (nickname != null) 'nickname': nickname,
           if (statusMessage != null) 'statusMessage': statusMessage,
           if (avatarUrl != null) 'avatarUrl': avatarUrl,
-        },
+        });
+      }
+      
+      final response = await _apiClient.dio.put(
+        '/users/$userId',
+        data: formData,
       );
 
       if (response.data is! Map<String, dynamic>) {

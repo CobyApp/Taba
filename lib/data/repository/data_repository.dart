@@ -42,6 +42,7 @@ class DataRepository {
     required String nickname,
     required bool agreeTerms,
     required bool agreePrivacy,
+    File? profileImage,
   }) async {
     final response = await _authService.signup(
       email: email,
@@ -49,6 +50,7 @@ class DataRepository {
       nickname: nickname,
       agreeTerms: agreeTerms,
       agreePrivacy: agreePrivacy,
+      profileImage: profileImage,
     );
     return response.isSuccess;
   }
@@ -124,15 +126,6 @@ class DataRepository {
     }
   }
 
-  Future<bool> likeLetter(String letterId) async {
-    final response = await _letterService.likeLetter(letterId);
-    return response.isSuccess;
-  }
-
-  Future<bool> saveLetter(String letterId) async {
-    final response = await _letterService.saveLetter(letterId);
-    return response.isSuccess;
-  }
 
   Future<bool> reportLetter(String letterId, String reason) async {
     final response = await _letterService.reportLetter(
@@ -142,11 +135,92 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  /// 편지 답장 (자동 친구 추가)
+  /// API 명세서: POST /letters/{letterId}/reply
+  Future<bool> replyLetter({
+    required String letterId,
+    required String title,
+    required String content,
+    required String preview,
+    required String flowerType,
+    bool isAnonymous = false,
+    Map<String, dynamic>? template,
+    List<String>? attachedImages,
+  }) async {
+    try {
+      final response = await _letterService.replyLetter(
+        letterId: letterId,
+        title: title,
+        content: content,
+        preview: preview,
+        flowerType: flowerType,
+        isAnonymous: isAnonymous,
+        template: template,
+        attachedImages: attachedImages,
+      );
+      
+      if (!response.isSuccess && response.error != null) {
+        print('답장 전송 실패: ${response.error?.message}');
+      }
+      
+      return response.isSuccess;
+    } catch (e) {
+      print('답장 전송 예외: $e');
+      return false;
+    }
+  }
+
   // Bouquets
   Future<List<FriendBouquet>> getBouquets() async {
-    final response = await _bouquetService.getBouquets();
+    try {
+      final response = await _bouquetService.getBouquets();
+      print('Bouquet repository response: success=${response.isSuccess}, data=${response.data?.length ?? 0} items');
+      if (response.isSuccess && response.data != null) {
+        try {
+          final bouquets = response.data!.map((dto) {
+            try {
+              return dto.toModel();
+            } catch (e, stackTrace) {
+              print('Error converting BouquetDto to model: $e');
+              print('Stack trace: $stackTrace');
+              print('DTO: $dto');
+              rethrow;
+            }
+          }).toList();
+          print('Successfully converted ${bouquets.length} bouquets');
+          return bouquets;
+        } catch (e, stackTrace) {
+          print('Error converting BouquetDto to model: $e');
+          print('Stack trace: $stackTrace');
+          return [];
+        }
+      }
+      if (response.error != null) {
+        print('Bouquet API error: ${response.error!.message}');
+        print('Error code: ${response.error!.code}');
+      } else {
+        print('Bouquet API error: response.isSuccess=${response.isSuccess}, data is null');
+      }
+      return [];
+    } catch (e, stackTrace) {
+      print('Error in getBouquets: $e');
+      print('Stack trace: $stackTrace');
+      return [];
+    }
+  }
+
+  Future<List<SharedFlower>> getFriendLetters({
+    required String friendId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    final response = await _bouquetService.getFriendLetters(
+      friendId: friendId,
+      page: page,
+      size: size,
+    );
     if (response.isSuccess && response.data != null) {
-      return response.data!.map((dto) => dto.toModel()).toList();
+      return response.data!.content.map((dto) => dto.toModel()).toList();
     }
     return [];
   }
@@ -173,6 +247,11 @@ class DataRepository {
       return response.data!.map((dto) => dto.toModel()).toList();
     }
     return [];
+  }
+
+  Future<bool> addFriendByInviteCode(String inviteCode) async {
+    final response = await _friendService.addFriendByInviteCode(inviteCode);
+    return response.isSuccess;
   }
 
   // Files
@@ -232,6 +311,28 @@ class DataRepository {
     } catch (e) {
       print('getCurrentUser 예외: $e');
       return null;
+    }
+  }
+
+  Future<bool> updateUserProfile({
+    required String userId,
+    String? nickname,
+    String? statusMessage,
+    File? profileImage,
+    String? avatarUrl, // 이미지 제거 시 null
+  }) async {
+    try {
+      final response = await _userService.updateUser(
+        userId: userId,
+        nickname: nickname,
+        statusMessage: statusMessage,
+        profileImage: profileImage,
+        avatarUrl: avatarUrl,
+      );
+      return response.isSuccess;
+    } catch (e) {
+      print('updateUserProfile 예외: $e');
+      return false;
     }
   }
 }

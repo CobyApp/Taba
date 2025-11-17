@@ -96,60 +96,60 @@ class _LoginScreenState extends State<LoginScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
+              children: [
+                Text(
                         'Taba',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.displayMedium?.copyWith(
                               fontSize: 34,
                             ),
-                      ),
+                ),
                       const SizedBox(height: 6),
-                      Text(
+                Text(
                         '떠다니는 씨앗을 잡아 꽃을 피워보세요',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
-                      ),
-                      const SizedBox(height: 28),
-                      Container(
+                ),
+                const SizedBox(height: 28),
+                Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withAlpha(80),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(80),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withAlpha(35)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(120),
+                    border: Border.all(color: Colors.white.withAlpha(35)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(120),
                               blurRadius: 24,
                               offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
                             const SizedBox(height: 4),
-                            TextField(
-                              controller: _emailCtrl,
-                              keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: '이메일',
-                                hintText: 'neon@taba.app',
-                              ),
-                            ),
+                      TextField(
+                        controller: _emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: '이메일',
+                          hintText: 'neon@taba.app',
+                        ),
+                      ),
                             const SizedBox(height: 16),
-                            TextField(
-                              controller: _passwordCtrl,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: '비밀번호',
-                                hintText: '••••••••',
-                              ),
-                            ),
+                      TextField(
+                        controller: _passwordCtrl,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: '비밀번호',
+                          hintText: '••••••••',
+                        ),
+                      ),
                             const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
@@ -165,8 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       )
                                     : const Text('이메일로 로그인'),
                               ),
-                            ),
-                            const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 12),
                             Center(
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     padding: EdgeInsets.symmetric(horizontal: 12),
                                     child: Text('·', style: TextStyle(color: Colors.white54)),
                                   ),
-                                  TextButton(
+                      TextButton(
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                       minimumSize: const Size(0, 0),
@@ -211,17 +211,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                       '이메일 가입',
                                       style: TextStyle(fontSize: 14),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
+                          ],
+                        ),
+                ),
+                      const SizedBox(height: 16),
+                    ],
+                        ),
+                      ),
               );
             },
           ),

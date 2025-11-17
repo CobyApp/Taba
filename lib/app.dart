@@ -82,10 +82,10 @@ class _TabaAppState extends State<TabaApp> {
     return ValueListenableBuilder<Locale>(
       valueListenable: AppLocaleController.localeNotifier,
       builder: (context, locale, _) {
-        return MaterialApp(
-          title: 'Taba',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
+    return MaterialApp(
+      title: 'Taba',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
           locale: locale,
           supportedLocales: AppLocaleController.supportedLocales,
           localizationsDelegates: const [
@@ -93,10 +93,10 @@ class _TabaAppState extends State<TabaApp> {
             GlobalCupertinoLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
           ],
-          home: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            child: child,
-          ),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        child: child,
+      ),
         );
       },
     );

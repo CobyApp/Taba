@@ -21,16 +21,51 @@ class FileService {
         data: formData,
       );
 
+      if (response.data is! Map<String, dynamic>) {
+        return ApiResponse<String>(
+          success: false,
+          error: ApiError(
+            code: 'UPLOAD_IMAGE_ERROR',
+            message: 'Invalid response format',
+          ),
+        );
+      }
+
       return ApiResponse<String>.fromJson(
         response.data as Map<String, dynamic>,
         (data) => (data as Map<String, dynamic>)['url'] as String,
+      );
+    } on DioException catch (e) {
+      String errorMessage = '이미지 업로드에 실패했습니다.';
+      if (e.response?.statusCode == 401) {
+        errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.statusCode == 400) {
+        errorMessage = '이미지 파일이 올바르지 않습니다.';
+      } else if (e.response?.statusCode == 413) {
+        errorMessage = '파일 크기가 너무 큽니다. (최대 10MB)';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<String>(
+        success: false,
+        error: ApiError(
+          code: 'UPLOAD_IMAGE_ERROR',
+          message: errorMessage,
+        ),
       );
     } catch (e) {
       return ApiResponse<String>(
         success: false,
         error: ApiError(
           code: 'UPLOAD_IMAGE_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }

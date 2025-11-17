@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
 import 'package:taba_app/data/dto/api_response.dart';
@@ -33,12 +35,33 @@ class AuthService {
       }
 
       return apiResponse;
+    } on DioException catch (e) {
+      String errorMessage = '로그인에 실패했습니다.';
+      if (e.response?.statusCode == 401) {
+        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<LoginResponse>(
+        success: false,
+        error: ApiError(
+          code: 'LOGIN_ERROR',
+          message: errorMessage,
+        ),
+      );
     } catch (e) {
       return ApiResponse<LoginResponse>(
         success: false,
         error: ApiError(
           code: 'LOGIN_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }
@@ -50,17 +73,38 @@ class AuthService {
     required String nickname,
     required bool agreeTerms,
     required bool agreePrivacy,
+    File? profileImage,
   }) async {
     try {
-      final response = await _apiClient.dio.post(
-        '/auth/signup',
-        data: {
+      FormData formData;
+      
+      if (profileImage != null) {
+        // multipart/form-data로 프로필 이미지 포함
+        formData = FormData.fromMap({
           'email': email,
           'password': password,
           'nickname': nickname,
           'agreeTerms': agreeTerms,
           'agreePrivacy': agreePrivacy,
-        },
+          'profileImage': await MultipartFile.fromFile(
+            profileImage.path,
+            filename: profileImage.path.split('/').last,
+          ),
+        });
+      } else {
+        // 프로필 이미지 없이 일반 form-data
+        formData = FormData.fromMap({
+          'email': email,
+          'password': password,
+          'nickname': nickname,
+          'agreeTerms': agreeTerms,
+          'agreePrivacy': agreePrivacy,
+        });
+      }
+      
+      final response = await _apiClient.dio.post(
+        '/auth/signup',
+        data: formData,
       );
 
       final apiResponse = ApiResponse<LoginResponse>.fromJson(
@@ -76,12 +120,35 @@ class AuthService {
       }
 
       return apiResponse;
+    } on DioException catch (e) {
+      String errorMessage = '회원가입에 실패했습니다.';
+      if (e.response?.statusCode == 400) {
+        errorMessage = '입력 정보가 올바르지 않습니다.';
+      } else if (e.response?.statusCode == 409) {
+        errorMessage = '이미 존재하는 이메일입니다.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<LoginResponse>(
+        success: false,
+        error: ApiError(
+          code: 'SIGNUP_ERROR',
+          message: errorMessage,
+        ),
+      );
     } catch (e) {
       return ApiResponse<LoginResponse>(
         success: false,
         error: ApiError(
           code: 'SIGNUP_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }
@@ -98,12 +165,33 @@ class AuthService {
         response.data as Map<String, dynamic>,
         null,
       );
+    } on DioException catch (e) {
+      String errorMessage = '비밀번호 찾기에 실패했습니다.';
+      if (e.response?.statusCode == 404) {
+        errorMessage = '등록되지 않은 이메일입니다.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'FORGOT_PASSWORD_ERROR',
+          message: errorMessage,
+        ),
+      );
     } catch (e) {
       return ApiResponse<void>(
         success: false,
         error: ApiError(
           code: 'FORGOT_PASSWORD_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }
@@ -126,12 +214,33 @@ class AuthService {
         response.data as Map<String, dynamic>,
         null,
       );
+    } on DioException catch (e) {
+      String errorMessage = '비밀번호 재설정에 실패했습니다.';
+      if (e.response?.statusCode == 400) {
+        errorMessage = '재설정 토큰이 유효하지 않거나 만료되었습니다.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'RESET_PASSWORD_ERROR',
+          message: errorMessage,
+        ),
+      );
     } catch (e) {
       return ApiResponse<void>(
         success: false,
         error: ApiError(
           code: 'RESET_PASSWORD_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }
@@ -154,12 +263,35 @@ class AuthService {
         response.data as Map<String, dynamic>,
         null,
       );
+    } on DioException catch (e) {
+      String errorMessage = '비밀번호 변경에 실패했습니다.';
+      if (e.response?.statusCode == 400) {
+        errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+      } else if (e.response?.statusCode == 401) {
+        errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'CHANGE_PASSWORD_ERROR',
+          message: errorMessage,
+        ),
+      );
     } catch (e) {
       return ApiResponse<void>(
         success: false,
         error: ApiError(
           code: 'CHANGE_PASSWORD_ERROR',
-          message: e.toString(),
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
         ),
       );
     }
