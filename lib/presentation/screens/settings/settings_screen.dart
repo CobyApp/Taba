@@ -3,26 +3,71 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taba_app/data/models/user.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.currentUser});
+  const SettingsScreen({
+    super.key,
+    required this.currentUser,
+    this.onLogout,
+  });
 
   final TabaUser currentUser;
+  final VoidCallback? onLogout;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _repository = DataRepository.instance;
   bool _pushEnabled = true;
   String? _inviteCode;
   DateTime? _codeGeneratedAt;
+  bool _isLoadingSettings = false;
+  bool _isLoadingCode = false;
 
   @override
   void initState() {
     super.initState();
+    _loadSettings();
+    _loadInviteCode();
+  }
+
+  Future<void> _loadSettings() async {
+    setState(() => _isLoadingSettings = true);
+    try {
+      final pushEnabled = await _repository.getPushNotificationSetting();
+      if (mounted) {
+        setState(() {
+          _pushEnabled = pushEnabled;
+          _isLoadingSettings = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingSettings = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('설정을 불러오는데 실패했습니다: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadInviteCode() async {
+    try {
+      final code = await _repository.getCurrentInviteCode();
+      if (mounted && code != null) {
+        setState(() {
+          _inviteCode = code;
+          _codeGeneratedAt = DateTime.now(); // API에서 만료 시간을 받아올 수 있으면 그걸 사용
+        });
+      }
+    } catch (e) {
+      // 초대 코드 로드 실패는 조용히 처리
+    }
   }
 
   @override
@@ -41,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('푸시 알림'),
             subtitle: const Text('새 편지와 반응을 알려드릴게요'),
             value: _pushEnabled,
-            onChanged: (value) => setState(() => _pushEnabled = value),
+            onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
           ),
           const SizedBox(height: 24),
           const _SectionHeader(title: '친구 초대'),
@@ -87,8 +132,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _regenerateCode,
-                          child: const Text('재발급'),
+                          onPressed: _isLoadingCode ? null : _regenerateCode,
+                          child: _isLoadingCode
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('재발급'),
                         ),
                       ),
                     ],
@@ -137,7 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('로그아웃'),
-            onTap: () {},
+            onTap: () => _handleLogout(context),
           ),
         ],
       ),
@@ -154,25 +205,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _regenerateCode() {
-    setState(() {
-      _inviteCode = _generateCode(widget.currentUser.username);
-      _codeGeneratedAt = DateTime.now();
-    });
-    showTabaNotice(
-      context,
-      title: '새 초대 코드 발급',
-      message: '3분 동안 사용할 수 있는 코드를 만들었어요.',
-      icon: Icons.timelapse,
-    );
+  Future<void> _updatePushNotification(bool enabled) async {
+    setState(() => _pushEnabled = enabled);
+    try {
+      final success = await _repository.updatePushNotificationSetting(enabled);
+      if (!mounted) return;
+      
+      if (!success) {
+        setState(() => _pushEnabled = !enabled);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('알림 설정 변경에 실패했습니다')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pushEnabled = !enabled);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류가 발생했습니다: $e')),
+      );
+    }
   }
 
-  String _generateCode(String username) {
-    final rand = math.Random();
-    final digits = (rand.nextInt(900000) + 100000).toString();
-    final prefix =
-        username.substring(0, math.min(4, username.length)).toUpperCase();
-    return '$prefix-$digits';
+  Future<void> _regenerateCode() async {
+    if (_isLoadingCode) return;
+    
+    setState(() => _isLoadingCode = true);
+    try {
+      final code = await _repository.generateInviteCode();
+      if (!mounted) return;
+      
+      if (code != null) {
+        setState(() {
+          _inviteCode = code;
+          _codeGeneratedAt = DateTime.now();
+        });
+        showTabaNotice(
+          context,
+          title: '새 초대 코드 발급',
+          message: '3분 동안 사용할 수 있는 코드를 만들었어요.',
+          icon: Icons.timelapse,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('초대 코드 생성에 실패했습니다')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류가 발생했습니다: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingCode = false);
+      }
+    }
   }
 
   Duration? _remainingValidity() {
@@ -181,6 +268,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final diff = DateTime.now().difference(_codeGeneratedAt!);
     if (diff >= validity) return null;
     return validity - diff;
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await DataRepository.instance.logout();
+      if (!mounted) return;
+      
+      // 모든 화면을 닫고
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      
+      // 로그아웃 콜백 호출하여 앱 상태를 인증 화면으로 변경
+      widget.onLogout?.call();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('로그아웃 중 오류가 발생했습니다: $e')),
+      );
+    }
   }
 }
 

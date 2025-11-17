@@ -2,9 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 
-class LetterDetailScreen extends StatelessWidget {
+class LetterDetailScreen extends StatefulWidget {
   const LetterDetailScreen({
     super.key,
     required this.letter,
@@ -14,15 +15,101 @@ class LetterDetailScreen extends StatelessWidget {
   final Letter letter;
   final String? friendName; // if null and anonymous => '익명의 사용자'
 
+  @override
+  State<LetterDetailScreen> createState() => _LetterDetailScreenState();
+}
+
+class _LetterDetailScreenState extends State<LetterDetailScreen> {
+  final _repository = DataRepository.instance;
+  bool _isLiked = false;
+  bool _isSaved = false;
+  int _likeCount = 0;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기 상태는 letter 모델에서 가져오거나 기본값
+    _likeCount = widget.letter.likeCount ?? widget.letter.likes;
+    _isLiked = widget.letter.isLiked ?? false;
+    _isSaved = widget.letter.isSaved ?? false;
+  }
+
   String get _displaySender {
-    if (friendName != null && friendName!.trim().isNotEmpty) return friendName!;
-    if (letter.isAnonymous) return '익명의 사용자';
-    return letter.senderDisplay;
+    if (widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
+      return widget.friendName!;
+    }
+    if (widget.letter.isAnonymous) return '익명의 사용자';
+    return widget.letter.senderDisplay;
+  }
+
+  Future<void> _handleLike() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    
+    try {
+      final success = await _repository.likeLetter(widget.letter.id);
+      if (mounted) {
+        if (success) {
+          setState(() {
+            _isLiked = !_isLiked;
+            _likeCount += _isLiked ? 1 : -1;
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('좋아요 처리에 실패했습니다')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    
+    try {
+      final success = await _repository.saveLetter(widget.letter.id);
+      if (mounted) {
+        if (success) {
+          setState(() => _isSaved = !_isSaved);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_isSaved ? '저장되었습니다' : '저장이 해제되었습니다'),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('저장 처리에 실패했습니다')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final style = letter.template;
+    final style = widget.letter.template;
     // Force dark panel to avoid bright backgrounds
     final Color panelBackground = AppColors.midnight;
     final Color textColor = Colors.white;
@@ -42,7 +129,9 @@ class LetterDetailScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const WriteLetterPage(),
+                    builder: (_) => WriteLetterPage(
+                      initialRecipient: widget.friendName != null ? widget.letter.sender.id : null,
+                    ),
                   ),
                 );
               },
@@ -64,8 +153,9 @@ class LetterDetailScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 18,
-                      backgroundImage: NetworkImage(letter.sender.avatarUrl),
+                      backgroundImage: NetworkImage(widget.letter.sender.avatarUrl),
                       backgroundColor: Colors.white.withAlpha(20),
+                      onBackgroundImageError: (_, __) {},
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -83,7 +173,7 @@ class LetterDetailScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              _RoleChip(isFriend: friendName != null, isAnonymous: letter.isAnonymous),
+                              _RoleChip(isFriend: widget.friendName != null, isAnonymous: widget.letter.isAnonymous),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -93,7 +183,7 @@ class LetterDetailScreen extends StatelessWidget {
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  letter.flower.label,
+                                  widget.letter.flower.label,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -102,21 +192,43 @@ class LetterDetailScreen extends StatelessWidget {
                               const SizedBox(width: 12),
                               const Icon(Icons.schedule, size: 14, color: Colors.white54),
                               const SizedBox(width: 8),
-                              Text(letter.timeAgo(), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                              Text(widget.letter.timeAgo(), style: const TextStyle(color: Colors.white54, fontSize: 12)),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => _openReportSheet(context),
-                      child: const Text('신고', style: TextStyle(color: Colors.redAccent)),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(_isLiked ? Icons.favorite : Icons.favorite_border),
+                          color: _isLiked ? Colors.red : Colors.white70,
+                          onPressed: _handleLike,
+                          tooltip: '좋아요',
+                        ),
+                        if (_likeCount > 0)
+                          Text(
+                            '$_likeCount',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border),
+                          color: _isSaved ? Colors.amber : Colors.white70,
+                          onPressed: _handleSave,
+                          tooltip: '저장',
+                        ),
+                        TextButton(
+                          onPressed: () => _openReportSheet(context),
+                          child: const Text('신고', style: TextStyle(color: Colors.redAccent)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                if (letter.attachedImages.isNotEmpty) ...[
-                  _buildImageGallery(context, letter.attachedImages),
+                if (widget.letter.attachedImages.isNotEmpty) ...[
+                  _buildImageGallery(context, widget.letter.attachedImages),
                   const SizedBox(height: 16),
                 ],
                 Expanded(
@@ -140,12 +252,12 @@ class LetterDetailScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            letter.title,
+                            widget.letter.title,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            letter.content,
+                            widget.letter.content,
                             style: TextStyle(
                               color: textColor,
                               fontFamily: style?.fontFamily,
@@ -245,7 +357,7 @@ class LetterDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return const _ReportSheet();
+        return _ReportSheet(letterId: widget.letter.id);
       },
     );
   }
@@ -279,13 +391,16 @@ class _RoleChip extends StatelessWidget {
 }
 
 class _ReportSheet extends StatefulWidget {
-  const _ReportSheet();
+  const _ReportSheet({required this.letterId});
+  
+  final String letterId;
 
   @override
   State<_ReportSheet> createState() => _ReportSheetState();
 }
 
 class _ReportSheetState extends State<_ReportSheet> {
+  final _repository = DataRepository.instance;
   final _detailsCtrl = TextEditingController();
   String _reason = '스팸/광고';
   bool _submitting = false;
@@ -356,13 +471,37 @@ class _ReportSheetState extends State<_ReportSheet> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
+    
     setState(() => _submitting = true);
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.')),
-    );
+    
+    try {
+      final reasonText = _detailsCtrl.text.trim().isNotEmpty
+          ? '$_reason: ${_detailsCtrl.text.trim()}'
+          : _reason;
+      
+      final success = await _repository.reportLetter(widget.letterId, reasonText);
+      
+      if (!mounted) return;
+      
+      if (success) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('신고 접수에 실패했습니다. 다시 시도해주세요.')),
+        );
+        setState(() => _submitting = false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류가 발생했습니다: $e')),
+      );
+      setState(() => _submitting = false);
+    }
   }
 }
 

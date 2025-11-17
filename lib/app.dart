@@ -58,6 +58,10 @@ class _TabaAppState extends State<TabaApp> {
     setState(() => _stage = AppStage.main);
   }
 
+  void _handleLogout() {
+    setState(() => _stage = AppStage.auth);
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget child;
@@ -72,7 +76,7 @@ class _TabaAppState extends State<TabaApp> {
           onSkip: _completeTutorial,
         );
       case AppStage.main:
-        child = const MainShell();
+        child = MainShell(onLogout: _handleLogout);
     }
 
     return ValueListenableBuilder<Locale>(

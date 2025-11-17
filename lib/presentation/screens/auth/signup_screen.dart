@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
@@ -75,6 +74,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (mounted) {
         if (success) {
+          // 회원가입 성공 시 화면을 닫고 콜백 호출
+          Navigator.of(context).pop();
           widget.onSuccess();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

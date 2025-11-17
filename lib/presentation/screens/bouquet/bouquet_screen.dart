@@ -70,6 +70,54 @@ class _BouquetScreenState extends State<BouquetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.friendBouquets.isEmpty) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: AppColors.gradientGalaxy,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const SizedBox.shrink(),
+            centerTitle: false,
+          ),
+          body: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.local_florist_outlined,
+                  size: 64,
+                  color: Colors.white54,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '아직 꽃다발이 없어요',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '친구와 편지를 주고받으면 꽃다발이 생겨요',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final selected = _selectedBouquet;
     final unread = _unreadFor(selected);
 

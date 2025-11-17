@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/data/models/friend.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 
 class WriteLetterPage extends StatefulWidget {
-  const WriteLetterPage({super.key});
+  const WriteLetterPage({super.key, this.onSuccess, this.initialRecipient});
+
+  final VoidCallback? onSuccess;
+  final String? initialRecipient; // 친구 ID
 
   @override
   State<WriteLetterPage> createState() => _WriteLetterPageState();
@@ -36,17 +41,13 @@ class _NotesController extends TextEditingController {
 }
 
 class _WriteLetterPageState extends State<WriteLetterPage> {
+  final _repository = DataRepository.instance;
   bool _sendToFriend = false;
   String? _fontFamily;
   static const double _editorFontSize = 18;
-  late final List<_FriendOption> _friends = const [
-    _FriendOption('민트클라우드', 'https://i.pravatar.cc/150?img=12'),
-    _FriendOption('네온', 'https://i.pravatar.cc/150?img=5'),
-    _FriendOption('라일락', 'https://i.pravatar.cc/150?img=47'),
-    _FriendOption('별자리', 'https://i.pravatar.cc/150?img=32'),
-    _FriendOption('하루', 'https://i.pravatar.cc/150?img=9'),
-  ];
-  _FriendOption? _selectedFriend;
+  List<FriendProfile> _friends = [];
+  FriendProfile? _selectedFriend;
+  bool _isLoadingFriends = false;
   bool _reserveSend = false;
   DateTime? _scheduledDate;
   TimeOfDay? _scheduledTime;
@@ -91,7 +92,58 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   late _TemplateOption _selectedTemplate = _templateOptions.first;
   late _NotesController _notesController;
   final List<String> _attachedImages = []; // 첨부된 사진 경로 리스트
+  final List<File> _attachedImageFiles = []; // 첨부된 사진 파일 리스트
   final ImagePicker _imagePicker = ImagePicker();
+  bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fontFamily = _recommendedFontForTemplate(_selectedTemplate.id);
+    _notesController = _NotesController(titleStyle: _titleStyle(), bodyStyle: _bodyStyle(), firstGapHeight: 3.0);
+    _loadFriends();
+    
+    // initialRecipient가 있으면 친구에게 보내기로 설정
+    if (widget.initialRecipient != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _sendToFriend = true;
+      });
+    }
+  }
+
+  Future<void> _loadFriends() async {
+    setState(() => _isLoadingFriends = true);
+    try {
+      final friends = await _repository.getFriends();
+      if (mounted) {
+        setState(() {
+          _friends = friends;
+          _isLoadingFriends = false;
+          
+          // initialRecipient가 있으면 해당 친구 선택
+          if (widget.initialRecipient != null && friends.isNotEmpty) {
+            try {
+              _selectedFriend = friends.firstWhere(
+                (f) => f.user.id == widget.initialRecipient,
+              );
+              if (_selectedFriend != null) {
+                _sendToFriend = true;
+              }
+            } catch (e) {
+              // 친구를 찾지 못한 경우 무시
+            }
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingFriends = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('친구 목록을 불러오는데 실패했습니다: $e')),
+        );
+      }
+    }
+  }
 
   String _recommendedFontForTemplate(String templateId) {
     switch (templateId) {
@@ -154,12 +206,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       ..firstGapHeight = 3.0; // larger gap between title and first body line
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _fontFamily = _recommendedFontForTemplate(_selectedTemplate.id);
-    _notesController = _NotesController(titleStyle: _titleStyle(), bodyStyle: _bodyStyle(), firstGapHeight: 3.0);
-  }
 
   @override
   void dispose() {
@@ -172,7 +218,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       final List<XFile> pickedFiles = await _imagePicker.pickMultiImage();
       if (pickedFiles.isNotEmpty) {
         setState(() {
-          _attachedImages.addAll(pickedFiles.map((file) => file.path));
+          for (final file in pickedFiles) {
+            _attachedImages.add(file.path);
+            _attachedImageFiles.add(File(file.path));
+          }
         });
       }
     } catch (e) {
@@ -187,6 +236,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   void _removeImage(int index) {
     setState(() {
       _attachedImages.removeAt(index);
+      _attachedImageFiles.removeAt(index);
     });
   }
 
@@ -337,7 +387,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       builder: (context) {
         // Local state for the sheet
         bool localSendToFriend = _sendToFriend;
-        _FriendOption? localFriend = _selectedFriend;
+        FriendProfile? localFriend = _selectedFriend;
         bool localReserve = _reserveSend;
         DateTime? localDate = _scheduledDate;
         TimeOfDay? localTime = _scheduledTime;
@@ -379,23 +429,34 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                     if (localSendToFriend) ...[
                       const SizedBox(height: 16),
                       const Text('친구 선택'),
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _friends.length,
-                        separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 12),
-                        itemBuilder: (context, index) {
-                          final option = _friends[index];
-                          final selected = localFriend == option;
-                          return ListTile(
-                            onTap: () => setLocal(() => localFriend = option),
-                            leading: CircleAvatar(backgroundImage: NetworkImage(option.avatarUrl)),
-                            title: Text(option.name),
-                            trailing: Icon(selected ? Icons.check_circle : Icons.circle_outlined,
-                                color: selected ? AppColors.neonPink : Colors.white54),
-                          );
-                        },
-                      ),
+                      if (_isLoadingFriends)
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_friends.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text('친구가 없습니다', style: TextStyle(color: Colors.white70)),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _friends.length,
+                          separatorBuilder: (_, __) => const Divider(color: Colors.white24, height: 12),
+                          itemBuilder: (context, index) {
+                            final friend = _friends[index];
+                            final selected = localFriend?.user.id == friend.user.id;
+                            return ListTile(
+                              onTap: () => setLocal(() => localFriend = friend),
+                              leading: CircleAvatar(backgroundImage: NetworkImage(friend.user.avatarUrl)),
+                              title: Text(friend.user.nickname),
+                              trailing: Icon(selected ? Icons.check_circle : Icons.circle_outlined,
+                                  color: selected ? AppColors.neonPink : Colors.white54),
+                            );
+                          },
+                        ),
                     ],
                     const SizedBox(height: 16),
                     SwitchListTile(
@@ -441,21 +502,26 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () async {
+                        onPressed: _isSending ? null : () async {
                           // Commit local state to parent, then send
-                            setState(() {
+                          setState(() {
                             _sendToFriend = localSendToFriend;
                             _selectedFriend = localFriend;
                             _reserveSend = localReserve;
                             _scheduledDate = localDate;
                             _scheduledTime = localTime;
                           });
-                          await _showSeedSentDialog();
-                          if (mounted) Navigator.of(context).pop(); // close sheet
-                          if (mounted) Navigator.of(context).pop(); // close editor
+                          
+                          await _sendLetter();
                         },
-                        icon: const Icon(Icons.auto_awesome),
-                        label: const Text('씨앗 뿌리기'),
+                        icon: _isSending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.auto_awesome),
+                        label: Text(_isSending ? '전송 중...' : '씨앗 뿌리기'),
                       ),
                     ),
                     ],
@@ -586,29 +652,127 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   }
 
 
-  Future<void> _showSeedSentDialog() async {
-    final target = _sendToFriend
-        ? (_selectedFriend?.name ?? '친구')
-        : '전체 공개';
-    final scheduleSummary = _reserveSend && _scheduledDate != null
-        ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
-            '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
-        : '씨앗은 바로 네온 하늘로 날아가요.';
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('씨앗을 뿌렸어요'),
-          content: Text('받는 대상: $target\n$scheduleSummary'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('확인'),
-            ),
-          ],
+  Future<void> _sendLetter() async {
+    final text = _notesController.text.trim();
+    if (text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('편지 내용을 입력해주세요')),
         );
-      },
-    );
+      }
+      return;
+    }
+
+    // 제목과 본문 분리
+    final nl = text.indexOf('\n');
+    final title = nl >= 0 ? text.substring(0, nl).trim() : text.trim();
+    final content = nl >= 0 ? text.substring(nl + 1).trim() : '';
+    
+    if (title.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('제목을 입력해주세요')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isSending = true);
+
+    try {
+      // 이미지 업로드
+      List<String> uploadedImageUrls = [];
+      if (_attachedImageFiles.isNotEmpty) {
+        uploadedImageUrls = await _repository.uploadImages(_attachedImageFiles);
+      }
+
+      // 예약 발송 시간 계산
+      DateTime? scheduledAt;
+      if (_reserveSend && _scheduledDate != null) {
+        final time = _scheduledTime ?? const TimeOfDay(hour: 0, minute: 0);
+        scheduledAt = DateTime(
+          _scheduledDate!.year,
+          _scheduledDate!.month,
+          _scheduledDate!.day,
+          time.hour,
+          time.minute,
+        );
+      }
+
+      // 편지 생성
+      // Color를 16진수 문자열로 변환 (#RRGGBB)
+      String colorToHex(Color color) {
+        return '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+      }
+      
+      final success = await _repository.createLetter(
+        title: title,
+        content: content.isNotEmpty ? content : title,
+        preview: content.isNotEmpty ? content.substring(0, content.length > 50 ? 50 : content.length) : title,
+        flowerType: 'ROSE', // API 명세서에 따라 대문자
+        visibility: _sendToFriend ? 'DIRECT' : 'PUBLIC', // API 명세서에 따라 대문자
+        isAnonymous: false,
+        template: {
+          'background': colorToHex(_selectedTemplate.background),
+          'textColor': colorToHex(_selectedTemplate.textColor),
+          'fontFamily': _fontFamily ?? 'Jua',
+          'fontSize': _editorFontSize,
+        },
+        attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
+        scheduledAt: scheduledAt,
+        recipientId: _sendToFriend ? _selectedFriend?.user.id : null,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        // 성공 다이얼로그 표시
+        final target = _sendToFriend
+            ? (_selectedFriend?.user.nickname ?? '친구')
+            : '전체 공개';
+        final scheduleSummary = _reserveSend && _scheduledDate != null
+            ? '씨앗은 ${_scheduledDate!.year}.${_scheduledDate!.month}.${_scheduledDate!.day} '
+                '${_scheduledTime?.format(context) ?? '00:00'} 에 피어날 거예요.'
+            : '씨앗은 바로 네온 하늘로 날아가요.';
+        
+        await showDialog<void>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('씨앗을 뿌렸어요'),
+              content: Text('받는 대상: $target\n$scheduleSummary'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+
+        // 콜백 호출하여 메인 화면 새로고침
+        widget.onSuccess?.call();
+        
+        // 화면 닫기
+        if (mounted) Navigator.of(context).pop(); // close sheet
+        if (mounted) Navigator.of(context).pop(); // close editor
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('편지 전송에 실패했습니다. 다시 시도해주세요.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
   }
 
 }
@@ -700,20 +864,4 @@ class _TemplateOption {
   final Color textColor;
 }
 
-class _FriendOption {
-  const _FriendOption(this.name, this.avatarUrl);
-  final String name;
-  final String avatarUrl;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _FriendOption &&
-          runtimeType == other.runtimeType &&
-          name == other.name &&
-          avatarUrl == other.avatarUrl;
-
-  @override
-  int get hashCode => Object.hash(name, avatarUrl);
-}
 

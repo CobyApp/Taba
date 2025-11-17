@@ -8,7 +8,9 @@ import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({super.key, this.onLogout});
+
+  final VoidCallback? onLogout;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -28,6 +30,15 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _loadData() async {
+    // 먼저 인증 상태 확인
+    final isAuthenticated = await _repository.isAuthenticated();
+    if (!isAuthenticated) {
+      if (mounted) {
+        widget.onLogout?.call();
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final letters = await _repository.getPublicLetters();
@@ -50,8 +61,21 @@ class _MainShellState extends State<MainShell> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+        
+        // 401 에러인 경우 로그아웃 처리
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('401') || 
+            errorString.contains('unauthorized') ||
+            errorString.contains('인증')) {
+          widget.onLogout?.call();
+          return;
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('데이터를 불러오는데 실패했습니다: $e')),
+          SnackBar(
+            content: Text('데이터를 불러오는데 실패했습니다: $e'),
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }
@@ -72,6 +96,7 @@ class _MainShellState extends State<MainShell> {
         unreadBouquetCount: _unreadBouquetCount,
         onOpenBouquet: () => _openBouquet(context),
         onOpenSettings: () => _openSettings(context),
+        onRefresh: _loadData,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
@@ -111,25 +136,49 @@ class _MainShellState extends State<MainShell> {
       if (!mounted) return;
       
       if (user == null) {
+        if (!mounted) return;
         final messenger = ScaffoldMessenger.of(context);
         messenger.showSnackBar(
-          const SnackBar(content: Text('사용자 정보를 불러올 수 없습니다')),
+          const SnackBar(
+            content: Text('사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.'),
+            duration: Duration(seconds: 3),
+          ),
         );
+        // 401 에러인 경우 자동 로그아웃
+        widget.onLogout?.call();
         return;
       }
       
+      if (!mounted) return;
       final navigator = Navigator.of(context);
       navigator.push(
         MaterialPageRoute<void>(
-          builder: (_) => SettingsScreen(currentUser: user),
+          builder: (_) => SettingsScreen(
+            currentUser: user,
+            onLogout: widget.onLogout,
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       
+      final errorString = e.toString().toLowerCase();
+      final isAuthError = errorString.contains('401') || 
+                          errorString.contains('unauthorized') ||
+                          errorString.contains('인증');
+      
+      if (isAuthError) {
+        // 인증 에러인 경우 자동 로그아웃
+        widget.onLogout?.call();
+        return;
+      }
+      
       final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(
-        SnackBar(content: Text('설정을 불러오는데 실패했습니다: $e')),
+        SnackBar(
+          content: Text('설정을 불러오는데 실패했습니다: $e'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -137,7 +186,9 @@ class _MainShellState extends State<MainShell> {
   void _openWritePage(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => const WriteLetterPage(),
+        builder: (_) => WriteLetterPage(
+          onSuccess: () => _loadData(), // 편지 작성 후 데이터 새로고침
+        ),
       ),
     );
   }

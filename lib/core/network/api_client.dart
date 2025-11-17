@@ -31,11 +31,25 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) {
-          // 401 에러 시 토큰 제거 및 로그아웃 처리
+          // 401 에러 시 토큰 제거
           if (error.response?.statusCode == 401) {
             _tokenStorage.clearToken();
-            // 로그아웃 이벤트 발생 (나중에 구현)
+            // 로그는 출력하지 않음 (정상적인 인증 실패일 수 있음)
           }
+          
+          // 에러 응답을 ApiResponse 형식으로 변환
+          if (error.response?.data != null) {
+            try {
+              final errorData = error.response!.data as Map<String, dynamic>;
+              // Spring Boot 에러 응답 형식 처리
+              if (errorData.containsKey('error') || errorData.containsKey('message')) {
+                return handler.next(error);
+              }
+            } catch (e) {
+              // 파싱 실패 시 그대로 전달
+            }
+          }
+          
           return handler.next(error);
         },
       ),

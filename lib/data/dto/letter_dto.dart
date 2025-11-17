@@ -14,6 +14,7 @@ class LetterDto {
   final int likes;
   final int views;
   final int savedCount;
+  final int? likeCount; // 현재 좋아요 수 (API에서 제공될 수 있음)
   final String visibility;
   final List<String>? tags;
   final LetterTemplateDto? template;
@@ -34,6 +35,7 @@ class LetterDto {
     this.likes = 0,
     this.views = 0,
     this.savedCount = 0,
+    this.likeCount,
     required this.visibility,
     this.tags,
     this.template,
@@ -56,6 +58,7 @@ class LetterDto {
       likes: json['likes'] as int? ?? 0,
       views: json['views'] as int? ?? 0,
       savedCount: json['savedCount'] as int? ?? 0,
+      likeCount: json['likeCount'] as int?,
       visibility: json['visibility'] as String,
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
@@ -106,6 +109,9 @@ class LetterDto {
       likes: likes,
       views: views,
       savedCount: savedCount,
+      likeCount: likeCount,
+      isLiked: isLiked,
+      isSaved: isSaved,
       visibility: _parseVisibility(visibility),
       tags: tags ?? [],
       template: template?.toModel(),

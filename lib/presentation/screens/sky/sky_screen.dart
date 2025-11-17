@@ -15,6 +15,7 @@ class SkyScreen extends StatelessWidget {
     this.unreadBouquetCount = 0,
     this.onOpenBouquet,
     this.onOpenSettings,
+    this.onRefresh,
   });
 
   final List<Letter> letters;
@@ -22,6 +23,7 @@ class SkyScreen extends StatelessWidget {
   final int unreadBouquetCount;
   final VoidCallback? onOpenBouquet;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onRefresh;
   static final _random = math.Random();
 
   LinearGradient _gradientForNow() {
@@ -90,14 +92,52 @@ class SkyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _FloatingFlowerField(
-                      letters: letters,
-                      onTap: (letter) => _openSeedBloom(context, letter),
-                    ),
-                  ),
+              child: letters.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.cloud_outlined,
+                            size: 64,
+                            color: Colors.white54,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '아직 씨앗이 없어요',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '첫 번째 편지를 작성해보세요',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (onRefresh != null) ...[
+                            const SizedBox(height: 24),
+                            TextButton.icon(
+                              onPressed: onRefresh,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('새로고침'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
+                  : Stack(
+                      children: [
+                        Positioned.fill(
+                          child: _FloatingFlowerField(
+                            letters: letters,
+                            onTap: (letter) => _openSeedBloom(context, letter),
+                          ),
+                        ),
                   Positioned(
                     left: 32,
                     top: 32,
@@ -108,13 +148,13 @@ class SkyScreen extends StatelessWidget {
                     top: 120,
                     child: _glowDot(Colors.white.withAlpha(51), size: 22),
                   ),
-                  Positioned(
-                    right: 26,
-                    bottom: 150,
-                    child: _glowDot(Colors.white.withAlpha(64), size: 28),
-                  ),
-                ],
-              ),
+                        Positioned(
+                          right: 26,
+                          bottom: 150,
+                          child: _glowDot(Colors.white.withAlpha(64), size: 28),
+                        ),
+                      ],
+                    ),
             ),
           ],
         ),
