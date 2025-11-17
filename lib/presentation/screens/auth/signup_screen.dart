@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/auth/terms_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -29,10 +30,69 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    if (!_agreeTerms || !_agreePrivacy) return;
-    if (_passwordCtrl.text != _confirmCtrl.text) return;
-    widget.onSuccess();
+  bool _isLoading = false;
+
+  Future<void> _submit() async {
+    if (!_agreeTerms || !_agreePrivacy) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이용약관과 개인정보처리방침에 동의해주세요')),
+        );
+      }
+      return;
+    }
+    
+    if (_passwordCtrl.text != _confirmCtrl.text) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('비밀번호가 일치하지 않습니다')),
+        );
+      }
+      return;
+    }
+
+    if (_emailCtrl.text.isEmpty ||
+        _nicknameCtrl.text.isEmpty ||
+        _passwordCtrl.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('모든 필드를 입력해주세요')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await DataRepository.instance.signup(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+        nickname: _nicknameCtrl.text.trim(),
+        agreeTerms: _agreeTerms,
+        agreePrivacy: _agreePrivacy,
+      );
+
+      if (mounted) {
+        if (success) {
+          widget.onSuccess();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('회원가입에 실패했습니다. 다시 시도해주세요.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -216,8 +276,18 @@ class _SignupScreenState extends State<SignupScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: (_agreeTerms && _agreePrivacy) ? _submit : null,
-                                child: const Text('가입하기'),
+                                onPressed: (_agreeTerms && _agreePrivacy && !_isLoading)
+                                    ? _submit
+                                    : null,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('가입하기'),
                               ),
                             ),
                           ],

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/auth/signup_screen.dart';
 import 'package:taba_app/presentation/screens/auth/forgot_password_screen.dart';
 
@@ -16,12 +17,53 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    if (_emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await DataRepository.instance.login(
+        _emailCtrl.text.trim(),
+        _passwordCtrl.text,
+      );
+
+      if (mounted) {
+        if (success) {
+          widget.onSuccess();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('로그인에 실패했습니다. 다시 시도해주세요.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('오류가 발생했습니다: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -112,8 +154,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: widget.onSuccess,
-                                child: const Text('이메일로 로그인'),
+                                onPressed: _isLoading ? null : _handleLogin,
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('이메일로 로그인'),
                               ),
                             ),
                             const SizedBox(height: 12),

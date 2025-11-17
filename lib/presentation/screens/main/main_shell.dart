@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:taba_app/data/mock/mock_data.dart';
+import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/data/models/notification.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/bouquet/bouquet_screen.dart';
 import 'package:taba_app/presentation/screens/settings/settings_screen.dart';
 import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
@@ -13,20 +15,63 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final _repository = DataRepository.instance;
+  List<Letter> _letters = [];
+  List<NotificationItem> _notifications = [];
+  int _unreadBouquetCount = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final letters = await _repository.getPublicLetters();
+      final notifications = await _repository.getNotifications();
+      final bouquets = await _repository.getBouquets();
+      
+      final unreadCount = bouquets.fold<int>(
+        0,
+        (value, bouquet) => value + bouquet.unreadCount,
+      );
+
+      if (mounted) {
+        setState(() {
+          _letters = letters;
+          _notifications = notifications;
+          _unreadBouquetCount = unreadCount;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('데이터를 불러오는데 실패했습니다: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final repo = MockDataRepository.instance;
-    final unreadBouquet = repo.friendBouquets.fold<int>(
-      0,
-      (value, bouquet) => value + bouquet.unreadCount,
-    );
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: SkyScreen(
-        letters: repo.letters,
-        notifications: repo.notifications,
-        unreadBouquetCount: unreadBouquet,
-        onOpenBouquet: () => _openBouquet(context, repo),
-        onOpenSettings: () => _openSettings(context, repo),
+        letters: _letters,
+        notifications: _notifications,
+        unreadBouquetCount: _unreadBouquetCount,
+        onOpenBouquet: () => _openBouquet(context),
+        onOpenSettings: () => _openSettings(context),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton.extended(
@@ -37,22 +82,56 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  void _openBouquet(BuildContext context, MockDataRepository repo) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => BouquetScreen(
-          friendBouquets: repo.friendBouquets,
+  Future<void> _openBouquet(BuildContext context) async {
+    try {
+      final bouquets = await _repository.getBouquets();
+      if (!mounted) return;
+      
+      final navigator = Navigator.of(context);
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => BouquetScreen(
+            friendBouquets: bouquets,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('꽃다발을 불러오는데 실패했습니다: $e')),
+      );
+    }
   }
 
-  void _openSettings(BuildContext context, MockDataRepository repo) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => SettingsScreen(currentUser: repo.users.first),
-      ),
-    );
+  Future<void> _openSettings(BuildContext context) async {
+    try {
+      final user = await _repository.getCurrentUser();
+      if (!mounted) return;
+      
+      if (user == null) {
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(
+          const SnackBar(content: Text('사용자 정보를 불러올 수 없습니다')),
+        );
+        return;
+      }
+      
+      final navigator = Navigator.of(context);
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => SettingsScreen(currentUser: user),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('설정을 불러오는데 실패했습니다: $e')),
+      );
+    }
   }
 
   void _openWritePage(BuildContext context) {

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 import 'package:taba_app/core/theme/app_theme.dart';
-import 'package:taba_app/data/mock/mock_data.dart';
+import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/auth/login_screen.dart';
 import 'package:taba_app/presentation/screens/main/main_shell.dart';
 import 'package:taba_app/presentation/screens/splash/splash_screen.dart';
@@ -26,11 +26,22 @@ class _TabaAppState extends State<TabaApp> {
   @override
   void initState() {
     super.initState();
-    _stageTimer = Timer(const Duration(milliseconds: 1800), () {
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    _stageTimer = Timer(const Duration(milliseconds: 1800), () async {
       if (!mounted) return;
-      setState(() => _stage = AppStage.auth);
+      
+      final isAuthenticated =
+          await DataRepository.instance.isAuthenticated();
+      
+      if (mounted) {
+        setState(() {
+          _stage = isAuthenticated ? AppStage.main : AppStage.auth;
+        });
+      }
     });
-    MockDataRepository.instance.seed(); // ensure mock repo warms up
   }
 
   @override
