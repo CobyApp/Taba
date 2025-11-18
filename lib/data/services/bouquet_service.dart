@@ -94,13 +94,17 @@ class BouquetService {
     required String friendId,
     int page = 0,
     int size = 20,
+    String sort = 'sentAt,desc', // 기본값: 최신순
   }) async {
     try {
+      // Swagger 명세에 따르면 pageable은 query parameter로 전달
+      // Spring의 Pageable은 page, size, sort를 지원
       final response = await _apiClient.dio.get(
         '/bouquets/$friendId/letters',
         queryParameters: {
           'page': page,
           'size': size,
+          if (sort.isNotEmpty) 'sort': sort,
         },
       );
 

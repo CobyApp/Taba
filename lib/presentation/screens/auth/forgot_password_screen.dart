@@ -1,8 +1,15 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
+import 'package:taba_app/presentation/widgets/gradient_scaffold.dart';
+import 'package:taba_app/presentation/widgets/taba_text_field.dart';
+import 'package:taba_app/presentation/widgets/taba_button.dart';
+import 'package:taba_app/presentation/widgets/taba_card.dart';
+import 'package:taba_app/presentation/widgets/nav_header.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -22,6 +29,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _sendReset() async {
+    final locale = AppLocaleController.localeNotifier.value;
+    
     if (_emailCtrl.text.isEmpty) {
       if (mounted) {
         showTabaError(context, message: '이메일을 입력해주세요');
@@ -45,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showTabaError(context, message: '오류가 발생했습니다: $e');
+        showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
       }
     } finally {
       if (mounted) {
@@ -56,62 +65,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const SizedBox.shrink(),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppColors.gradientDusk,
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('가입한 이메일 주소를 입력하면 재설정 링크를 보내드려요.'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: '이메일',
-                    hintText: 'neon@taba.app',
+    return GradientScaffold(
+      gradient: AppColors.gradientDusk,
+      body: SafeArea(
+        top: false,
+        child: ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NavHeader(
+                    showBackButton: true,
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _sendReset,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('재설정 링크 보내기'),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(AppStrings.forgotPasswordSubtitle(locale)),
+                  const SizedBox(height: AppSpacing.md),
+                  TabaCard(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      children: [
+                        TabaTextField(
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          labelText: AppStrings.email(locale),
+                          hintText: AppStrings.emailHint(locale),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        TabaButton(
+                          onPressed: _isLoading ? null : _sendReset,
+                          label: AppStrings.sendResetLink(locale),
+                          isLoading: _isLoading,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

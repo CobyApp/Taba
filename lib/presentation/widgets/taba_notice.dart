@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 /// 통일된 스낵바 스타일 알림 표시
 /// 하단에 고정되어 화면을 밀지 않고 자동으로 사라짐
@@ -37,10 +39,11 @@ void showTabaSuccess(
   required String message,
   String? title,
 }) {
+  final locale = AppLocaleController.localeNotifier.value;
   showTabaSnackBar(
     context,
     message: message,
-    title: title ?? '성공',
+    title: title ?? AppStrings.successTitle(locale),
     icon: Icons.check_circle,
     backgroundColor: AppColors.neonPink,
   );
@@ -52,10 +55,11 @@ void showTabaError(
   required String message,
   String? title,
 }) {
+  final locale = AppLocaleController.localeNotifier.value;
   showTabaSnackBar(
     context,
     message: message,
-    title: title ?? '오류',
+    title: title ?? AppStrings.errorTitle(locale),
     icon: Icons.error_outline,
     backgroundColor: Colors.red.withOpacity(0.9),
   );

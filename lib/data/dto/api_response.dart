@@ -82,6 +82,15 @@ class PageResponse<T> {
   final bool first;
   final bool last;
   
+  // API 명세서에 따른 필드 (number는 page와 동일)
+  final int number; // API 명세서에서 사용하는 필드명
+  
+  // Swagger 응답 구조 지원 (optional)
+  final int? pageSize;
+  final int? offset;
+  final bool? paged;
+  final bool? unpaged;
+  
   PageResponse({
     required this.content,
     required this.page,
@@ -90,23 +99,62 @@ class PageResponse<T> {
     required this.totalPages,
     required this.first,
     required this.last,
-  });
+    int? number,
+    this.pageSize,
+    this.offset,
+    this.paged,
+    this.unpaged,
+  }) : number = number ?? page; // number가 없으면 page 사용
   
   factory PageResponse.fromJson(
     Map<String, dynamic> json,
     T Function(dynamic) fromJsonT,
   ) {
+    // API 명세서 및 Swagger 응답 구조에 따른 페이지네이션 파싱
+    // Swagger: { success: true, data: { content: [...], totalElements, totalPages, size, number, first, last, pageable: {...} } }
+    // API 명세서: { success: true, data: { content: [...], totalElements, totalPages, size, number } }
+    
+    // pageable 객체에서 값 추출 (Swagger 응답 형식)
+    final pageable = json['pageable'] as Map<String, dynamic>?;
+    final pageableSize = pageable?['pageSize'] as int?;
+    final pageableOffset = pageable?['offset'] as int?;
+    final pageableNumber = pageable?['pageNumber'] as int?;
+    
+    // 직접 필드에서 값 추출 (API 명세서 형식)
+    final size = json['size'] as int? ?? pageableSize ?? 20;
+    final offset = pageableOffset ?? 0;
+    final number = json['number'] as int? ?? pageableNumber ?? 0;
+    final page = number; // number와 page는 동일
+    
+    final totalElements = json['totalElements'] as int? ?? 0;
+    final totalPages = json['totalPages'] as int? ?? 0;
+    
+    // first와 last 계산 (명시되지 않은 경우)
+    final first = json['first'] as bool? ?? (number == 0);
+    final last = json['last'] as bool? ?? (totalPages == 0 || number >= totalPages - 1);
+    
+    // pageable 객체의 추가 정보
+    final pageablePaged = pageable?['paged'] as bool?;
+    final pageableUnpaged = pageable?['unpaged'] as bool?;
+    
     return PageResponse<T>(
       content: (json['content'] as List<dynamic>?)
               ?.map((item) => fromJsonT(item))
               .toList() ??
           [],
-      page: json['page'] ?? 0,
-      size: json['size'] ?? 20,
-      totalElements: json['totalElements'] ?? 0,
-      totalPages: json['totalPages'] ?? 0,
-      first: json['first'] ?? true,
-      last: json['last'] ?? true,
+      page: page,
+      number: number,
+      size: size,
+      totalElements: totalElements,
+      totalPages: totalPages,
+      first: first,
+      last: last,
+      pageSize: pageableSize ?? size,
+      offset: offset,
+      paged: pageablePaged ?? json['paged'] as bool?,
+      unpaged: pageableUnpaged ?? json['unpaged'] as bool?,
     );
   }
+  
+  bool get hasMore => !last;
 }

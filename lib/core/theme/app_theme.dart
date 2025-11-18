@@ -5,12 +5,43 @@ import 'package:taba_app/core/constants/app_colors.dart';
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get light {
-    final base = ThemeData.dark(useMaterial3: true);
-    final displayFont = GoogleFonts.pixelifySans();
-    final bodyFont = GoogleFonts.spaceGrotesk();
+  /// 언어에 따라 적절한 폰트 반환 (귀여운 여고생 스타일)
+  static TextStyle _getFontForLocale(String languageCode, String fontFamily) {
+    switch (languageCode) {
+      case 'ko':
+        // 한글 폰트: 귀여운 여고생 스타일
+        switch (fontFamily) {
+          case 'display':
+            return GoogleFonts.jua(); // 디스플레이용 귀여운 폰트
+          default:
+            return GoogleFonts.sunflower(); // 본문용 귀여운 폰트
+        }
+      case 'ja':
+        // 일본어 폰트: 귀여운 여고생 스타일
+        switch (fontFamily) {
+          case 'display':
+            return GoogleFonts.yomogi(fontWeight: FontWeight.w600);
+          default:
+            return GoogleFonts.kosugiMaru();
+        }
+      case 'en':
+      default:
+        // 영어 폰트: 귀여운 여고생 스타일
+        switch (fontFamily) {
+          case 'display':
+            return GoogleFonts.indieFlower(fontWeight: FontWeight.w600);
+          default:
+            return GoogleFonts.kalam();
+        }
+    }
+  }
 
-    final mutedBody = AppColors.textPrimary.withOpacity(.82);
+  static ThemeData light(Locale locale) {
+    final base = ThemeData.dark(useMaterial3: true);
+    final displayFont = _getFontForLocale(locale.languageCode, 'display');
+    final bodyFont = _getFontForLocale(locale.languageCode, 'body');
+
+    final mutedBody = AppColors.textPrimary.withValues(alpha: 0.82);
     final textTheme = TextTheme(
       displayLarge: displayFont.copyWith(
         color: AppColors.textPrimary,

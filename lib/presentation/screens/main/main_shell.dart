@@ -7,6 +7,9 @@ import 'package:taba_app/presentation/screens/settings/settings_screen.dart';
 import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
+import 'package:taba_app/presentation/widgets/loading_indicator.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.onLogout});
@@ -81,24 +84,26 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: TabaLoadingIndicator()),
       );
     }
 
-    return Scaffold(
-      body: SkyScreen(
-        letters: _letters,
-        notifications: _notifications,
-        unreadBouquetCount: _unreadBouquetCount,
-        onOpenBouquet: () => _openBouquet(context),
-        onOpenSettings: () => _openSettings(context),
-        onRefresh: _loadData,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openWritePage(context),
-        icon: const Icon(Icons.edit_rounded),
-        label: const Text('편지 쓰기'),
+    return SkyScreen(
+      letters: _letters,
+      notifications: _notifications,
+      unreadBouquetCount: _unreadBouquetCount,
+      onOpenBouquet: () => _openBouquet(context),
+      onOpenSettings: () => _openSettings(context),
+      onRefresh: _loadData,
+      floatingActionButton: ValueListenableBuilder<Locale>(
+        valueListenable: AppLocaleController.localeNotifier,
+        builder: (context, locale, _) {
+          return FloatingActionButton.extended(
+            onPressed: () => _openWritePage(context),
+            icon: const Icon(Icons.edit_rounded),
+            label: Text(AppStrings.writeLetterButton(locale)),
+          );
+        },
       ),
     );
   }
@@ -137,7 +142,8 @@ class _MainShellState extends State<MainShell> {
       
       if (user == null) {
         if (!mounted) return;
-        showTabaError(context, message: '사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.cannotLoadUserInfo(locale));
         // 401 에러인 경우 자동 로그아웃
         widget.onLogout?.call();
         return;
@@ -172,7 +178,8 @@ class _MainShellState extends State<MainShell> {
         return;
       }
       
-      showTabaError(context, message: '설정을 불러오는데 실패했습니다: $e');
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.settingsLoadFailed2(locale) + e.toString());
     }
   }
 

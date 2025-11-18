@@ -91,15 +91,14 @@ class LetterService {
   Future<ApiResponse<PageResponse<LetterDto>>> getPublicLetters({
     int page = 0,
     int size = 20,
-    String sort = 'sentAt,desc',
   }) async {
     try {
+      // API 명세서에 따르면 page와 size만 지원 (sort 파라미터 없음)
       final response = await _apiClient.dio.get(
         '/letters/public',
-      queryParameters: {
-        'page': page,
-        'size': size,
-          'sort': sort,
+        queryParameters: {
+          'page': page,
+          'size': size,
         },
       );
 

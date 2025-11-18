@@ -6,7 +6,7 @@ import 'package:taba_app/data/dto/bouquet_dto.dart';
 class FriendService {
   final ApiClient _apiClient = ApiClient();
 
-  Future<ApiResponse<FriendProfileDto>> addFriendByInviteCode(
+  Future<ApiResponse<void>> addFriendByInviteCode(
     String inviteCode,
   ) async {
     try {
@@ -16,7 +16,7 @@ class FriendService {
       );
 
       if (response.data is! Map<String, dynamic>) {
-        return ApiResponse<FriendProfileDto>(
+        return ApiResponse<void>(
           success: false,
           error: ApiError(
             code: 'ADD_FRIEND_ERROR',
@@ -25,9 +25,10 @@ class FriendService {
         );
       }
 
-      return ApiResponse<FriendProfileDto>.fromJson(
+      // API 명세서에 따르면 data는 null 반환
+      return ApiResponse<void>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => FriendProfileDto.fromJson(data as Map<String, dynamic>),
+        null,
       );
     } on DioException catch (e) {
       String errorMessage = '친구 추가에 실패했습니다.';
@@ -45,7 +46,7 @@ class FriendService {
         } catch (_) {}
       }
       
-      return ApiResponse<FriendProfileDto>(
+      return ApiResponse<void>(
         success: false,
         error: ApiError(
           code: 'ADD_FRIEND_ERROR',
@@ -53,7 +54,7 @@ class FriendService {
         ),
       );
     } catch (e) {
-      return ApiResponse<FriendProfileDto>(
+      return ApiResponse<void>(
         success: false,
         error: ApiError(
           code: 'ADD_FRIEND_ERROR',

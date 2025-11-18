@@ -4,11 +4,18 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:taba_app/presentation/widgets/taba_card.dart';
+import 'package:taba_app/presentation/widgets/taba_button.dart';
+import 'package:taba_app/presentation/widgets/taba_text_field.dart';
+import 'package:taba_app/presentation/widgets/modal_sheet.dart';
+import 'package:taba_app/presentation/widgets/nav_header.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -52,7 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingSettings = false);
-        showTabaError(context, message: '설정을 불러오는데 실패했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.settingsLoadFailed(locale) + e.toString());
       }
     }
   }
@@ -76,204 +84,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = widget.currentUser;
     final remaining = _remainingValidity();
     return Scaffold(
-      appBar: AppBar(title: const Text('설정'), centerTitle: false),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        children: [
-          GestureDetector(
-            onTap: () => _openEditProfile(context, user),
-            child: _ProfileCard(user: user),
-          ),
-          const SizedBox(height: 24),
-          const _SectionHeader(title: '알림'),
-          SwitchListTile(
-            title: const Text('푸시 알림'),
-            subtitle: const Text('새 편지와 반응을 알려드릴게요'),
-            value: _pushEnabled,
-            onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
-          ),
-          const SizedBox(height: 24),
-          const _SectionHeader(title: '친구 초대'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.airplane_ticket),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _inviteCode ?? '코드를 발급해주세요',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    remaining != null
-                        ? '유효 시간 ${remaining.inMinutes}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
-                        : '만료됨 · 재발급이 필요해요',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _inviteCode == null
-                              ? null
-                              : () => _copyInvite(_inviteCode!),
-                          icon: const Icon(Icons.copy),
-                          label: const Text('복사'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _inviteCode == null
-                              ? null
-                              : () => _shareInvite(_inviteCode!),
-                          icon: const Icon(Icons.share),
-                          label: const Text('공유'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isLoadingCode ? null : _regenerateCode,
-                          child: _isLoadingCode
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('재발급'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.person_add),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '친구 코드로 추가',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showAddFriendDialog(context),
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('친구 코드로 추가'),
+      appBar: PreferredSize(
+        preferredSize: Size.zero,
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          toolbarHeight: 0,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return Column(
+              children: [
+                NavHeader(
+                  showBackButton: true,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.only(
+                      left: AppSpacing.xl,
+                      right: AppSpacing.xl,
+                      bottom: AppSpacing.lg,
                     ),
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openEditProfile(context, user),
+                        child: _ProfileCard(user: user),
+                      ),
+                      const SizedBox(height: 24),
+                      _SectionHeader(title: AppStrings.notificationsSection(locale)),
+                      SwitchListTile(
+                        title: Text(AppStrings.pushNotifications(locale)),
+                        subtitle: Text(AppStrings.pushNotificationsSubtitle(locale)),
+                        value: _pushEnabled,
+                        onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
+                      ),
+                      const SizedBox(height: 24),
+                      _SectionHeader(title: AppStrings.friendInviteSection(locale)),
+                      TabaCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.airplane_ticket),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _inviteCode ?? AppStrings.inviteCodeLabel(locale),
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              remaining != null
+                                  ? '${AppStrings.validTime(locale)} ${remaining.inMinutes}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
+                                  : AppStrings.expired(locale),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.white70),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TabaButton(
+                                    onPressed: _inviteCode == null
+                                        ? null
+                                        : () => _copyInvite(_inviteCode!),
+                                    label: AppStrings.copyButton(locale),
+                                    icon: Icons.copy,
+                                    variant: TabaButtonVariant.outline,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TabaButton(
+                                    onPressed: _inviteCode == null
+                                        ? null
+                                        : () => _shareInvite(_inviteCode!),
+                                    label: AppStrings.shareButton(locale),
+                                    icon: Icons.share,
+                                    variant: TabaButtonVariant.outline,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TabaButton(
+                                    onPressed: _isLoadingCode ? null : _regenerateCode,
+                                    label: AppStrings.regenerateButton(locale),
+                                    isLoading: _isLoadingCode,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TabaCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.person_add),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    AppStrings.addFriendByCode(locale),
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            TabaButton(
+                              onPressed: () => _showAddFriendDialog(context),
+                              label: AppStrings.addFriendByCodeButton(locale),
+                              icon: Icons.person_add,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _SectionHeader(title: AppStrings.accountSection(locale)),
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: Text(AppStrings.changePassword(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {},
+                      ),
+                      const SizedBox(height: 8),
+                      _SectionHeader(title: AppStrings.languageSection(locale)),
+                      DropdownButtonFormField<Locale>(
+                        value: AppLocaleController.localeNotifier.value,
+                        items: AppLocaleController.supportedLocales
+                            .map(
+                              (l) => DropdownMenuItem(
+                                value: l,
+                                child: Text(
+                                  {'en': 'English', 'ko': '한국어', 'ja': '日本語'}[l.languageCode] ?? l.languageCode,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            AppLocaleController.setLocale(value);
+                          }
+                        },
+                        decoration: InputDecoration(
+                          labelText: AppStrings.appLanguage(locale),
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.shield_outlined),
+                        title: Text(AppStrings.privacySettings(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {},
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.logout),
+                        title: Text(AppStrings.logout(locale)),
+                        onTap: () => _handleLogout(context),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const _SectionHeader(title: '계정'),
-          ListTile(
-            leading: const Icon(Icons.lock_outline),
-            title: const Text('비밀번호 변경'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
-          ),
-          const SizedBox(height: 8),
-          const _SectionHeader(title: '언어'),
-          DropdownButtonFormField<Locale>(
-            value: AppLocaleController.localeNotifier.value,
-            items: AppLocaleController.supportedLocales
-                .map(
-                  (l) => DropdownMenuItem(
-                    value: l,
-                    child: Text(
-                      {'en': 'English', 'ko': '한국어', 'ja': '日本語'}[l.languageCode] ?? l.languageCode,
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value != null) {
-                AppLocaleController.localeNotifier.value = value;
-              }
-            },
-            decoration: const InputDecoration(
-              labelText: '앱 언어',
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.shield_outlined),
-            title: const Text('개인정보 설정'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('로그아웃'),
-            onTap: () => _handleLogout(context),
-          ),
-        ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 
   void _copyInvite(String code) {
+    final locale = AppLocaleController.localeNotifier.value;
     Clipboard.setData(ClipboardData(text: code));
     showTabaSuccess(
       context,
-      title: '초대 코드가 복사되었어요',
-      message: '친구에게 코드를 공유해 함께 하늘을 채워보세요.',
+      title: AppStrings.inviteCodeCopied(locale),
+      message: AppStrings.inviteCodeCopiedMessage(locale),
     );
   }
 
   void _shareInvite(String code) {
-    Share.share('친구 코드: $code\nTaba 앱에서 이 코드로 친구를 추가해보세요!');
+    final locale = AppLocaleController.localeNotifier.value;
+    Share.share(AppStrings.shareInviteMessage(locale, code));
   }
 
   void _showAddFriendDialog(BuildContext context) {
+    final locale = AppLocaleController.localeNotifier.value;
     final codeController = TextEditingController();
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('친구 추가'),
-        content: TextField(
+        title: Text(AppStrings.addFriend(locale)),
+        content: TabaTextField(
           controller: codeController,
-          decoration: const InputDecoration(
-            labelText: '친구 코드',
-            hintText: '예: user123-456789',
-            border: OutlineInputBorder(),
-          ),
+          labelText: AppStrings.friendCode(locale),
+          hintText: '예: user123-456789',
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
+            child: Text(AppStrings.cancel(locale)),
           ),
           TextButton(
             onPressed: () {
@@ -283,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _addFriendByCode(code);
               }
             },
-            child: const Text('추가'),
+            child: Text(AppStrings.add(locale)),
           ),
         ],
       ),
@@ -291,8 +318,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _addFriendByCode(String inviteCode) async {
+    final locale = AppLocaleController.localeNotifier.value;
     if (inviteCode.isEmpty) {
-        showTabaError(context, message: '친구 코드를 입력해주세요');
+        showTabaError(context, message: AppStrings.enterFriendCode(locale));
       return;
     }
 
@@ -300,18 +328,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final success = await _repository.addFriendByInviteCode(inviteCode);
       if (!mounted) return;
 
+      final locale = AppLocaleController.localeNotifier.value;
       if (success) {
         showTabaSuccess(
           context,
-          title: '친구가 추가되었어요',
-          message: '이제 서로의 편지를 주고받을 수 있어요.',
+          title: AppStrings.friendAdded(locale),
+          message: AppStrings.friendAddedMessage(locale),
         );
       } else {
-        showTabaError(context, message: '친구 추가에 실패했습니다. 코드를 확인해주세요.');
+        showTabaError(context, message: AppStrings.addFriendFailed(locale));
       }
     } catch (e) {
       if (!mounted) return;
-      showTabaError(context, message: '오류가 발생했습니다: $e');
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
     }
   }
 
@@ -323,10 +353,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (!success) {
         setState(() => _pushEnabled = !enabled);
-        showTabaError(context, message: '알림 설정 변경에 실패했습니다');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.notificationUpdateFailed(locale));
       }
     } catch (e) {
       if (!mounted) return;
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
       setState(() => _pushEnabled = !enabled);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('오류가 발생했습니다: $e')),
@@ -347,19 +380,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _inviteCode = code;
       _codeGeneratedAt = DateTime.now();
     });
+    final locale = AppLocaleController.localeNotifier.value;
     showTabaSuccess(
       context,
-      title: '새 초대 코드 발급',
-      message: '3분 동안 사용할 수 있는 코드를 만들었어요.',
+      title: AppStrings.newInviteCodeGenerated(locale),
+      message: AppStrings.inviteCodeValidFor(locale),
     );
       } else {
-        showTabaError(context, message: '초대 코드 생성에 실패했습니다');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.inviteCodeGenerationFailed(locale));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
-      );
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
     } finally {
       if (mounted) {
         setState(() => _isLoadingCode = false);
@@ -392,19 +426,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
+    final locale = AppLocaleController.localeNotifier.value;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠습니까?'),
+        title: Text(AppStrings.logout(locale)),
+        content: Text(AppStrings.reallyLogout(locale)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
+            child: Text(AppStrings.cancel(locale)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('로그아웃'),
+            child: Text(AppStrings.logout(locale)),
           ),
         ],
       ),
@@ -423,7 +458,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       widget.onLogout?.call();
     } catch (e) {
       if (!mounted) return;
-        showTabaError(context, message: '로그아웃 중 오류가 발생했습니다: $e');
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.logoutError(locale) + e.toString());
     }
   }
 }
@@ -575,60 +611,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showTabaError(context, message: '사진 촬영 중 오류가 발생했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.photoError(locale) + e.toString());
       }
     }
   }
 
   void _showImagePickerOptions() {
-    showModalBottomSheet(
+    TabaModalSheet.show(
       context: context,
-      backgroundColor: AppColors.midnightSoft,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('갤러리에서 선택'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickProfileImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('카메라로 촬영'),
-              onTap: () {
-                Navigator.pop(context);
-                _takeProfileImage();
-              },
-            ),
-            if ((_profileImage != null) || 
-                (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty && !_isRemovingImage))
+      child: ValueListenableBuilder<Locale>(
+        valueListenable: AppLocaleController.localeNotifier,
+        builder: (context, locale, _) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               ListTile(
-                leading: const Icon(Icons.delete_outline),
-                title: const Text('사진 제거'),
+                leading: const Icon(Icons.photo_library),
+                title: Text(AppStrings.selectFromGallery(locale)),
                 onTap: () {
                   Navigator.pop(context);
-                  setState(() {
-                    _profileImage = null;
-                    _isRemovingImage = true;
-                  });
+                  _pickProfileImage();
                 },
               ),
-          ],
-        ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: Text(AppStrings.takePhoto(locale)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takeProfileImage();
+                },
+              ),
+              if ((_profileImage != null) || 
+                  (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty && !_isRemovingImage))
+                ListTile(
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(AppStrings.removePhoto(locale)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _profileImage = null;
+                      _isRemovingImage = true;
+                    });
+                  },
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Future<void> _saveProfile() async {
+    final locale = AppLocaleController.localeNotifier.value;
     if (_nicknameCtrl.text.trim().isEmpty) {
-      showTabaError(context, message: '닉네임을 입력해주세요');
+      showTabaError(context, message: AppStrings.nicknameRequired(locale));
       return;
     }
 
@@ -659,21 +696,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         
         if (success) {
           Navigator.of(context).pop(true);
+          final locale = AppLocaleController.localeNotifier.value;
           showTabaSuccess(
             context,
-            title: '프로필이 수정되었어요',
-            message: '변경사항이 저장되었습니다.',
+            title: AppStrings.profileUpdated(locale),
+            message: AppStrings.changesSaved(locale),
           );
         } else {
-          showTabaError(context, message: '프로필 수정에 실패했습니다');
+          final locale = AppLocaleController.localeNotifier.value;
+          showTabaError(context, message: AppStrings.profileUpdateFailed(locale));
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('오류가 발생했습니다: $e')),
-        );
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
       }
     }
   }
@@ -682,7 +720,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('프로필 수정'),
+        title: ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return Text(AppStrings.editProfileTitle(locale));
+          },
+        ),
         centerTitle: false,
         actions: [
           TextButton(
@@ -693,7 +736,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('저장'),
+                : ValueListenableBuilder<Locale>(
+                    valueListenable: AppLocaleController.localeNotifier,
+                    builder: (context, locale, _) {
+                      return Text(AppStrings.save(locale));
+                    },
+                  ),
           ),
         ],
       ),
@@ -755,22 +803,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           const SizedBox(height: 24),
           // 닉네임
-          TextField(
+          TabaTextField(
             controller: _nicknameCtrl,
-            decoration: const InputDecoration(
-              labelText: '닉네임',
-              border: OutlineInputBorder(),
-            ),
+            labelText: '닉네임',
           ),
           const SizedBox(height: 16),
           // 상태 메시지
-          TextField(
+          TabaTextField(
             controller: _statusMessageCtrl,
-            decoration: const InputDecoration(
-              labelText: '상태 메시지',
-              hintText: '자신을 소개해주세요',
-              border: OutlineInputBorder(),
-            ),
+            labelText: '상태 메시지',
+            hintText: '자신을 소개해주세요',
             maxLines: 3,
           ),
         ],

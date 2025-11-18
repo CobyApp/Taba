@@ -12,7 +12,6 @@ import 'package:taba_app/data/services/letter_service.dart';
 import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
-import 'package:taba_app/core/storage/token_storage.dart';
 import 'dart:io';
 
 class DataRepository {
@@ -28,7 +27,6 @@ class DataRepository {
   final FileService _fileService = FileService();
   final InviteCodeService _inviteCodeService = InviteCodeService();
   final SettingsService _settingsService = SettingsService();
-  final TokenStorage _tokenStorage = TokenStorage();
 
   // Auth
   Future<bool> login(String email, String password) async {
@@ -213,13 +211,15 @@ class DataRepository {
     required String friendId,
     int page = 0,
     int size = 20,
+    String sort = 'sentAt,desc', // 기본값: 최신순
   }) async {
     try {
-      print('getFriendLetters 호출: friendId=$friendId, page=$page, size=$size');
+      print('getFriendLetters 호출: friendId=$friendId, page=$page, size=$size, sort=$sort');
       final response = await _bouquetService.getFriendLetters(
         friendId: friendId,
         page: page,
         size: size,
+        sort: sort,
       );
       print('getFriendLetters 응답: success=${response.isSuccess}, error=${response.error?.message}');
       

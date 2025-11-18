@@ -102,15 +102,17 @@ class SharedFlowerDto {
   });
 
   factory SharedFlowerDto.fromJson(Map<String, dynamic> json) {
-    // API 응답 구조에 맞춰 파싱
-    // API 명세서: letter 객체는 id, title, preview만 포함
+    // Swagger API 응답 구조에 맞춰 파싱
+    // 응답 구조: { id, letter: { id, title, preview }, flowerType, sentAt, sentByMe, isRead }
     final letterJson = json['letter'] as Map<String, dynamic>?;
     
-    // LetterDto를 생성하기 위해 필요한 필드 구성
-    // letter 객체가 있으면 사용, 없으면 전체 json에서 추출
+    // letter 객체에서 정보 추출 (Swagger 명세에 따르면 id, title, preview만 포함)
     final letterId = letterJson?['id'] as String? ?? json['id'] as String;
     final letterTitle = letterJson?['title'] as String? ?? '';
     final letterPreview = letterJson?['preview'] as String? ?? '';
+    
+    // flowerType은 최상위 레벨에 있음 (Swagger 명세 기준)
+    final flowerType = json['flowerType'] as String? ?? 'ROSE';
     
     // LetterDto를 생성하기 위해 필수 필드 구성
     // API 응답에는 일부 필드만 있으므로 기본값으로 채움
@@ -126,7 +128,7 @@ class SharedFlowerDto {
         'nickname': '알 수 없음',
         'avatarUrl': null,
       },
-      'flowerType': json['flowerType'] as String? ?? 'ROSE',
+      'flowerType': flowerType,
       'sentAt': json['sentAt'] as String,
       'isAnonymous': false,
       'views': 0,

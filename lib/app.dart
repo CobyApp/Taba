@@ -26,6 +26,12 @@ class _TabaAppState extends State<TabaApp> {
   @override
   void initState() {
     super.initState();
+    _initializeApp();
+  }
+  
+  Future<void> _initializeApp() async {
+    // 앱 언어 초기화 (시스템 언어 감지 및 저장)
+    await AppLocaleController.initialize();
     _checkAuth();
   }
 
@@ -85,7 +91,7 @@ class _TabaAppState extends State<TabaApp> {
     return MaterialApp(
       title: 'Taba',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.light(locale),
           locale: locale,
           supportedLocales: AppLocaleController.supportedLocales,
           localizationsDelegates: const [

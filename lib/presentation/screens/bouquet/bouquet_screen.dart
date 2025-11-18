@@ -1,15 +1,23 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/bouquet.dart';
-import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
-import 'package:taba_app/presentation/widgets/user_avatar.dart';
+import 'package:taba_app/presentation/widgets/taba_button.dart';
+import 'package:taba_app/presentation/widgets/gradient_scaffold.dart';
+import 'package:taba_app/presentation/widgets/empty_state.dart';
+import 'package:taba_app/presentation/widgets/loading_indicator.dart';
+import 'package:taba_app/presentation/widgets/bouquet/friend_story_strip.dart';
+import 'package:taba_app/presentation/widgets/bouquet/friend_summary_card.dart';
+import 'package:taba_app/presentation/widgets/bouquet/chat_messages_list.dart';
+import 'package:taba_app/presentation/widgets/bouquet/bouquet_detail_sheet.dart';
+import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
 import 'package:taba_app/presentation/screens/common/letter_detail_screen.dart';
+import 'package:taba_app/presentation/widgets/nav_header.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 class BouquetScreen extends StatefulWidget {
   const BouquetScreen({super.key, required this.friendBouquets});
@@ -27,6 +35,9 @@ class _BouquetScreenState extends State<BouquetScreen> {
   final Map<String, String> _customBouquetNames = {};
   final Map<String, List<SharedFlower>> _loadedFlowers = {}; // 친구별 편지 목록 캐시
   final Map<String, bool> _loadingFlowers = {}; // 로딩 상태
+  final Map<String, bool> _hasMorePages = {}; // 친구별 더 불러올 페이지가 있는지
+  final Map<String, int> _currentPages = {}; // 친구별 현재 페이지 번호
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -34,7 +45,35 @@ class _BouquetScreenState extends State<BouquetScreen> {
     _readFlowerIds = {};
     // 초기 선택된 친구의 편지 목록 로드
     if (widget.friendBouquets.isNotEmpty) {
-      _loadFriendLetters(widget.friendBouquets[_selectedIndex].friend.user.id);
+      _loadFriendLetters(widget.friendBouquets[_selectedIndex].friend.user.id, reset: true);
+    }
+    
+    // 무한 스크롤을 위한 스크롤 리스너
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  void _onScroll() {
+    // 스크롤 컨트롤러가 연결되어 있고 스크롤이 가능한 경우에만 처리
+    if (!_scrollController.hasClients) return;
+    
+    final position = _scrollController.position;
+    if (!position.hasContentDimensions) return;
+    
+    // 스크롤이 하단 근처에 도달하면 다음 페이지 로드
+    if (position.pixels >= position.maxScrollExtent * 0.9) {
+      final friendId = _selectedBouquet.friend.user.id;
+      final hasMore = _hasMorePages[friendId] ?? false;
+      final isLoading = _loadingFlowers[friendId] ?? false;
+      
+      if (hasMore && !isLoading) {
+        _loadFriendLetters(friendId, reset: false);
+      }
     }
   }
 
@@ -53,21 +92,54 @@ class _BouquetScreenState extends State<BouquetScreen> {
     // 선택된 친구의 편지 목록이 없으면 로드
     final friendId = widget.friendBouquets[index].friend.user.id;
     if (!_loadedFlowers.containsKey(friendId) && !(_loadingFlowers[friendId] ?? false)) {
-      _loadFriendLetters(friendId);
+      _loadFriendLetters(friendId, reset: true);
     }
   }
 
-  Future<void> _loadFriendLetters(String friendId) async {
+  Future<void> _loadFriendLetters(String friendId, {bool reset = false}) async {
     if (_loadingFlowers[friendId] == true) return;
+    
+    // 리셋인 경우 현재 페이지를 0으로 초기화
+    if (reset) {
+      _currentPages[friendId] = 0;
+      _hasMorePages[friendId] = true;
+      _loadedFlowers[friendId] = [];
+    }
+    
+    final currentPage = _currentPages[friendId] ?? 0;
+    final hasMore = _hasMorePages[friendId] ?? true;
+    
+    // 더 불러올 페이지가 없으면 중단
+    if (!hasMore && !reset) return;
     
     setState(() => _loadingFlowers[friendId] = true);
     
     try {
-      final flowers = await _repository.getFriendLetters(friendId: friendId);
+      final flowers = await _repository.getFriendLetters(
+        friendId: friendId,
+        page: currentPage,
+        size: 20,
+      );
+      
       if (mounted) {
         setState(() {
-          _loadedFlowers[friendId] = flowers;
+          if (reset) {
+            _loadedFlowers[friendId] = flowers;
+          } else {
+            // 기존 목록에 추가 (중복 제거)
+            final existingIds = _loadedFlowers[friendId]?.map((f) => f.id).toSet() ?? {};
+            final newFlowers = flowers.where((f) => !existingIds.contains(f.id)).toList();
+            _loadedFlowers[friendId] = [...(_loadedFlowers[friendId] ?? []), ...newFlowers];
+          }
+          
+          // 페이지네이션 정보 업데이트
+          _currentPages[friendId] = currentPage + 1;
+          
+          // 더 불러올 페이지가 있는지 확인 (응답이 비어있거나 20개 미만이면 마지막 페이지로 간주)
+          _hasMorePages[friendId] = flowers.length >= 20;
+          
           _loadingFlowers[friendId] = false;
+          
           // 읽은 편지 ID 업데이트
           _readFlowerIds.addAll(
             flowers.where((f) => (f.isRead ?? false) || f.sentByMe).map((f) => f.id),
@@ -76,7 +148,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _loadingFlowers[friendId] = false);
+        setState(() {
+          _loadingFlowers[friendId] = false;
+          _hasMorePages[friendId] = false; // 에러 발생 시 더 이상 시도하지 않음
+        });
         showTabaError(context, message: '편지 목록을 불러오는데 실패했습니다: $e');
       }
     }
@@ -111,337 +186,141 @@ class _BouquetScreenState extends State<BouquetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.friendBouquets.isEmpty) {
-      return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppColors.gradientGalaxy,
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            title: const SizedBox.shrink(),
-            centerTitle: false,
-          ),
-          body: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.local_florist_outlined,
-                  size: 64,
-                  color: Colors.white54,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  '아직 꽃다발이 없어요',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '친구와 편지를 주고받으면 꽃다발이 생겨요',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppLocaleController.localeNotifier,
+      builder: (context, locale, _) {
+        if (widget.friendBouquets.isEmpty) {
+          return GradientScaffold(
+            body: EmptyState(
+              icon: Icons.local_florist_outlined,
+              title: AppStrings.noBouquetYet(locale),
+              subtitle: AppStrings.noBouquetSubtitle(locale),
             ),
-          ),
-        ),
-      );
-    }
+          );
+        }
 
-    final selected = _selectedBouquet;
-    final unread = _unreadFor(selected);
-    final isLoading = _loadingFlowers[selected.friend.user.id] == true;
+        final selected = _selectedBouquet;
+        final unread = _unreadFor(selected);
+        final isLoading = _loadingFlowers[selected.friend.user.id] == true;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: AppColors.gradientGalaxy,
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const SizedBox.shrink(),
-          centerTitle: false,
-        ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
+        return GradientScaffold(
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.md,
+                AppSpacing.xl,
+                AppSpacing.lg,
+              ),
+              child: TabaButton(
                 onPressed: _composeLetterToSelectedFriend,
-                icon: const Icon(Icons.edit),
-                label: const Text('이 친구에게 편지 보내기'),
+                label: AppStrings.sendLetterToFriend(locale),
+                icon: Icons.edit,
               ),
             ),
           ),
-        ),
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _FriendStoryStrip(
-                  bouquets: widget.friendBouquets,
-                  selectedIndex: _selectedIndex,
-                  unreadResolver: _unreadFor,
-                  onSelect: _selectFriend,
+          body: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                NavHeader(
+                  showBackButton: true,
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: _FriendSummaryCard(
-                    bouquet: selected,
-                    unreadCount: isLoading ? 0 : unread,
-                    bouquetName: _resolveBouquetName(selected),
-                    onTap: () => _openBouquetDetail(selected),
+            Expanded(
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: FriendStoryStrip(
+                      bouquets: widget.friendBouquets,
+                      selectedIndex: _selectedIndex,
+                      unreadResolver: _unreadFor,
+                      onSelect: _selectFriend,
+                    ),
                   ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.md,
+                ),
+                child: FriendSummaryCard(
+                  bouquet: selected,
+                  unreadCount: isLoading ? 0 : unread,
+                  bouquetName: _resolveBouquetName(selected),
+                  onTap: () => _openBouquetDetail(selected),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                sliver: isLoading
-                    ? SliverToBoxAdapter(
-                        child: const Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                      )
-                    : _ChatMessagesSliver(
-                        flowers: _selectedFlowers,
-                        readFlowerIds: _readFlowerIds,
-                        onOpen: _openFlower,
-                        friendUser: selected.friend.user,
-                      ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+                AppSpacing.md,
               ),
-            ],
-          ),
+              sliver: _selectedFlowers.isEmpty && isLoading
+                  ? SliverToBoxAdapter(
+                      child: const TabaLoadingIndicator(),
+                    )
+                  : ChatMessagesList(
+                      flowers: _selectedFlowers,
+                      readFlowerIds: _readFlowerIds,
+                      onOpen: _openFlower,
+                      friendUser: selected.friend.user,
+                    ),
+            ),
+                  // 무한 스크롤 로딩 인디케이터
+                  if (isLoading && _selectedFlowers.isNotEmpty)
+                    const SliverToBoxAdapter(
+                      child: TabaInfiniteLoadingIndicator(),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
+    );
+      },
     );
   }
 
   void _shareBouquet(FriendBouquet bouquet) {
+    final locale = AppLocaleController.localeNotifier.value;
     final flowers = _loadedFlowers[bouquet.friend.user.id] ?? [];
     final snippet = flowers
         .take(4)
         .map((f) => '• ${f.title} (${f.flower.emoji})')
         .join('\n');
     final shareText = '''
-[Taba 꽃다발 공유]
-${bouquet.friend.user.nickname}과 나눈 꽃 ${flowers.length}개
+${AppStrings.bouquetShareTitle(locale)}
+${AppStrings.bouquetShareMessage(locale, bouquet.friend.user.nickname, flowers.length)}
 
 $snippet
 
-Taba에서 씨앗을 잡아 나와 친구가 되어줘!
-초대 코드: ${bouquet.friend.inviteCode}
+${AppStrings.inviteFriendsMessage(locale)}
+${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
 ''';
     Clipboard.setData(ClipboardData(text: shareText));
     showTabaSuccess(
       context,
-      title: '꽃다발 공유 링크 복사',
-      message: '${bouquet.friend.user.nickname}과의 꽃다발을 친구에게 전해보세요.',
+      title: AppStrings.bouquetShared(locale),
+      message: AppStrings.shareBouquetMessage(locale, bouquet.friend.user.nickname),
     );
   }
 
   void _openBouquetDetail(FriendBouquet bouquet) {
-    showModalBottomSheet<void>(
+    TabaModalSheet.show(
       context: context,
-      backgroundColor: AppColors.midnightSoft,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      child: BouquetDetailSheet(
+        bouquet: bouquet,
+        bouquetName: _resolveBouquetName(bouquet),
+        loadedFlowers: _loadedFlowers[bouquet.friend.user.id],
+        onSaveName: (name) => _saveBouquetName(bouquet, name),
+        onShare: () => _shareBouquet(bouquet),
+        onFlowerTap: _openFlower,
       ),
-      builder: (context) {
-        final controller =
-            TextEditingController(text: _resolveBouquetName(bouquet));
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.86,
-          maxChildSize: 0.92,
-          builder: (context, scrollController) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: ListView(
-                controller: scrollController,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '꽃다발 상세',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleLarge
-                            ?.copyWith(color: Colors.white),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close, color: Colors.white54),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${bouquet.friend.user.nickname}과 만든 꽃다발',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: controller,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: '꽃다발 이름',
-                      labelStyle: TextStyle(color: Colors.white70),
-                    ),
-                    onSubmitted: (value) {
-                      final trimmed = value.trim();
-                      if (trimmed.isEmpty) return;
-                      _saveBouquetName(bouquet, trimmed);
-                      showTabaSuccess(
-                        context,
-                        title: '꽃다발 이름을 저장했어요',
-                        message: trimmed,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  FutureBuilder<List<SharedFlower>>(
-                    future: _repository.getFriendLetters(friendId: bouquet.friend.user.id),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      if (snapshot.hasError) {
-                        print('편지 목록 로딩 에러: ${snapshot.error}');
-                        return Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.white70, size: 48),
-                              const SizedBox(height: 12),
-                              Text(
-                                '편지를 불러올 수 없습니다',
-                                style: const TextStyle(color: Colors.white70),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${snapshot.error}',
-                                style: const TextStyle(color: Colors.white54, fontSize: 12),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData) {
-                        return const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text('편지를 불러올 수 없습니다', style: TextStyle(color: Colors.white70)),
-                        );
-                      }
-                      final flowers = snapshot.data!;
-                      print('편지 목록 로드 완료: ${flowers.length}개');
-                      if (flowers.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: Column(
-                            children: [
-                              Icon(Icons.local_florist_outlined, color: Colors.white38, size: 64),
-                              SizedBox(height: 16),
-                              Text(
-                                '아직 편지가 없습니다',
-                                style: TextStyle(color: Colors.white70, fontSize: 16),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '친구에게 편지를 보내보세요',
-                                style: TextStyle(color: Colors.white54, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      return Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: flowers
-                            .map(
-                              (flower) => GestureDetector(
-                                onTap: () => _openFlower(flower),
-                                child: Container(
-                                  width: 150,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    color: AppColors.midnightGlass,
-                                    border: Border.all(color: Colors.white24),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        flower.flower.emoji,
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        flower.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        flower.preview,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () => _shareBouquet(bouquet),
-                    icon: const Icon(Icons.share),
-                    label: const Text('꽃다발 공유하기'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -456,384 +335,6 @@ Taba에서 씨앗을 잡아 나와 친구가 되어줘!
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => const WriteLetterPage(),
-      ),
-    );
-  }
-}
-
-class _FriendStoryStrip extends StatelessWidget {
-  const _FriendStoryStrip({
-    required this.bouquets,
-    required this.selectedIndex,
-    required this.unreadResolver,
-    required this.onSelect,
-  });
-
-  final List<FriendBouquet> bouquets;
-  final int selectedIndex;
-  final int Function(FriendBouquet) unreadResolver;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 140,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        itemBuilder: (context, index) {
-          final bouquet = bouquets[index];
-          final selected = index == selectedIndex;
-          final unread = unreadResolver(bouquet);
-          return GestureDetector(
-            onTap: () => onSelect(index),
-            child: SizedBox(
-              width: 90,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: selected
-                                ? Colors.white
-                                : Colors.white.withAlpha(60),
-                            width: selected ? 3 : 1.5,
-                          ),
-                          boxShadow: [
-                            if (selected)
-                              BoxShadow(
-                                color: bouquet
-                                    .resolveTheme(AppColors.neonPink)
-                                    .withAlpha(120),
-                                blurRadius: 18,
-                                spreadRadius: 2,
-                              ),
-                          ],
-                        ),
-                        child: UserAvatar(
-                          user: bouquet.friend.user,
-                          radius: 34,
-                        ),
-                      ),
-                      if (unread > 0)
-                        Positioned(
-                          right: -2,
-                          top: -2,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.neonPink,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              '$unread',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 80,
-                    child: Text(
-                      bouquet.friend.user.nickname,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withAlpha(selected ? 255 : 200),
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemCount: bouquets.length,
-      ),
-    );
-  }
-}
-
-class _FriendSummaryCard extends StatelessWidget {
-  const _FriendSummaryCard({
-    required this.bouquet,
-    required this.unreadCount,
-    required this.bouquetName,
-    required this.onTap,
-  });
-
-  final FriendBouquet bouquet;
-  final int unreadCount;
-  final String bouquetName;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = bouquet.resolveTheme(AppColors.neonPink);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            colors: [
-              color.withAlpha(220),
-              Colors.white.withAlpha(16),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    bouquetName,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${bouquet.friend.user.nickname}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.white70),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Bloom ${(bouquet.bloomLevel * 100).round()}% · 신뢰 ${bouquet.trustScore}%',
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  unreadCount > 0 ? '$unreadCount' : '0',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  unreadCount > 0 ? '읽지 않은 꽃' : '모든 꽃 읽음',
-                  style: const TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatMessagesSliver extends StatelessWidget {
-  const _ChatMessagesSliver({
-    required this.flowers,
-    required this.readFlowerIds,
-    required this.onOpen,
-    required this.friendUser,
-  });
-
-  final List<SharedFlower> flowers;
-  final Set<String> readFlowerIds;
-  final ValueChanged<SharedFlower> onOpen;
-  final TabaUser friendUser;
-
-  @override
-  Widget build(BuildContext context) {
-    final separatedCount = math.max(0, flowers.length * 2 - 1);
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          if (index.isOdd) return const SizedBox(height: 12);
-          final i = index ~/ 2;
-          final item = flowers[i];
-          final isUnread = !item.sentByMe && !readFlowerIds.contains(item.id);
-          return _ChatBubble(
-            contentTitle: item.title,
-            contentPreview: item.preview,
-            emoji: item.flower.emoji,
-            isMine: item.sentByMe,
-            timeLabel: _timeAgoStatic(item.sentAt),
-            isUnread: isUnread,
-            friendUser: friendUser,
-            onTap: () => onOpen(item),
-          );
-        },
-        childCount: separatedCount,
-      ),
-    );
-  }
-
-  static String _timeAgoStatic(DateTime time) {
-    final diff = DateTime.now().difference(time);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-    if (diff.inHours < 24) return '${diff.inHours}시간 전';
-    return '${diff.inDays}일 전';
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({
-    required this.contentTitle,
-    required this.contentPreview,
-    required this.emoji,
-    required this.isMine,
-    required this.timeLabel,
-    required this.isUnread,
-    required this.friendUser,
-    required this.onTap,
-  });
-
-  final String contentTitle;
-  final String contentPreview;
-  final String emoji;
-  final bool isMine;
-  final String timeLabel;
-  final bool isUnread;
-  final TabaUser friendUser;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final bubbleColor = isMine ? AppColors.neonBlue.withAlpha(40) : AppColors.midnightGlass;
-    final align = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final radius = BorderRadius.only(
-      topLeft: const Radius.circular(20),
-      topRight: const Radius.circular(20),
-      bottomLeft: Radius.circular(isMine ? 20 : 4),
-      bottomRight: Radius.circular(isMine ? 4 : 20),
-    );
-
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bubbleMaxWidth = screenWidth * 0.98;
-
-    final bubble = InkWell(
-      borderRadius: radius,
-      onTap: onTap,
-      child: Ink(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: bubbleColor,
-          borderRadius: radius,
-          border: Border.all(
-            color: isUnread ? AppColors.neonPink.withAlpha(120) : Colors.white24,
-          ),
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Text(emoji, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      contentTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (isUnread)
-                    Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.neonPink,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                contentPreview,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Column(
-        crossAxisAlignment: align,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (!isMine) ...[
-                UserAvatar(
-                  user: friendUser,
-                  radius: 14,
-                ),
-                const SizedBox(width: 8),
-                Flexible(child: bubble),
-                const Spacer(),
-              ] else ...[
-                const Spacer(),
-                Flexible(child: bubble),
-              ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-            child: Padding(
-              padding: EdgeInsets.only(left: isMine ? 0 : 36, right: isMine ? 0 : 0),
-              child: Text(
-                timeLabel,
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

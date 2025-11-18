@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
+import 'package:taba_app/core/constants/app_spacing.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 class TutorialScreen extends StatefulWidget {
   const TutorialScreen({
@@ -69,14 +72,31 @@ class _TutorialScreenState extends State<TutorialScreen> {
           ),
         ),
         child: SafeArea(
+          top: false,
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: EdgeInsets.only(
+                  left: AppSpacing.xl,
+                  right: AppSpacing.xl,
+                  top: MediaQuery.of(context).padding.top + AppSpacing.md,
+                  bottom: AppSpacing.sm,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: widget.onSkip, child: const Text('건너뛰기')),
+                    TextButton(
+                      onPressed: widget.onSkip,
+                      child: ValueListenableBuilder<Locale>(
+                        valueListenable: AppLocaleController.localeNotifier,
+                        builder: (context, locale, _) {
+                          return Text(
+                            AppStrings.skipTutorial(locale),
+                            style: const TextStyle(color: Colors.white70),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),

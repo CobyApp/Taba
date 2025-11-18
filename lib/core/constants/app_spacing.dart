@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taba_app/core/constants/app_colors.dart';
 
 /// 일관된 간격 시스템
 class AppSpacing {
@@ -74,6 +75,14 @@ class AppShadows {
           blurRadius: 32,
           offset: const Offset(0, 16),
           spreadRadius: 4,
+        ),
+      ];
+
+  static List<BoxShadow> get glowShadow => [
+        BoxShadow(
+          color: AppColors.neonPink.withAlpha(120),
+          blurRadius: 18,
+          spreadRadius: 2,
         ),
       ];
 }

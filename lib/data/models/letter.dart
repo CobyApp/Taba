@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/data/models/user.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 enum FlowerType {
   rose('장미', '🌹', 'assets/svg/flower_rose.svg'),
@@ -14,6 +16,19 @@ enum FlowerType {
   final String label;
   final String emoji;
   final String? asset;
+  
+  /// 로컬라이즈된 꽃 이름 반환
+  String localizedName(Locale locale) {
+    return AppStrings.flowerName(locale, name);
+  }
+  
+  /// 현재 로케일로 꽃 이름 반환
+  String getLocalizedName() {
+    return AppStrings.flowerName(
+      AppLocaleController.localeNotifier.value,
+      name,
+    );
+  }
 }
 
 enum VisibilityScope {
@@ -24,6 +39,19 @@ enum VisibilityScope {
 
   const VisibilityScope(this.label);
   final String label;
+  
+  /// 로컬라이즈된 공개 범위 반환
+  String localizedLabel(Locale locale) {
+    return AppStrings.visibilityScope(locale, name);
+  }
+  
+  /// 현재 로케일로 공개 범위 반환
+  String getLocalizedLabel() {
+    return AppStrings.visibilityScope(
+      AppLocaleController.localeNotifier.value,
+      name,
+    );
+  }
 }
 
 class LetterStyle {
@@ -72,6 +100,13 @@ class Letter {
   final List<String> attachedImages; // 사진 첨부 경로/URL 리스트
 
   String get senderDisplay => isAnonymous ? '익명' : sender.nickname;
+  
+  /// 로컬라이즈된 발신자 표시
+  String localizedSenderDisplay(Locale locale) {
+    return isAnonymous 
+        ? AppStrings.anonymous(locale)
+        : sender.nickname;
+  }
 
   String timeAgo() {
     final diff = DateTime.now().difference(sentAt);
@@ -79,5 +114,10 @@ class Letter {
     if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
     if (diff.inHours < 24) return '${diff.inHours}시간 전';
     return '${diff.inDays}일 전';
+  }
+  
+  /// 로컬라이즈된 시간 표시
+  String localizedTimeAgo(Locale locale) {
+    return AppStrings.timeAgo(locale, sentAt);
   }
 }
