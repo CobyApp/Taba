@@ -8,6 +8,10 @@ class ApiClient {
   bool _tokenPrinted = false; // 토큰 출력 여부 추적
 
   ApiClient() {
+    // 환경 정보 출력 (디버깅용)
+    print('🌍 API Environment: ${ApiConfig.environmentName}');
+    print('🔗 API Base URL: ${ApiConfig.apiBaseUrl}');
+    
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.apiBaseUrl,
