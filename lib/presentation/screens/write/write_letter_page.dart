@@ -817,6 +817,15 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           time.hour,
           time.minute,
         );
+        
+        // 과거 시간 체크
+        if (scheduledAt.isBefore(DateTime.now())) {
+          if (mounted) {
+            showTabaError(context, message: AppStrings.pastTimeError(locale));
+            setState(() => _isSending = false);
+          }
+          return;
+        }
       }
 
       // Color를 16진수 문자열로 변환 (#RRGGBB)

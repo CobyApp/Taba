@@ -10,8 +10,8 @@ class ApiConfig {
   // 환경 설정 (기본값: Debug 모드면 개발, Release 모드면 프로덕션)
   static ApiEnvironment get environment {
     // --dart-define로 환경을 명시적으로 지정한 경우 우선 사용
-    const String? envFromDefine = String.fromEnvironment('API_ENV', defaultValue: null);
-    if (envFromDefine != null) {
+    const String envFromDefine = String.fromEnvironment('API_ENV', defaultValue: '');
+    if (envFromDefine.isNotEmpty) {
       switch (envFromDefine.toLowerCase()) {
         case 'dev':
         case 'development':

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/data/dto/invite_code_dto.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
@@ -35,15 +37,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _repository = DataRepository.instance;
   bool _pushEnabled = true;
   String? _inviteCode;
-  DateTime? _codeGeneratedAt;
+  DateTime? _codeExpiresAt;
   bool _isLoadingSettings = false;
   bool _isLoadingCode = false;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
     _loadInviteCode();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          // 타이머 업데이트를 위해 setState 호출
+        });
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -67,12 +90,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadInviteCode() async {
     try {
-      final code = await _repository.getCurrentInviteCode();
-      if (mounted && code != null) {
+      final inviteCodeDto = await _repository.getCurrentInviteCode();
+      if (mounted && inviteCodeDto != null) {
         setState(() {
-          _inviteCode = code;
-          _codeGeneratedAt = DateTime.now(); // API에서 만료 시간을 받아올 수 있으면 그걸 사용
+          _inviteCode = inviteCodeDto.code;
+          _codeExpiresAt = inviteCodeDto.expiresAt;
         });
+        _startTimer();
       }
     } catch (e) {
       // 초대 코드 로드 실패는 조용히 처리
@@ -520,20 +544,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     setState(() => _isLoadingCode = true);
     try {
-      final code = await _repository.generateInviteCode();
+      final inviteCodeDto = await _repository.generateInviteCode();
       if (!mounted) return;
       
-      if (code != null) {
-    setState(() {
-          _inviteCode = code;
-      _codeGeneratedAt = DateTime.now();
-    });
-    final locale = AppLocaleController.localeNotifier.value;
-    showTabaSuccess(
-      context,
-      title: AppStrings.newInviteCodeGenerated(locale),
-      message: AppStrings.inviteCodeValidFor(locale),
-    );
+      if (inviteCodeDto != null) {
+        setState(() {
+          _inviteCode = inviteCodeDto.code;
+          _codeExpiresAt = inviteCodeDto.expiresAt;
+        });
+        _startTimer();
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaSuccess(
+          context,
+          title: AppStrings.newInviteCodeGenerated(locale),
+          message: AppStrings.inviteCodeValidFor(locale),
+        );
       } else {
         final locale = AppLocaleController.localeNotifier.value;
         showTabaError(context, message: AppStrings.inviteCodeGenerationFailed(locale));
@@ -550,11 +575,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Duration? _remainingValidity() {
-    if (_inviteCode == null || _codeGeneratedAt == null) return null;
-    const validity = Duration(minutes: 3);
-    final diff = DateTime.now().difference(_codeGeneratedAt!);
-    if (diff >= validity) return null;
-    return validity - diff;
+    if (_inviteCode == null || _codeExpiresAt == null) return null;
+    final now = DateTime.now();
+    final diff = _codeExpiresAt!.difference(now);
+    if (diff.isNegative) return null;
+    return diff;
   }
 
   Future<void> _openEditProfile(BuildContext context, TabaUser user) async {

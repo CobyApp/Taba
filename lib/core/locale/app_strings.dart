@@ -1237,6 +1237,17 @@ class AppStrings {
     }
   }
 
+  static String pastTimeError(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Cannot schedule for a past time';
+      case 'ja':
+        return '過去の時間に予約することはできません';
+      default:
+        return '과거 시간으로 예약할 수 없습니다';
+    }
+  }
+
   static String contentRequired(Locale locale) {
     switch (locale.languageCode) {
       case 'en':

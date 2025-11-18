@@ -8,6 +8,7 @@ import 'package:taba_app/data/services/bouquet_service.dart';
 import 'package:taba_app/data/services/file_service.dart';
 import 'package:taba_app/data/services/friend_service.dart';
 import 'package:taba_app/data/services/invite_code_service.dart';
+import 'package:taba_app/data/dto/invite_code_dto.dart';
 import 'package:taba_app/data/services/letter_service.dart';
 import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
@@ -327,18 +328,18 @@ class DataRepository {
   }
 
   // Invite Codes
-  Future<String?> generateInviteCode() async {
+  Future<InviteCodeDto?> generateInviteCode() async {
     final response = await _inviteCodeService.generateCode();
     if (response.isSuccess && response.data != null) {
-      return response.data!.code;
+      return response.data!;
     }
     return null;
   }
 
-  Future<String?> getCurrentInviteCode() async {
+  Future<InviteCodeDto?> getCurrentInviteCode() async {
     final response = await _inviteCodeService.getCurrentCode();
     if (response.isSuccess && response.data != null) {
-      return response.data!.code;
+      return response.data!;
     }
     return null;
   }
