@@ -32,16 +32,53 @@ class FriendService {
       );
     } on DioException catch (e) {
       String errorMessage = '친구 추가에 실패했습니다.';
+      String? errorCode;
+      
       if (e.response?.statusCode == 400) {
-        errorMessage = '유효하지 않은 초대 코드입니다.';
+        // API 명세서에 따른 구체적인 에러 코드 처리
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorCode = error?['code'] as String?;
+            
+            // API 명세서에 명시된 에러 코드별 메시지
+            switch (errorCode) {
+              case 'INVALID_INVITE_CODE':
+                errorMessage = '유효하지 않은 초대 코드입니다. (6자리 숫자+영문 조합)';
+                break;
+              case 'INVITE_CODE_EXPIRED':
+                errorMessage = '만료된 초대 코드입니다.';
+                break;
+              case 'INVITE_CODE_ALREADY_USED':
+                errorMessage = '이미 사용된 초대 코드입니다.';
+                break;
+              case 'CANNOT_USE_OWN_INVITE_CODE':
+                errorMessage = '자신의 초대 코드는 사용할 수 없습니다.';
+                break;
+              case 'ALREADY_FRIENDS':
+                errorMessage = '이미 친구 관계입니다.';
+                break;
+              default:
+                errorMessage = error?['message'] as String? ?? 
+                              errorData['message'] as String? ?? 
+                              '유효하지 않은 초대 코드입니다.';
+            }
+          } catch (_) {
+            errorMessage = '유효하지 않은 초대 코드입니다.';
+          }
+        } else {
+          errorMessage = '유효하지 않은 초대 코드입니다.';
+        }
       } else if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorCode = error?['code'] as String?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }
@@ -81,10 +118,24 @@ class FriendService {
       return ApiResponse<List<FriendProfileDto>>.fromJson(
         response.data as Map<String, dynamic>,
         (data) {
+          // API 명세서에 따르면 /friends 엔드포인트는 UserDto 배열만 반환
+          // {success: true, data: [{id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters}]}
+          // FriendProfileDto는 UserDto + lastLetterAt을 포함하므로 변환 필요
+          // lastLetterAt은 API 응답에 없으므로 기본값(현재 시간) 사용
           if (data is List) {
             return data
-                .map((item) =>
-                    FriendProfileDto.fromJson(item as Map<String, dynamic>))
+                .map((item) {
+                  final userJson = item as Map<String, dynamic>;
+                  // UserDto를 FriendProfileDto로 변환
+                  // API 명세서: 친구 목록에는 lastLetterAt 정보가 없음
+                  return FriendProfileDto.fromJson({
+                    'id': userJson['id'],
+                    'user': userJson, // UserDto 정보 (id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters)
+                    'lastLetterAt': DateTime.now().toIso8601String(), // API 응답에 없으므로 기본값 사용
+                    'friendCount': userJson['friendCount'] ?? 0,
+                    'sentLetters': userJson['sentLetters'] ?? 0,
+                  });
+                })
                 .toList();
           }
           return <FriendProfileDto>[];
@@ -132,16 +183,19 @@ class FriendService {
       );
     } on DioException catch (e) {
       String errorMessage = '친구 삭제에 실패했습니다.';
+      // API 명세서: 401 Unauthorized, 404 Not Found - FRIENDSHIP_NOT_FOUND
       if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
       } else if (e.response?.statusCode == 404) {
+        // API 명세서: 404 Not Found - FRIENDSHIP_NOT_FOUND
         errorMessage = '친구 관계를 찾을 수 없습니다.';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }

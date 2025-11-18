@@ -34,8 +34,10 @@ class ApiResponse<T> {
                 : {'code': 'ERROR', 'message': json['error'].toString()})
           : null,
     );
-    } else if (json.containsKey('content') && json.containsKey('page')) {
+    } else if (json.containsKey('content') && (json.containsKey('page') || json.containsKey('number'))) {
       // Page 객체 형식 (페이징 응답)
+      // API 명세서: {content: [...], totalElements, totalPages, size, number}
+      // PageResponse는 ApiResponse의 data로 래핑되어 있으므로 직접 파싱
       return ApiResponse<T>(
         success: true,
         data: fromJsonT != null ? fromJsonT(json) : json as T,

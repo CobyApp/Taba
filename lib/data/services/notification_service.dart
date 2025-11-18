@@ -128,6 +128,8 @@ class NotificationService {
     try {
       final response = await _apiClient.dio.put('/notifications/read-all');
 
+      // API 명세서에 따르면 응답: {success: true, data: {readCount: 5, message: "..."}}
+      // readCount 정보는 사용하지 않으므로 void로 처리
       return ApiResponse<void>.fromJson(
         response.data as Map<String, dynamic>,
         null,

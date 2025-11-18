@@ -23,6 +23,7 @@ class SkyScreen extends StatefulWidget {
     this.onOpenBouquet,
     this.onOpenSettings,
     this.onRefresh,
+    this.onLoadMore,
     this.floatingActionButton,
   });
 
@@ -32,6 +33,7 @@ class SkyScreen extends StatefulWidget {
   final VoidCallback? onOpenBouquet;
   final VoidCallback? onOpenSettings;
   final VoidCallback? onRefresh;
+  final Future<List<Letter>> Function(int page)? onLoadMore;
   final Widget? floatingActionButton;
 
   @override
@@ -41,20 +43,33 @@ class SkyScreen extends StatefulWidget {
 class _SkyScreenState extends State<SkyScreen> {
   static final _random = math.Random();
   late PageController _pageController;
-  late List<List<Letter>> _pages;
+  final List<Letter> _allLetters = [];
+  final Map<int, List<Letter>> _pageLetters = {}; // 페이지별 편지 목록
+  int _currentPage = 0;
+  bool _isLoadingMore = false;
+  bool _hasMorePages = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _pages = _generatePages(widget.letters);
+    _allLetters.addAll(widget.letters);
+    _pageLetters[0] = List.from(widget.letters);
+    // 초기 데이터가 있으면 다음 페이지가 있다고 가정
+    _hasMorePages = widget.letters.length >= 20;
   }
 
   @override
   void didUpdateWidget(covariant SkyScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.letters != widget.letters) {
-      _pages = _generatePages(widget.letters);
+    // 첫 페이지 데이터가 업데이트되면 초기화
+    if (oldWidget.letters != widget.letters && _currentPage == 0) {
+      _allLetters.clear();
+      _allLetters.addAll(widget.letters);
+      _pageLetters.clear();
+      _pageLetters[0] = List.from(widget.letters);
+      _hasMorePages = widget.letters.length >= 20;
+      _currentPage = 0;
     }
   }
 
@@ -64,26 +79,57 @@ class _SkyScreenState extends State<SkyScreen> {
     super.dispose();
   }
 
-  // 편지들을 페이지별로 나누기 (한 페이지에 약 20개씩)
-  List<List<Letter>> _generatePages(List<Letter> letters) {
-    if (letters.isEmpty) return [];
+  Future<void> _loadPage(int pageIndex) async {
+    // 이미 로드된 페이지면 스킵
+    if (_pageLetters.containsKey(pageIndex)) return;
     
-    const itemsPerPage = 20;
-    final pages = <List<Letter>>[];
+    // 로딩 중이면 스킵
+    if (_isLoadingMore) return;
     
-    for (int i = 0; i < letters.length; i += itemsPerPage) {
-      final end = (i + itemsPerPage < letters.length) 
-          ? i + itemsPerPage 
-          : letters.length;
-      pages.add(letters.sublist(i, end));
+    // 더 불러올 페이지가 없으면 스킵
+    if (!_hasMorePages && pageIndex > 0) return;
+    
+    setState(() => _isLoadingMore = true);
+    
+    try {
+      List<Letter> newLetters = [];
+      
+      if (widget.onLoadMore != null) {
+        // API에서 다음 페이지 로드
+        newLetters = await widget.onLoadMore!(pageIndex);
+      } else {
+        // onLoadMore가 없으면 기존 데이터에서 가져오기
+        const itemsPerPage = 20;
+        final startIndex = pageIndex * itemsPerPage;
+        if (startIndex < _allLetters.length) {
+          final endIndex = (startIndex + itemsPerPage < _allLetters.length)
+              ? startIndex + itemsPerPage
+              : _allLetters.length;
+          newLetters = _allLetters.sublist(startIndex, endIndex);
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _pageLetters[pageIndex] = newLetters;
+          // 중복 제거하여 추가
+          final existingIds = _allLetters.map((l) => l.id).toSet();
+          final uniqueNewLetters = newLetters.where((l) => !existingIds.contains(l.id)).toList();
+          _allLetters.addAll(uniqueNewLetters);
+          // 20개 미만이면 마지막 페이지
+          _hasMorePages = newLetters.length >= 20;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+          _hasMorePages = false; // 에러 발생 시 더 이상 시도하지 않음
+        });
+        print('페이지 로드 실패: $e');
+      }
     }
-    
-    // 최소 3페이지는 항상 있도록 빈 페이지 추가
-    while (pages.length < 3) {
-      pages.add([]);
-    }
-    
-    return pages;
   }
 
   LinearGradient _gradientForNow() {
@@ -175,23 +221,40 @@ class _SkyScreenState extends State<SkyScreen> {
                   : PageView.builder(
                       controller: _pageController,
                       onPageChanged: (page) {
-                        // 마지막 페이지 근처에 도달하면 새로운 페이지 추가
-                        if (page >= _pages.length - 2) {
-                          setState(() {
-                            _pages.add([]); // 빈 페이지 추가 (나중에 로드 가능)
-                          });
+                        _currentPage = page;
+                        // 다음 페이지와 그 다음 페이지 미리 로드
+                        _loadPage(page + 1);
+                        if (_hasMorePages) {
+                          _loadPage(page + 2);
                         }
                       },
                       itemBuilder: (context, index) {
-                        final pageLetters = index < _pages.length 
-                            ? _pages[index] 
-                            : <Letter>[];
+                        // 페이지가 로드되지 않았으면 로드 시도
+                        if (!_pageLetters.containsKey(index)) {
+                          _loadPage(index);
+                        }
+                        
+                        final pageLetters = _pageLetters[index] ?? [];
+                        
+                        // 로딩 중이면 로딩 인디케이터 표시
+                        if (pageLetters.isEmpty && _isLoadingMore && index > 0) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white70,
+                            ),
+                          );
+                        }
+                        
                         return _SkyCanvas(
                           letters: pageLetters,
                           onTap: (letter) => _openSeedBloom(context, letter),
                         );
                       },
-                      itemCount: _pages.length,
+                      itemCount: _hasMorePages 
+                          ? _pageLetters.length + 1  // 다음 페이지가 있으면 +1
+                          : _pageLetters.length > 0 
+                              ? _pageLetters.length 
+                              : 1,  // 최소 1페이지는 있어야 함
                     );
                 },
               ),

@@ -31,24 +31,42 @@ class FileService {
         );
       }
 
+      // API 명세서에 따르면 응답: {success: true, data: {url: "...", fileName: "..."}}
+      // url만 사용하므로 String으로 반환
       return ApiResponse<String>.fromJson(
         response.data as Map<String, dynamic>,
         (data) => (data as Map<String, dynamic>)['url'] as String,
       );
     } on DioException catch (e) {
       String errorMessage = '이미지 업로드에 실패했습니다.';
+      // API 명세서: 401 Unauthorized, 400 Bad Request, 413 Payload Too Large (파일 크기 초과)
       if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
       } else if (e.response?.statusCode == 400) {
-        errorMessage = '이미지 파일이 올바르지 않습니다.';
+        // API 명세서: 400 Bad Request - 잘못된 파일 형식
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorMessage = error?['message'] as String? ?? 
+                         errorData['message'] as String? ?? 
+                         '이미지 파일이 올바르지 않습니다.';
+          } catch (_) {
+            errorMessage = '이미지 파일이 올바르지 않습니다.';
+          }
+        } else {
+          errorMessage = '이미지 파일이 올바르지 않습니다.';
+        }
       } else if (e.response?.statusCode == 413) {
+        // API 명세서: 413 Payload Too Large - 최대 파일 크기 10MB
         errorMessage = '파일 크기가 너무 큽니다. (최대 10MB)';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }

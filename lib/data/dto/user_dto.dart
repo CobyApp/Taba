@@ -20,9 +20,13 @@ class UserDto {
   });
 
   factory UserDto.fromJson(Map<String, dynamic> json) {
+    // API 명세서에 따르면:
+    // - 편지 응답의 sender에는 id, nickname만 포함될 수 있음
+    // - 사용자 프로필 조회에는 email, avatarUrl, joinedAt 등이 포함됨
+    // - 친구 목록에는 friendCount, sentLetters가 포함됨
     return UserDto(
       id: json['id'] as String,
-      email: json['email'] as String? ?? '',
+      email: json['email'] as String? ?? '', // 편지 sender에는 email이 없을 수 있음
       nickname: json['nickname'] as String,
       avatarUrl: json['avatarUrl'] as String?,
       joinedAt: json['joinedAt'] != null

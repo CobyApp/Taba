@@ -42,14 +42,37 @@ class AuthService {
       return apiResponse;
     } on DioException catch (e) {
       String errorMessage = '로그인에 실패했습니다.';
+      String? errorCode;
+      
       if (e.response?.statusCode == 401) {
-        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        // API 명세서: 401 Unauthorized - INVALID_CREDENTIALS
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorCode = error?['code'] as String?;
+            
+            if (errorCode == 'INVALID_CREDENTIALS') {
+              errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+            } else {
+              errorMessage = error?['message'] as String? ?? 
+                           errorData['message'] as String? ?? 
+                           '인증이 필요합니다. 다시 로그인해주세요.';
+            }
+          } catch (_) {
+            errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+          }
+        } else {
+          errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        }
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorCode = error?['code'] as String?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }
@@ -132,17 +155,54 @@ class AuthService {
       return apiResponse;
     } on DioException catch (e) {
       String errorMessage = '회원가입에 실패했습니다.';
+      String? errorCode;
+      
       if (e.response?.statusCode == 400) {
-        errorMessage = '입력 정보가 올바르지 않습니다.';
+        // API 명세서: 400 Bad Request - INVALID_EMAIL, INVALID_PASSWORD, VALIDATION_ERROR
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorCode = error?['code'] as String?;
+            
+            switch (errorCode) {
+              case 'INVALID_EMAIL':
+                errorMessage = '잘못된 이메일 형식입니다.';
+                break;
+              case 'INVALID_PASSWORD':
+                errorMessage = '비밀번호는 최소 8자 이상이어야 합니다.';
+                break;
+              case 'VALIDATION_ERROR':
+                errorMessage = '입력 정보가 올바르지 않습니다.';
+                break;
+              default:
+                errorMessage = error?['message'] as String? ?? 
+                             errorData['message'] as String? ?? 
+                             '입력 정보가 올바르지 않습니다.';
+            }
+          } catch (_) {
+            errorMessage = '입력 정보가 올바르지 않습니다.';
+          }
+        } else {
+          errorMessage = '입력 정보가 올바르지 않습니다.';
+        }
       } else if (e.response?.statusCode == 409) {
+        // API 명세서: 409 Conflict - EMAIL_ALREADY_EXISTS (일반적으로 400으로 반환될 수 있음)
         errorMessage = '이미 존재하는 이메일입니다.';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
-                        errorMessage;
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorCode = error?['code'] as String?;
+          
+          if (errorCode == 'EMAIL_ALREADY_EXISTS') {
+            errorMessage = '이미 존재하는 이메일입니다.';
+          } else {
+            errorMessage = error?['message'] as String? ?? 
+                         errorData['message'] as String? ?? 
+                         errorData['errorMessage'] as String? ?? 
+                         errorMessage;
+          }
         } catch (_) {}
       }
       
@@ -177,14 +237,29 @@ class AuthService {
       );
     } on DioException catch (e) {
       String errorMessage = '비밀번호 찾기에 실패했습니다.';
+      // API 명세서: 404 Not Found - 등록되지 않은 이메일
       if (e.response?.statusCode == 404) {
-        errorMessage = '등록되지 않은 이메일입니다.';
+        // API 명세서: 404 Not Found - USER_NOT_FOUND
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorMessage = error?['message'] as String? ?? 
+                         errorData['message'] as String? ?? 
+                         '등록되지 않은 이메일입니다.';
+          } catch (_) {
+            errorMessage = '등록되지 않은 이메일입니다.';
+          }
+        } else {
+          errorMessage = '등록되지 않은 이메일입니다.';
+        }
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }
@@ -226,14 +301,28 @@ class AuthService {
       );
     } on DioException catch (e) {
       String errorMessage = '비밀번호 재설정에 실패했습니다.';
+      // API 명세서: 400 Bad Request - 토큰이 유효하지 않거나 만료된 경우
       if (e.response?.statusCode == 400) {
-        errorMessage = '재설정 토큰이 유효하지 않거나 만료되었습니다.';
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorMessage = error?['message'] as String? ?? 
+                         errorData['message'] as String? ?? 
+                         '재설정 토큰이 유효하지 않거나 만료되었습니다.';
+          } catch (_) {
+            errorMessage = '재설정 토큰이 유효하지 않거나 만료되었습니다.';
+          }
+        } else {
+          errorMessage = '재설정 토큰이 유효하지 않거나 만료되었습니다.';
+        }
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }
@@ -275,16 +364,31 @@ class AuthService {
       );
     } on DioException catch (e) {
       String errorMessage = '비밀번호 변경에 실패했습니다.';
+      // API 명세서: 400 Bad Request - 현재 비밀번호가 올바르지 않음
+      // API 명세서: 401 Unauthorized - 인증 필요
       if (e.response?.statusCode == 400) {
-        errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+        if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            errorMessage = error?['message'] as String? ?? 
+                         errorData['message'] as String? ?? 
+                         '현재 비밀번호가 올바르지 않습니다.';
+          } catch (_) {
+            errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+          }
+        } else {
+          errorMessage = '현재 비밀번호가 올바르지 않습니다.';
+        }
       } else if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
-          errorMessage = errorData['message'] ?? 
-                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
-                        errorData['errorMessage'] ?? 
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
                         errorMessage;
         } catch (_) {}
       }

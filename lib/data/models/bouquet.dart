@@ -3,7 +3,7 @@ import 'package:taba_app/data/models/friend.dart';
 import 'package:taba_app/data/models/letter.dart';
 
 /// 친구와 주고받은 편지 정보
-/// API: GET /bouquets/{friendId}/letters 응답 구조
+/// API: GET /friends/{friendId}/letters 응답 구조
 class SharedFlower {
   const SharedFlower({
     required this.id,

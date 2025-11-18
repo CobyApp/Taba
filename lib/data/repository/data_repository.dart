@@ -70,6 +70,17 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await _authService.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+    return response.isSuccess;
+  }
+
   Future<void> logout() async {
     // 로그아웃 시 FCM 토큰 삭제
     await _fcmService.deleteToken();
@@ -145,6 +156,11 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  Future<bool> deleteLetter(String letterId) async {
+    final response = await _letterService.deleteLetter(letterId);
+    return response.isSuccess;
+  }
+
   /// 편지 답장 (자동 친구 추가)
   /// API 명세서: POST /letters/{letterId}/reply
   Future<bool> replyLetter({
@@ -175,45 +191,6 @@ class DataRepository {
     } catch (e) {
       print('답장 전송 예외: $e');
       return false;
-    }
-  }
-
-  // Bouquets
-  Future<List<FriendBouquet>> getBouquets() async {
-    try {
-      final response = await _bouquetService.getBouquets();
-      print('Bouquet repository response: success=${response.isSuccess}, data=${response.data?.length ?? 0} items');
-      if (response.isSuccess && response.data != null) {
-        try {
-          final bouquets = response.data!.map((dto) {
-            try {
-              return dto.toModel();
-            } catch (e, stackTrace) {
-              print('Error converting BouquetDto to model: $e');
-              print('Stack trace: $stackTrace');
-              print('DTO: $dto');
-              rethrow;
-            }
-          }).toList();
-          print('Successfully converted ${bouquets.length} bouquets');
-          return bouquets;
-        } catch (e, stackTrace) {
-          print('Error converting BouquetDto to model: $e');
-          print('Stack trace: $stackTrace');
-          return [];
-        }
-      }
-      if (response.error != null) {
-        print('Bouquet API error: ${response.error!.message}');
-        print('Error code: ${response.error!.code}');
-      } else {
-        print('Bouquet API error: response.isSuccess=${response.isSuccess}, data is null');
-      }
-      return [];
-    } catch (e, stackTrace) {
-      print('Error in getBouquets: $e');
-      print('Stack trace: $stackTrace');
-      return [];
     }
   }
 
@@ -283,10 +260,12 @@ class DataRepository {
 
   // Notifications
   Future<List<NotificationItem>> getNotifications({
+    String? category,
     int page = 0,
     int size = 20,
   }) async {
     final response = await _notificationService.getNotifications(
+      category: category,
       page: page,
       size: size,
     );
@@ -294,6 +273,21 @@ class DataRepository {
       return response.data!.content.map((dto) => dto.toModel()).toList();
     }
     return [];
+  }
+
+  Future<bool> markNotificationAsRead(String notificationId) async {
+    final response = await _notificationService.markAsRead(notificationId);
+    return response.isSuccess;
+  }
+
+  Future<bool> markAllNotificationsAsRead() async {
+    final response = await _notificationService.markAllAsRead();
+    return response.isSuccess;
+  }
+
+  Future<bool> deleteNotification(String notificationId) async {
+    final response = await _notificationService.deleteNotification(notificationId);
+    return response.isSuccess;
   }
 
   // Friends
@@ -310,7 +304,20 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  Future<bool> deleteFriend(String friendId) async {
+    final response = await _friendService.deleteFriend(friendId);
+    return response.isSuccess;
+  }
+
   // Files
+  Future<String?> uploadImage(File imageFile) async {
+    final response = await _fileService.uploadImage(imageFile);
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    return null;
+  }
+
   Future<List<String>> uploadImages(List<File> imageFiles) async {
     final response = await _fileService.uploadImages(imageFiles);
     if (response.isSuccess && response.data != null) {
@@ -347,6 +354,19 @@ class DataRepository {
 
   Future<bool> updatePushNotificationSetting(bool enabled) async {
     final response = await _settingsService.updatePushNotificationSetting(enabled);
+    return response.isSuccess;
+  }
+
+  Future<String?> getLanguageSetting() async {
+    final response = await _settingsService.getLanguageSetting();
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    return null;
+  }
+
+  Future<bool> updateLanguageSetting(String languageCode) async {
+    final response = await _settingsService.updateLanguageSetting(languageCode);
     return response.isSuccess;
   }
 

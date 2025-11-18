@@ -4,18 +4,20 @@ class NotificationDto {
   final String id;
   final String title;
   final String? subtitle;
-  final DateTime time;
+  final DateTime createdAt;
+  final DateTime? readAt;
   final String category;
-  final bool isUnread;
+  final bool isRead;
   final String? relatedId;
 
   NotificationDto({
     required this.id,
     required this.title,
     this.subtitle,
-    required this.time,
+    required this.createdAt,
+    this.readAt,
     required this.category,
-    this.isUnread = true,
+    this.isRead = false,
     this.relatedId,
   });
 
@@ -24,9 +26,12 @@ class NotificationDto {
       id: json['id'] as String,
       title: json['title'] as String,
       subtitle: json['subtitle'] as String?,
-      time: DateTime.parse(json['time'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      readAt: json['readAt'] != null 
+          ? DateTime.parse(json['readAt'] as String)
+          : null,
       category: json['category'] as String,
-      isUnread: json['isUnread'] as bool? ?? true,
+      isRead: json['isRead'] as bool? ?? false,
       relatedId: json['relatedId'] as String?,
     );
   }
@@ -36,9 +41,9 @@ class NotificationDto {
       id: id,
       title: title,
       subtitle: subtitle ?? '',
-      time: time,
+      time: createdAt, // createdAt을 time으로 매핑
       category: _parseCategory(category),
-      isUnread: isUnread,
+      isUnread: !isRead, // isRead를 isUnread로 변환
     );
   }
 

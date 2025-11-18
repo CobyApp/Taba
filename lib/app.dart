@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
@@ -31,12 +32,24 @@ class _TabaAppState extends State<TabaApp> {
   }
   
   Future<void> _initializeApp() async {
-    // 앱 언어 초기화 (시스템 언어 감지 및 저장)
-    await AppLocaleController.initialize();
-    // FCM 초기화
-    final fcmService = FcmService();
-    await fcmService.initialize();
-    _checkAuth();
+    try {
+      // Firebase 초기화 (Flutter 측)
+      await Firebase.initializeApp();
+      
+      // 앱 언어 초기화 (시스템 언어 감지 및 저장)
+      await AppLocaleController.initialize();
+      
+      // FCM 초기화
+      final fcmService = FcmService();
+      await fcmService.initialize();
+      
+      _checkAuth();
+    } catch (e) {
+      print('❌ 앱 초기화 실패: $e');
+      // Firebase 초기화 실패해도 앱은 계속 진행
+      await AppLocaleController.initialize();
+      _checkAuth();
+    }
   }
 
   Future<void> _checkAuth() async {

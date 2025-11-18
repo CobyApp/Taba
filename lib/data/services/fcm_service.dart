@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
@@ -7,11 +8,12 @@ class FcmService {
   final ApiClient _apiClient = ApiClient();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   String? _currentToken;
+  bool _isInitialized = false;
 
   /// FCM 토큰 초기화 및 등록
   Future<void> initialize() async {
     try {
-      // 알림 권한 요청
+      // 알림 권한 요청 (iOS에서는 권한 요청 후 APNS 토큰이 설정됨)
       final settings = await _firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
@@ -19,11 +21,42 @@ class FcmService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        // 토큰 가져오기
-        final token = await _firebaseMessaging.getToken();
-        if (token != null) {
-          _currentToken = token;
-          print('📱 FCM Token: $token');
+        // iOS인 경우 APNS 토큰을 기다림 (비동기로 설정되므로)
+        bool apnsTokenReady = false;
+        if (Platform.isIOS) {
+          // APNS 토큰 가져오기 시도 (최대 5초 대기)
+          for (int i = 0; i < 5; i++) {
+            try {
+              final apnsToken = await _firebaseMessaging.getAPNSToken();
+              if (apnsToken != null) {
+                print('📱 APNS Token: $apnsToken');
+                apnsTokenReady = true;
+                break;
+              }
+            } catch (e) {
+              // APNS 토큰이 아직 없을 수 있음
+            }
+            await Future.delayed(const Duration(seconds: 1));
+          }
+
+          if (!apnsTokenReady) {
+            print('⚠️ APNS Token을 아직 가져오지 못했습니다. FCM 토큰 가져오기를 시도합니다.');
+            // APNS 토큰이 없어도 FCM 토큰 가져오기 시도
+          }
+        }
+
+        // FCM 토큰 가져오기 시도 (APNS 토큰이 있거나 Android인 경우)
+        try {
+          final token = await _firebaseMessaging.getToken();
+          if (token != null) {
+            _currentToken = token;
+            print('📱 FCM Token: $token');
+          } else {
+            print('⚠️ FCM Token을 가져올 수 없습니다.');
+          }
+        } catch (e) {
+          print('⚠️ FCM Token 가져오기 실패: $e');
+          // 에러가 발생해도 계속 진행
         }
 
         // 토큰 갱신 리스너
@@ -33,12 +66,55 @@ class FcmService {
           // 토큰이 갱신되면 서버에 업데이트
           _registerTokenToServer(newToken);
         });
+
+        // iOS에서 APNS 토큰이 나중에 설정될 수 있으므로 백그라운드에서 주기적으로 확인
+        if (Platform.isIOS && !apnsTokenReady) {
+          _waitForApnsTokenAndGetFcmToken();
+        }
       } else {
         print('⚠️ FCM 권한이 거부되었습니다: ${settings.authorizationStatus}');
       }
+      
+      _isInitialized = true;
     } catch (e) {
       print('❌ FCM 초기화 실패: $e');
+      // 에러가 발생해도 앱은 계속 진행
+      _isInitialized = true;
     }
+  }
+
+  /// iOS에서 APNS 토큰이 설정될 때까지 기다리고 FCM 토큰 가져오기
+  Future<void> _waitForApnsTokenAndGetFcmToken() async {
+    // 백그라운드에서 최대 30초 동안 APNS 토큰을 기다림
+    for (int i = 0; i < 30; i++) {
+      await Future.delayed(const Duration(seconds: 1));
+      try {
+        final apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken != null) {
+          print('📱 APNS Token이 설정되었습니다: $apnsToken');
+          // APNS 토큰이 설정되었으므로 FCM 토큰 가져오기 시도
+          try {
+            final fcmToken = await _firebaseMessaging.getToken();
+            if (fcmToken != null) {
+              _currentToken = fcmToken;
+              print('📱 FCM Token: $fcmToken');
+              // 서버에 등록 시도
+              final tokenStorage = TokenStorage();
+              final userId = await tokenStorage.getUserId();
+              if (userId != null) {
+                await _registerTokenToServer(fcmToken, userId);
+              }
+            }
+          } catch (e) {
+            print('⚠️ FCM Token 가져오기 실패: $e');
+          }
+          return; // 성공했으므로 종료
+        }
+      } catch (e) {
+        // APNS 토큰이 아직 없음
+      }
+    }
+    print('⚠️ APNS Token을 30초 동안 기다렸지만 설정되지 않았습니다.');
   }
 
   /// 현재 FCM 토큰 가져오기

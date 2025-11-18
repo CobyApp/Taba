@@ -222,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         leading: const Icon(Icons.lock_outline),
                         title: Text(AppStrings.changePassword(locale)),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: () => _showChangePasswordDialog(context),
                       ),
                       const SizedBox(height: 8),
                       _SectionHeader(title: AppStrings.languageSection(locale)),
@@ -345,6 +345,149 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final locale = AppLocaleController.localeNotifier.value;
       showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
     }
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final locale = AppLocaleController.localeNotifier.value;
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        bool obscureCurrentPassword = true;
+        bool obscureNewPassword = true;
+        bool obscureConfirmPassword = true;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+          title: Text(AppStrings.changePassword(locale)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TabaTextField(
+                  controller: currentPasswordController,
+                  labelText: AppStrings.currentPassword(locale),
+                  obscureText: obscureCurrentPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureCurrentPassword = !obscureCurrentPassword;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TabaTextField(
+                  controller: newPasswordController,
+                  labelText: AppStrings.newPassword(locale),
+                  obscureText: obscureNewPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureNewPassword = !obscureNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TabaTextField(
+                  controller: confirmPasswordController,
+                  labelText: AppStrings.confirmPassword(locale),
+                  obscureText: obscureConfirmPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureConfirmPassword = !obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+              child: Text(AppStrings.cancel(locale)),
+            ),
+            TextButton(
+              onPressed: isSubmitting ? null : () async {
+                final currentPassword = currentPasswordController.text.trim();
+                final newPassword = newPasswordController.text.trim();
+                final confirmPassword = confirmPasswordController.text.trim();
+
+                if (currentPassword.isEmpty) {
+                  showTabaError(context, message: AppStrings.currentPasswordRequired(locale));
+                  return;
+                }
+
+                if (newPassword.isEmpty) {
+                  showTabaError(context, message: AppStrings.newPasswordRequired(locale));
+                  return;
+                }
+
+                if (newPassword.length < 8) {
+                  showTabaError(context, message: AppStrings.passwordMinLength(locale));
+                  return;
+                }
+
+                if (newPassword != confirmPassword) {
+                  showTabaError(context, message: AppStrings.passwordMismatch(locale));
+                  return;
+                }
+
+                setDialogState(() => isSubmitting = true);
+
+                try {
+                  final success = await _repository.changePassword(
+                    currentPassword: currentPassword,
+                    newPassword: newPassword,
+                  );
+
+                  if (!context.mounted) return;
+
+                  if (success) {
+                    Navigator.of(context).pop();
+                    showTabaSuccess(
+                      context,
+                      title: AppStrings.passwordChanged(locale),
+                      message: AppStrings.passwordChangedMessage(locale),
+                    );
+                  } else {
+                    setDialogState(() => isSubmitting = false);
+                    showTabaError(context, message: AppStrings.passwordChangeFailed(locale));
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  setDialogState(() => isSubmitting = false);
+                  showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
+                }
+              },
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(AppStrings.change(locale)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _updatePushNotification(bool enabled) async {

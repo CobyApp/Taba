@@ -458,6 +458,105 @@ class AppStrings {
     }
   }
 
+  static String currentPassword(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Current Password';
+      case 'ja':
+        return '現在のパスワード';
+      default:
+        return '현재 비밀번호';
+    }
+  }
+
+  static String newPassword(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'New Password';
+      case 'ja':
+        return '新しいパスワード';
+      default:
+        return '새 비밀번호';
+    }
+  }
+
+  static String currentPasswordRequired(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Please enter your current password';
+      case 'ja':
+        return '現在のパスワードを入力してください';
+      default:
+        return '현재 비밀번호를 입력해주세요';
+    }
+  }
+
+  static String newPasswordRequired(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Please enter a new password';
+      case 'ja':
+        return '新しいパスワードを入力してください';
+      default:
+        return '새 비밀번호를 입력해주세요';
+    }
+  }
+
+  static String passwordMinLength(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Password must be at least 8 characters';
+      case 'ja':
+        return 'パスワードは8文字以上である必要があります';
+      default:
+        return '비밀번호는 최소 8자 이상이어야 합니다';
+    }
+  }
+
+  static String passwordChanged(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Password Changed';
+      case 'ja':
+        return 'パスワードが変更されました';
+      default:
+        return '비밀번호가 변경되었습니다';
+    }
+  }
+
+  static String passwordChangedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Your password has been successfully changed.';
+      case 'ja':
+        return 'パスワードが正常に変更されました。';
+      default:
+        return '비밀번호가 성공적으로 변경되었습니다.';
+    }
+  }
+
+  static String passwordChangeFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to change password. Please try again.';
+      case 'ja':
+        return 'パスワードの変更に失敗しました。もう一度お試しください。';
+      default:
+        return '비밀번호 변경에 실패했습니다. 다시 시도해주세요.';
+    }
+  }
+
+  static String change(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Change';
+      case 'ja':
+        return '変更';
+      default:
+        return '변경';
+    }
+  }
+
   static String agreeTerms(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
@@ -1172,27 +1271,6 @@ class AppStrings {
     }
   }
 
-  static String statusMessage(Locale locale) {
-    switch (locale.languageCode) {
-      case 'en':
-        return 'Status Message';
-      case 'ja':
-        return 'ステータスメッセージ';
-      default:
-        return '상태 메시지';
-    }
-  }
-
-  static String statusMessageHint(Locale locale) {
-    switch (locale.languageCode) {
-      case 'en':
-        return 'Write your status message...';
-      case 'ja':
-        return 'ステータスメッセージを書いてください...';
-      default:
-        return '상태 메시지를 작성하세요...';
-    }
-  }
 
   static String save(Locale locale) {
     switch (locale.languageCode) {

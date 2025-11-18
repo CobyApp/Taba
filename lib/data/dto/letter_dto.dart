@@ -34,17 +34,27 @@ class LetterDto {
   });
 
   factory LetterDto.fromJson(Map<String, dynamic> json) {
+    // API 명세서에 따르면:
+    // - 공개 편지 목록에는 content가 없고 preview만 있음
+    // - 편지 상세 조회에는 content와 preview 모두 있음
+    // - sender는 {id, nickname}만 포함될 수 있음
+    final preview = json['preview'] as String? ?? '';
+    final content = json['content'] as String? ?? preview; // content가 없으면 preview 사용
+    
     return LetterDto(
       id: json['id'] as String,
       title: json['title'] as String,
-      content: json['content'] as String,
-      preview: json['preview'] as String,
+      content: content,
+      preview: preview,
       sender: UserDto.fromJson(json['sender'] as Map<String, dynamic>),
       // flowerType은 더 이상 사용하지 않음 (API 응답에 있어도 무시)
-      sentAt: DateTime.parse(json['sentAt'] as String),
+      // API 명세서에 따르면 sentAt은 항상 포함되어야 함
+      sentAt: json['sentAt'] != null 
+          ? DateTime.parse(json['sentAt'] as String)
+          : DateTime.now(), // 안전장치: sentAt이 없으면 현재 시간 사용
       isAnonymous: json['isAnonymous'] as bool? ?? false,
       views: json['views'] as int? ?? 0,
-      visibility: json['visibility'] as String,
+      visibility: json['visibility'] as String? ?? 'PUBLIC',
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
           : null,
@@ -156,8 +166,35 @@ class LetterTemplateDto {
     );
   }
 
-  Color _parseColor(String hex) {
-    final hexCode = hex.replaceAll('#', '');
-    return Color(int.parse('FF$hexCode', radix: 16));
+  Color _parseColor(String colorString) {
+    // hex 색상 코드 형식 (#RRGGBB 또는 RRGGBB)
+    if (colorString.startsWith('#') || 
+        (colorString.length == 6 && RegExp(r'^[0-9A-Fa-f]+$').hasMatch(colorString))) {
+      final hexCode = colorString.replaceAll('#', '');
+      if (hexCode.length == 6) {
+        return Color(int.parse('FF$hexCode', radix: 16));
+      }
+    }
+    
+    // 색상 이름 매핑 (API 명세서 예시: "pink", "black" 등)
+    final colorMap = {
+      'pink': const Color(0xFFFFC0CB),
+      'black': Colors.black,
+      'white': Colors.white,
+      'blue': Colors.blue,
+      'red': Colors.red,
+      'green': Colors.green,
+      'yellow': Colors.yellow,
+      'purple': Colors.purple,
+      'orange': Colors.orange,
+    };
+    
+    final lowerColor = colorString.toLowerCase();
+    if (colorMap.containsKey(lowerColor)) {
+      return colorMap[lowerColor]!;
+    }
+    
+    // 기본값: 검은색
+    return Colors.black;
   }
 }

@@ -64,10 +64,11 @@ class _BouquetScreenState extends State<BouquetScreen> {
     final position = _scrollController.position;
     if (!position.hasContentDimensions) return;
     
-    // 스크롤이 하단 근처에 도달하면 다음 페이지 로드
-    if (position.pixels >= position.maxScrollExtent * 0.9) {
+    // 스크롤이 하단 근처(90%)에 도달하면 다음 페이지 로드
+    final threshold = position.maxScrollExtent * 0.9;
+    if (position.pixels >= threshold) {
       final friendId = _selectedBouquet.friend.user.id;
-      final hasMore = _hasMorePages[friendId] ?? false;
+      final hasMore = _hasMorePages[friendId] ?? true; // 기본값 true
       final isLoading = _loadingFlowers[friendId] ?? false;
       
       if (hasMore && !isLoading) {
@@ -134,8 +135,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
           // 페이지네이션 정보 업데이트
           _currentPages[friendId] = currentPage + 1;
           
-          // 더 불러올 페이지가 있는지 확인 (응답이 비어있거나 20개 미만이면 마지막 페이지로 간주)
+          // 더 불러올 페이지가 있는지 확인 (응답이 20개 미만이면 마지막 페이지로 간주)
           _hasMorePages[friendId] = flowers.length >= 20;
+          
+          print('📄 편지 페이징: friendId=$friendId, page=$currentPage, loaded=${flowers.length}개, hasMore=${_hasMorePages[friendId]}');
           
           _loadingFlowers[friendId] = false;
           

@@ -14,6 +14,8 @@ class TabaTextField extends StatelessWidget {
     this.maxLines = 1,
     this.minLines,
     this.autofocus = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.maxLength,
     this.onChanged,
     this.onSubmitted,
     this.validator,
@@ -30,6 +32,8 @@ class TabaTextField extends StatelessWidget {
   final int? maxLines;
   final int? minLines;
   final bool autofocus;
+  final TextCapitalization textCapitalization;
+  final int? maxLength;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final String? Function(String?)? validator;
@@ -46,6 +50,8 @@ class TabaTextField extends StatelessWidget {
       maxLines: maxLines,
       minLines: minLines,
       autofocus: autofocus,
+      textCapitalization: textCapitalization,
+      maxLength: maxLength,
       enabled: enabled,
       onChanged: onChanged,
       onSubmitted: onSubmitted,

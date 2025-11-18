@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/notification.dart';
+import 'package:taba_app/data/models/bouquet.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/screens/bouquet/bouquet_screen.dart';
 import 'package:taba_app/presentation/screens/settings/settings_screen.dart';
@@ -47,12 +48,23 @@ class _MainShellState extends State<MainShell> {
     try {
       final letters = await _repository.getPublicLetters();
       final notifications = await _repository.getNotifications();
-      final bouquets = await _repository.getBouquets();
+      final friends = await _repository.getFriends();
       
-      final unreadCount = bouquets.fold<int>(
-        0,
-        (value, bouquet) => value + bouquet.unreadCount,
-      );
+      // 친구별로 읽지 않은 편지 수 계산
+      int unreadCount = 0;
+      for (final friend in friends) {
+        try {
+          final friendLetters = await _repository.getFriendLetters(
+            friendId: friend.user.id,
+            page: 0,
+            size: 20,
+          );
+          unreadCount += friendLetters.where((f) => !f.sentByMe && !(f.isRead ?? false)).length;
+        } catch (e) {
+          // 개별 친구의 편지 조회 실패는 무시
+          print('친구 ${friend.user.nickname}의 편지 조회 실패: $e');
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -95,6 +107,15 @@ class _MainShellState extends State<MainShell> {
       onOpenBouquet: () => _openBouquet(context),
       onOpenSettings: () => _openSettings(context),
       onRefresh: _loadData,
+      onLoadMore: (page) async {
+        try {
+          final letters = await _repository.getPublicLetters(page: page, size: 20);
+          return letters;
+        } catch (e) {
+          print('다음 페이지 로드 실패: $e');
+          return <Letter>[];
+        }
+      },
       floatingActionButton: ValueListenableBuilder<Locale>(
         valueListenable: AppLocaleController.localeNotifier,
         builder: (context, locale, _) {
@@ -110,28 +131,63 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _openBouquet(BuildContext context) async {
     try {
-      final bouquets = await _repository.getBouquets();
+      final friends = await _repository.getFriends();
       if (!mounted) return;
       
-      if (bouquets.isEmpty) {
+      if (friends.isEmpty) {
+        final locale = AppLocaleController.localeNotifier.value;
         showTabaInfo(
           context,
-          message: '아직 꽃다발이 없습니다. 친구와 편지를 주고받으면 꽃다발이 생겨요.',
+          message: AppStrings.noFriends(locale),
         );
         return;
       }
+      
+      // 친구 목록을 FriendBouquet 형태로 변환
+      final friendBouquets = await Future.wait(
+        friends.map((friend) async {
+          try {
+            final letters = await _repository.getFriendLetters(
+              friendId: friend.user.id,
+              page: 0,
+              size: 1,
+            );
+            final unreadCount = letters.where((f) => !f.sentByMe && !(f.isRead ?? false)).length;
+            
+            return FriendBouquet(
+              friend: friend,
+              bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
+              trustScore: 0, // 계산 로직이 없으므로 기본값
+              bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
+              unreadCount: unreadCount,
+            );
+          } catch (e) {
+            // 에러 발생 시 기본값으로 생성
+            return FriendBouquet(
+              friend: friend,
+              bloomLevel: 0.0,
+              trustScore: 0,
+              bouquetName: friend.user.nickname,
+              unreadCount: 0,
+            );
+          }
+        }),
+      );
+      
+      if (!mounted) return;
       
       final navigator = Navigator.of(context);
       navigator.push(
         MaterialPageRoute<void>(
           builder: (_) => BouquetScreen(
-            friendBouquets: bouquets,
+            friendBouquets: friendBouquets,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      showTabaError(context, message: '꽃다발을 불러오는데 실패했습니다: $e');
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
     }
   }
 
