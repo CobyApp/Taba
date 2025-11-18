@@ -294,8 +294,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: TabaTextField(
           controller: codeController,
           labelText: AppStrings.friendCode(locale),
-          hintText: '예: user123-456789',
+          hintText: '예: A1B2C3',
           autofocus: true,
+          textCapitalization: TextCapitalization.characters,
+          maxLength: 6,
         ),
         actions: [
           TextButton(
@@ -496,17 +498,7 @@ class _ProfileCard extends StatelessWidget {
                     context,
                   ).textTheme.headlineSmall?.copyWith(color: Colors.white),
                 ),
-                Text(
-                  '@${user.username}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  user.statusMessage,
-                  style: const TextStyle(color: Colors.white70),
-                ),
+                // username, statusMessage 제거됨
               ],
             ),
           ),
@@ -552,7 +544,6 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _repository = DataRepository.instance;
   final _nicknameCtrl = TextEditingController();
-  final _statusMessageCtrl = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
   File? _profileImage;
   String? _currentAvatarUrl;
@@ -563,14 +554,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _nicknameCtrl.text = widget.currentUser.nickname;
-    _statusMessageCtrl.text = widget.currentUser.statusMessage;
     _currentAvatarUrl = widget.currentUser.avatarUrl;
   }
 
   @override
   void dispose() {
     _nicknameCtrl.dispose();
-    _statusMessageCtrl.dispose();
     super.dispose();
   }
 
@@ -686,7 +675,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final success = await _repository.updateUserProfile(
         userId: widget.currentUser.id,
         nickname: _nicknameCtrl.text.trim(),
-        statusMessage: _statusMessageCtrl.text.trim(),
         profileImage: _profileImage,
         avatarUrl: avatarUrl,
       );
@@ -807,14 +795,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: _nicknameCtrl,
             labelText: '닉네임',
           ),
-          const SizedBox(height: 16),
-          // 상태 메시지
-          TabaTextField(
-            controller: _statusMessageCtrl,
-            labelText: '상태 메시지',
-            hintText: '자신을 소개해주세요',
-            maxLines: 3,
-          ),
+          // 상태 메시지 제거됨
         ],
       ),
     );

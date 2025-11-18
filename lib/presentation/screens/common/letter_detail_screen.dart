@@ -60,30 +60,34 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       bottomNavigationBar: ValueListenableBuilder<Locale>(
         valueListenable: AppLocaleController.localeNotifier,
         builder: (context, locale, _) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.sm,
-                AppSpacing.xl,
-                AppSpacing.md,
-              ),
-              child: TabaButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => WriteLetterPage(
-                        replyToLetterId: widget.letter.id,
-                        initialRecipient: widget.friendName != null ? widget.letter.sender.id : null,
+          // 친구에게 보낸 편지인 경우에만 답장 버튼 표시
+          if (widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  AppSpacing.md,
+                ),
+                child: TabaButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => WriteLetterPage(
+                          replyToLetterId: widget.letter.id,
+                          initialRecipient: widget.letter.sender.id,
+                        ),
                       ),
-                    ),
-                  );
-                },
-                label: AppStrings.replyButton(locale),
-                icon: Icons.reply_outlined,
+                    );
+                  },
+                  label: AppStrings.replyButton(locale),
+                  icon: Icons.reply_outlined,
+                ),
               ),
-            ),
-          );
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
       body: SafeArea(
@@ -155,17 +159,6 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    const Icon(Icons.local_florist_outlined, size: 12, color: Colors.white70),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.letter.flower.getLocalizedName(),
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                        fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
                                     const Icon(Icons.schedule, size: 12, color: Colors.white54),
                                     const SizedBox(width: 4),
                                     Text(

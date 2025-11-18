@@ -32,6 +32,11 @@ class AuthService {
           apiResponse.data!.token,
           apiResponse.data!.user.id,
         );
+        
+        // Swagger 테스트용 토큰 출력
+        print('🔑 Bearer Token for Swagger (Login):');
+        print('   ${apiResponse.data!.token}');
+        print('   (Copy this token to use in Swagger Authorization)');
       }
 
       return apiResponse;
@@ -117,6 +122,11 @@ class AuthService {
           apiResponse.data!.token,
           apiResponse.data!.user.id,
         );
+        
+        // Swagger 테스트용 토큰 출력
+        print('🔑 Bearer Token for Swagger (Signup):');
+        print('   ${apiResponse.data!.token}');
+        print('   (Copy this token to use in Swagger Authorization)');
       }
 
       return apiResponse;

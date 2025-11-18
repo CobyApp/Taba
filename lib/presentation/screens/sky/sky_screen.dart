@@ -388,7 +388,7 @@ class _SeedOrb extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocaleController.localeNotifier.value;
     return Semantics(
-      label: AppStrings.seedLabel(locale, letter.flower.getLocalizedName()),
+      label: '씨앗',
       child: Container(
         width: 56,
         height: 56,
@@ -452,6 +452,25 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
     duration: const Duration(milliseconds: 1500),
   )..repeat(reverse: true);
   bool _isBlooming = false;
+  late final String _randomMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _randomMessage = _getRandomBloomMessage(widget.locale);
+  }
+
+  String _getRandomBloomMessage(Locale locale) {
+    final messages = [
+      '씨앗으로부터 꽃을 피워볼까요?',
+      '이 씨앗에서 아름다운 꽃이 피어날 거예요',
+      '씨앗을 열어 꽃을 만나보세요',
+      '작은 씨앗에서 큰 꽃이 피어나요',
+      '씨앗 속에 숨겨진 꽃을 발견해보세요',
+    ];
+    final random = DateTime.now().millisecondsSinceEpoch % messages.length;
+    return messages[random];
+  }
 
   @override
   void dispose() {
@@ -470,77 +489,94 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              color: const Color(0xCC060018),
-              border: Border.all(color: Colors.white12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 30,
-                  spreadRadius: 8,
-                )
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    final scale = 1 + (_controller.value * 0.08);
-                    return Transform.scale(
-                      scale: scale,
-                      child: child,
-                    );
-                  },
-                  child: _SeedOrb(
-                    letter: widget.letter,
-                  ),
+    return Stack(
+      children: [
+        // 배경 탭 시 닫기
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.of(context).pop(false),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+        // 모달 컨텐츠
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  color: const Color(0xCC060018),
+                  border: Border.all(color: Colors.white12),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black54,
+                      blurRadius: 30,
+                      spreadRadius: 8,
+                    )
+                  ],
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  AppStrings.bloomSeedQuestion(widget.locale),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: Colors.white),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 왼쪽 위 닫기 버튼
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white70,
+                            size: 24,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        final scale = 1 + (_controller.value * 0.08);
+                        return Transform.scale(
+                          scale: scale,
+                          child: child,
+                        );
+                      },
+                      child: _SeedOrb(
+                        letter: widget.letter,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _randomMessage,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                    // 부가 설명 제거
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _isBlooming ? null : _handleBloom,
+                      icon: const Icon(Icons.auto_awesome),
+                      label: Text(
+                        _isBlooming 
+                            ? AppStrings.blooming(widget.locale)
+                            : AppStrings.bloomButton(widget.locale),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  AppStrings.bloomSeedSubtitle(widget.locale, widget.bloomFlower.name),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _isBlooming ? null : _handleBloom,
-                  icon: const Icon(Icons.auto_awesome),
-                  label: Text(
-                    _isBlooming 
-                        ? AppStrings.blooming(widget.locale)
-                        : AppStrings.bloomButton(widget.locale),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.bloomFlower.emoji,
-                  style: const TextStyle(fontSize: 36),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

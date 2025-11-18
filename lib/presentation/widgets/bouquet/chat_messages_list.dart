@@ -37,7 +37,7 @@ class ChatMessagesList extends StatelessWidget {
           return ChatBubble(
             contentTitle: item.title,
             contentPreview: item.preview,
-            emoji: item.flower.emoji,
+            emoji: '🌸', // 기본 꽃 이모지 (꽃 종류 제거됨)
             isMine: item.sentByMe,
             timeLabel: formatTimeAgo(item.sentAt),
             isUnread: isUnread,

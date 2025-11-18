@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "829036672834",
+    "project_id": "taba-20fc0",
+    "storage_bucket": "taba-20fc0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:829036672834:android:5716721db320322cafbadb",
+        "android_client_info": {
+          "package_name": "com.coby.taba"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBI_qQIRdhatCJQ4CQMP-kJnaP7ICuLKDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

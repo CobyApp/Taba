@@ -126,7 +126,6 @@ class UserService {
   Future<ApiResponse<UserDto>> updateUser({
     required String userId,
     String? nickname,
-    String? statusMessage,
     File? profileImage,
     String? avatarUrl, // 이미지 제거 시 null
   }) async {
@@ -137,7 +136,6 @@ class UserService {
         // multipart/form-data로 프로필 이미지 포함
         formData = FormData.fromMap({
           if (nickname != null) 'nickname': nickname,
-          if (statusMessage != null) 'statusMessage': statusMessage,
           'profileImage': await MultipartFile.fromFile(
             profileImage.path,
             filename: profileImage.path.split('/').last,
@@ -147,7 +145,6 @@ class UserService {
         // 프로필 이미지 없이 일반 form-data
         formData = FormData.fromMap({
           if (nickname != null) 'nickname': nickname,
-          if (statusMessage != null) 'statusMessage': statusMessage,
           if (avatarUrl != null) 'avatarUrl': avatarUrl,
         });
       }

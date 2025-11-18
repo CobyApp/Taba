@@ -20,7 +20,7 @@ class SharedFlower {
   final bool? isRead; // 내가 받은 편지인 경우 읽음 상태 (내가 보낸 편지는 null)
 
   String get directionLabel => sentByMe ? '내가 보냄' : '친구가 보냄';
-  FlowerType get flower => letter.flower;
+  // flower 필드 제거됨
   String get title => letter.title;
   String get preview => letter.preview;
 }

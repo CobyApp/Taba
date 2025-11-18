@@ -61,11 +61,7 @@ class _FlowerCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                flower.flower.emoji,
-                style: const TextStyle(fontSize: 24),
-              ),
-              const SizedBox(height: AppSpacing.sm),
+              // 꽃 이모지 제거됨
               Text(
                 flower.title,
                 maxLines: 2,

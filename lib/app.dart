@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 import 'package:taba_app/core/theme/app_theme.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/data/services/fcm_service.dart';
 import 'package:taba_app/presentation/screens/auth/login_screen.dart';
 import 'package:taba_app/presentation/screens/main/main_shell.dart';
 import 'package:taba_app/presentation/screens/splash/splash_screen.dart';
@@ -32,6 +33,9 @@ class _TabaAppState extends State<TabaApp> {
   Future<void> _initializeApp() async {
     // 앱 언어 초기화 (시스템 언어 감지 및 저장)
     await AppLocaleController.initialize();
+    // FCM 초기화
+    final fcmService = FcmService();
+    await fcmService.initialize();
     _checkAuth();
   }
 

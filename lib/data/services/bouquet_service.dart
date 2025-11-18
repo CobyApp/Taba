@@ -6,6 +6,9 @@ import 'package:taba_app/data/dto/bouquet_dto.dart';
 class BouquetService {
   final ApiClient _apiClient = ApiClient();
 
+  // 꽃다발 목록 조회 API 제거됨 (더 이상 사용하지 않음)
+  // 친구별 편지 목록은 getFriendLetters로 조회
+  @Deprecated('더 이상 사용하지 않음. 친구별 편지 목록은 getFriendLetters 사용')
   Future<ApiResponse<List<BouquetDto>>> getBouquets() async {
     try {
       final response = await _apiClient.dio.get('/bouquets');

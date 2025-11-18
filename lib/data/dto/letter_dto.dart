@@ -8,7 +8,6 @@ class LetterDto {
   final String content;
   final String preview;
   final UserDto sender;
-  final String flowerType;
   final DateTime sentAt;
   final bool isAnonymous;
   final int views;
@@ -24,7 +23,6 @@ class LetterDto {
     required this.content,
     required this.preview,
     required this.sender,
-    required this.flowerType,
     required this.sentAt,
     this.isAnonymous = false,
     this.views = 0,
@@ -42,7 +40,7 @@ class LetterDto {
       content: json['content'] as String,
       preview: json['preview'] as String,
       sender: UserDto.fromJson(json['sender'] as Map<String, dynamic>),
-      flowerType: json['flowerType'] as String,
+      // flowerType은 더 이상 사용하지 않음 (API 응답에 있어도 무시)
       sentAt: DateTime.parse(json['sentAt'] as String),
       isAnonymous: json['isAnonymous'] as bool? ?? false,
       views: json['views'] as int? ?? 0,
@@ -71,7 +69,7 @@ class LetterDto {
       'title': title,
       'content': content,
       'preview': preview,
-      'flowerType': flowerType,
+      // flowerType 제거됨
       'visibility': visibility,
       'isAnonymous': isAnonymous,
       'template': template?.toJson(),
@@ -89,7 +87,7 @@ class LetterDto {
       content: content,
       sentAt: sentAt,
       sender: sender.toModel(),
-      flower: _parseFlowerType(flowerType),
+      // flower 필드 제거됨
       isAnonymous: isAnonymous,
       views: views,
       visibility: _parseVisibility(visibility),
@@ -97,25 +95,6 @@ class LetterDto {
       template: template?.toModel(),
       attachedImages: attachedImages ?? [],
     );
-  }
-
-  FlowerType _parseFlowerType(String type) {
-    switch (type.toUpperCase()) {
-      case 'ROSE':
-        return FlowerType.rose;
-      case 'TULIP':
-        return FlowerType.tulip;
-      case 'SAKURA':
-        return FlowerType.sakura;
-      case 'SUNFLOWER':
-        return FlowerType.sunflower;
-      case 'DAISY':
-        return FlowerType.daisy;
-      case 'LAVENDER':
-        return FlowerType.lavender;
-      default:
-        return FlowerType.rose;
-    }
   }
 
   VisibilityScope _parseVisibility(String visibility) {

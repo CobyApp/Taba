@@ -5,6 +5,7 @@ import 'package:taba_app/core/storage/token_storage.dart';
 class ApiClient {
   late final Dio _dio;
   final TokenStorage _tokenStorage = TokenStorage();
+  bool _tokenPrinted = false; // 토큰 출력 여부 추적
 
   ApiClient() {
     _dio = Dio(
@@ -35,6 +36,16 @@ class ApiClient {
           final token = await _tokenStorage.getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+            
+            // Swagger 테스트용 토큰 출력 (첫 번째 요청 시에만)
+            if (!_tokenPrinted) {
+              print('🔑 Bearer Token for Swagger:');
+              print('   $token');
+              print('   (Copy this token to use in Swagger Authorization)');
+              _tokenPrinted = true;
+            }
+          } else {
+            print('⚠️ No token found. Please login first.');
           }
           return handler.next(options);
         },
@@ -96,4 +107,16 @@ class ApiClient {
   }
 
   Dio get dio => _dio;
+  
+  // Swagger 테스트용 토큰 출력 메서드
+  Future<void> printTokenForSwagger() async {
+    final token = await _tokenStorage.getToken();
+    if (token != null) {
+      print('🔑 Bearer Token for Swagger:');
+      print('   $token');
+      print('   (Copy this token to use in Swagger Authorization)');
+    } else {
+      print('⚠️ No token found. Please login first.');
+    }
+  }
 }

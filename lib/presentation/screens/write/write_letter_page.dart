@@ -845,7 +845,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           title: title,
           content: content.isNotEmpty ? content : title,
           preview: preview,
-          flowerType: 'ROSE',
           isAnonymous: false,
           template: template,
           attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
@@ -856,7 +855,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           title: title,
           content: content.isNotEmpty ? content : title,
           preview: preview,
-          flowerType: 'ROSE', // API 명세서에 따라 대문자
           visibility: _sendToFriend ? 'DIRECT' : 'PUBLIC', // API 명세서에 따라 대문자
           isAnonymous: false,
           template: template,

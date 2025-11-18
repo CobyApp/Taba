@@ -12,6 +12,7 @@ import 'package:taba_app/data/services/letter_service.dart';
 import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
+import 'package:taba_app/data/services/fcm_service.dart';
 import 'dart:io';
 
 class DataRepository {
@@ -27,10 +28,16 @@ class DataRepository {
   final FileService _fileService = FileService();
   final InviteCodeService _inviteCodeService = InviteCodeService();
   final SettingsService _settingsService = SettingsService();
+  final FcmService _fcmService = FcmService();
 
   // Auth
   Future<bool> login(String email, String password) async {
     final response = await _authService.login(email: email, password: password);
+    if (response.isSuccess && response.data != null) {
+      // 로그인 성공 시 FCM 토큰 등록
+      final userId = response.data!.user.id;
+      await _fcmService.registerTokenToServer(userId);
+    }
     return response.isSuccess;
   }
 
@@ -50,6 +57,11 @@ class DataRepository {
       agreePrivacy: agreePrivacy,
       profileImage: profileImage,
     );
+    if (response.isSuccess && response.data != null) {
+      // 회원가입 성공 시 FCM 토큰 등록
+      final userId = response.data!.user.id;
+      await _fcmService.registerTokenToServer(userId);
+    }
     return response.isSuccess;
   }
 
@@ -59,6 +71,8 @@ class DataRepository {
   }
 
   Future<void> logout() async {
+    // 로그아웃 시 FCM 토큰 삭제
+    await _fcmService.deleteToken();
     await _authService.logout();
   }
 
@@ -90,7 +104,6 @@ class DataRepository {
     required String title,
     required String content,
     required String preview,
-    required String flowerType,
     required String visibility,
     bool isAnonymous = false,
     Map<String, dynamic>? template,
@@ -103,7 +116,6 @@ class DataRepository {
         title: title,
         content: content,
         preview: preview,
-        flowerType: flowerType,
         visibility: visibility,
         isAnonymous: isAnonymous,
         template: template,
@@ -140,7 +152,6 @@ class DataRepository {
     required String title,
     required String content,
     required String preview,
-    required String flowerType,
     bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
@@ -151,7 +162,6 @@ class DataRepository {
         title: title,
         content: content,
         preview: preview,
-        flowerType: flowerType,
         isAnonymous: isAnonymous,
         template: template,
         attachedImages: attachedImages,
@@ -363,7 +373,6 @@ class DataRepository {
   Future<bool> updateUserProfile({
     required String userId,
     String? nickname,
-    String? statusMessage,
     File? profileImage,
     String? avatarUrl, // 이미지 제거 시 null
   }) async {
@@ -371,7 +380,6 @@ class DataRepository {
       final response = await _userService.updateUser(
         userId: userId,
         nickname: nickname,
-        statusMessage: statusMessage,
         profileImage: profileImage,
         avatarUrl: avatarUrl,
       );

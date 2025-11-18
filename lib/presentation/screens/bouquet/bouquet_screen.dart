@@ -9,7 +9,6 @@ import 'package:taba_app/presentation/widgets/gradient_scaffold.dart';
 import 'package:taba_app/presentation/widgets/empty_state.dart';
 import 'package:taba_app/presentation/widgets/loading_indicator.dart';
 import 'package:taba_app/presentation/widgets/bouquet/friend_story_strip.dart';
-import 'package:taba_app/presentation/widgets/bouquet/friend_summary_card.dart';
 import 'package:taba_app/presentation/widgets/bouquet/chat_messages_list.dart';
 import 'package:taba_app/presentation/widgets/bouquet/bouquet_detail_sheet.dart';
 import 'package:taba_app/presentation/widgets/modal_sheet.dart';
@@ -238,20 +237,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
                       onSelect: _selectFriend,
                     ),
                   ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.md,
-                ),
-                child: FriendSummaryCard(
-                  bouquet: selected,
-                  unreadCount: isLoading ? 0 : unread,
-                  bouquetName: _resolveBouquetName(selected),
-                  onTap: () => _openBouquetDetail(selected),
-                ),
-              ),
-            ),
+            // FriendSummaryCard 제거됨
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl,
@@ -291,7 +277,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
     final flowers = _loadedFlowers[bouquet.friend.user.id] ?? [];
     final snippet = flowers
         .take(4)
-        .map((f) => '• ${f.title} (${f.flower.emoji})')
+        .map((f) => '• ${f.title}')
         .join('\n');
     final shareText = '''
 ${AppStrings.bouquetShareTitle(locale)}
@@ -310,26 +296,9 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
     );
   }
 
-  void _openBouquetDetail(FriendBouquet bouquet) {
-    TabaModalSheet.show(
-      context: context,
-      child: BouquetDetailSheet(
-        bouquet: bouquet,
-        bouquetName: _resolveBouquetName(bouquet),
-        loadedFlowers: _loadedFlowers[bouquet.friend.user.id],
-        onSaveName: (name) => _saveBouquetName(bouquet, name),
-        onShare: () => _shareBouquet(bouquet),
-        onFlowerTap: _openFlower,
-      ),
-    );
-  }
-
-  void _saveBouquetName(FriendBouquet bouquet, String name) {
-    if (name.isEmpty) return;
-    setState(() {
-      _customBouquetNames[bouquet.friend.user.id] = name;
-    });
-  }
+  // 꽃다발 상세 기능 제거됨
+  // void _openBouquetDetail(FriendBouquet bouquet) { ... }
+  // void _saveBouquetName(FriendBouquet bouquet, String name) { ... }
 
   void _composeLetterToSelectedFriend() {
     Navigator.of(context).push(

@@ -3,18 +3,14 @@ import 'package:flutter/material.dart';
 class TabaUser {
   const TabaUser({
     required this.id,
-    required this.username,
     required this.nickname,
     required this.avatarUrl,
-    this.statusMessage = '',
     this.joinedAt,
   });
 
   final String id;
-  final String username;
   final String nickname;
   final String avatarUrl;
-  final String statusMessage;
   final DateTime? joinedAt;
 
   String get initials {
@@ -22,7 +18,7 @@ class TabaUser {
     if (parts.length >= 2) {
       return parts.first[0] + parts.last[0];
     }
-    return nickname.isNotEmpty ? nickname[0] : username[0];
+    return nickname.isNotEmpty ? nickname[0] : '?';
   }
 
   Color avatarFallbackColor() {

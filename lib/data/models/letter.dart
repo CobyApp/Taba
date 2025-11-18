@@ -3,33 +3,7 @@ import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 
-enum FlowerType {
-  rose('장미', '🌹', 'assets/svg/flower_rose.svg'),
-  tulip('튤립', '🌷', 'assets/svg/flower_tulip.svg'),
-  sakura('벚꽃', '🌸', 'assets/svg/flower_sakura.svg'),
-  sunflower('해바라기', '🌻', null),
-  daisy('데이지', '🌼', null),
-  lavender('라벤더', '💜', null);
-
-  const FlowerType(this.label, this.emoji, this.asset);
-
-  final String label;
-  final String emoji;
-  final String? asset;
-  
-  /// 로컬라이즈된 꽃 이름 반환
-  String localizedName(Locale locale) {
-    return AppStrings.flowerName(locale, name);
-  }
-  
-  /// 현재 로케일로 꽃 이름 반환
-  String getLocalizedName() {
-    return AppStrings.flowerName(
-      AppLocaleController.localeNotifier.value,
-      name,
-    );
-  }
-}
+// FlowerType enum 제거됨 - 편지에서 꽃 정보는 더 이상 사용하지 않음
 
 enum VisibilityScope {
   public('전체 공개'),
@@ -76,7 +50,6 @@ class Letter {
     required this.content,
     required this.sentAt,
     required this.sender,
-    required this.flower,
     this.isAnonymous = false,
     this.views = 0,
     this.visibility = VisibilityScope.public,
@@ -91,7 +64,6 @@ class Letter {
   final String content;
   final DateTime sentAt;
   final TabaUser sender;
-  final FlowerType flower;
   final bool isAnonymous;
   final int views;
   final VisibilityScope visibility;

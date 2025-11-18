@@ -139,7 +139,6 @@ class SharedFlowerDto {
         'sender': {
           'id': '',
           'email': '',
-          'username': '',
           'nickname': '알 수 없음',
           'avatarUrl': null,
         },

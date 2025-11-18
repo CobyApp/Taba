@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 이 파일은 플레이스홀더입니다. Firebase Console에서 실제 GoogleService-Info.plist 파일을 다운로드하여 이 파일을 교체하세요. -->
+	<key>_INSTRUCTIONS</key>
+	<array>
+		<string>1. Firebase Console (https://console.firebase.google.com/) 접속</string>
+		<string>2. 프로젝트 선택</string>
+		<string>3. 프로젝트 설정 (톱니바퀴 아이콘) → 일반 탭</string>
+		<string>4. '내 앱' 섹션에서 iOS 앱 선택 또는 추가</string>
+		<string>5. 번들 ID: Xcode 프로젝트의 Bundle Identifier 입력</string>
+		<string>6. GoogleService-Info.plist 파일 다운로드</string>
+		<string>7. 다운로드한 파일을 ios/Runner/GoogleService-Info.plist로 복사</string>
+		<string>8. Xcode에서 ios/Runner.xcworkspace 열기</string>
+		<string>9. GoogleService-Info.plist를 Xcode 프로젝트에 드래그 앤 드롭</string>
+	</array>
+</dict>
+</plist>
+

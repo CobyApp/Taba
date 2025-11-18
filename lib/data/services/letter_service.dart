@@ -10,7 +10,6 @@ class LetterService {
     required String title,
     required String content,
     required String preview,
-    required String flowerType,
     required String visibility,
     bool isAnonymous = false,
     Map<String, dynamic>? template,
@@ -24,7 +23,7 @@ class LetterService {
         'title': title,
         'content': content,
         'preview': preview,
-        'flowerType': flowerType.toUpperCase(), // 대문자로 변환
+        // flowerType 제거됨
         'visibility': visibility.toUpperCase(), // 대문자로 변환
         'isAnonymous': isAnonymous,
         if (template != null) 'template': template,
@@ -304,7 +303,6 @@ class LetterService {
     required String title,
     required String content,
     required String preview,
-    required String flowerType,
     bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
@@ -314,7 +312,7 @@ class LetterService {
         'title': title,
         'content': content,
         'preview': preview,
-        'flowerType': flowerType.toUpperCase(),
+        // flowerType 제거됨
         'visibility': 'DIRECT', // 답장은 항상 DIRECT로 설정
         'isAnonymous': isAnonymous,
         if (template != null) 'template': template,

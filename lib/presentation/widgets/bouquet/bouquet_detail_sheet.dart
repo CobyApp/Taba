@@ -39,6 +39,7 @@ class BouquetDetailSheet extends StatelessWidget {
       builder: (context, locale, _) {
         return TabaModalSheet(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ModalSheetHeader(
