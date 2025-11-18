@@ -108,7 +108,11 @@ class BouquetService {
         },
       );
 
+      print('getFriendLetters 원본 응답: ${response.data}');
+      print('getFriendLetters 응답 타입: ${response.data.runtimeType}');
+
       if (response.data is! Map<String, dynamic>) {
+        print('getFriendLetters: 응답이 Map이 아님');
         return ApiResponse<PageResponse<SharedFlowerDto>>(
           success: false,
           error: ApiError(
@@ -118,19 +122,88 @@ class BouquetService {
         );
       }
 
-      return ApiResponse<PageResponse<SharedFlowerDto>>.fromJson(
-        response.data as Map<String, dynamic>,
-        (data) => PageResponse<SharedFlowerDto>.fromJson(
-          data as Map<String, dynamic>,
-          (item) => SharedFlowerDto.fromJson(item as Map<String, dynamic>),
-        ),
-      );
+      final responseData = response.data as Map<String, dynamic>;
+      
+      // 응답 파싱 시도
+      try {
+        return ApiResponse<PageResponse<SharedFlowerDto>>.fromJson(
+          responseData,
+          (data) {
+            print('getFriendLetters data 파싱: $data');
+            if (data is! Map<String, dynamic>) {
+              print('getFriendLetters: data가 Map이 아님');
+              return PageResponse<SharedFlowerDto>(
+                content: [],
+                page: page,
+                size: size,
+                totalElements: 0,
+                totalPages: 0,
+                first: true,
+                last: true,
+              );
+            }
+            
+            return PageResponse<SharedFlowerDto>.fromJson(
+              data,
+              (item) {
+                try {
+                  if (item is! Map<String, dynamic>) {
+                    print('getFriendLetters: item이 Map이 아님: $item');
+                    throw Exception('Invalid item format');
+                  }
+                  return SharedFlowerDto.fromJson(item);
+                } catch (e, stackTrace) {
+                  print('getFriendLetters SharedFlowerDto 파싱 에러: $e');
+                  print('Stack trace: $stackTrace');
+                  print('Item: $item');
+                  rethrow;
+                }
+              },
+            );
+          },
+        );
+      } catch (e, stackTrace) {
+        print('getFriendLetters 응답 파싱 에러: $e');
+        print('Stack trace: $stackTrace');
+        print('Response data: $responseData');
+        rethrow;
+      }
     } on DioException catch (e) {
+      // 500 에러 등 서버 에러 응답도 ApiResponse 형식으로 올 수 있음
+      // {success: false, error: {code, message}} 형식인 경우 파싱 시도
+      if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          
+          // API 명세서에 따른 에러 응답 형식인 경우
+          if (errorData.containsKey('success') && errorData['success'] == false) {
+            print('getFriendLetters: 서버 에러 응답을 ApiResponse로 변환');
+            return ApiResponse<PageResponse<SharedFlowerDto>>.fromJson(
+              errorData,
+              (data) => PageResponse<SharedFlowerDto>(
+                content: [],
+                page: page,
+                size: size,
+                totalElements: 0,
+                totalPages: 0,
+                first: true,
+                last: true,
+              ),
+            );
+          }
+        } catch (parseError) {
+          print('getFriendLetters: 에러 응답 파싱 실패: $parseError');
+        }
+      }
+      
+      // 일반적인 에러 처리
       String errorMessage = '편지 목록을 불러오는데 실패했습니다.';
       if (e.response?.statusCode == 401) {
         errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
       } else if (e.response?.statusCode == 404) {
         errorMessage = '친구를 찾을 수 없습니다.';
+      } else if (e.response?.statusCode == 500) {
+        errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
       } else if (e.response?.data != null) {
         try {
           final errorData = e.response!.data as Map<String, dynamic>;
@@ -148,7 +221,9 @@ class BouquetService {
           message: errorMessage,
         ),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('getFriendLetters 예상치 못한 에러: $e');
+      print('Stack trace: $stackTrace');
       return ApiResponse<PageResponse<SharedFlowerDto>>(
         success: false,
         error: ApiError(

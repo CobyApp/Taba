@@ -247,6 +247,13 @@ class DataRepository {
       
       if (response.error != null) {
         print('getFriendLetters API 에러: ${response.error!.message}');
+        // 서버 에러(500)의 경우 빈 리스트 반환 (앱 크래시 방지)
+        // UI에서 에러 메시지를 표시할 수 있도록 예외는 던짐
+        final errorCode = response.error!.code;
+        if (errorCode == 'INTERNAL_SERVER_ERROR' || errorCode.contains('500')) {
+          print('getFriendLetters: 서버 에러로 인해 빈 리스트 반환');
+          return [];
+        }
         throw Exception(response.error!.message);
       }
       
@@ -255,6 +262,11 @@ class DataRepository {
     } catch (e, stackTrace) {
       print('getFriendLetters 예외: $e');
       print('Stack trace: $stackTrace');
+      // 서버 에러의 경우 빈 리스트 반환
+      if (e.toString().contains('서버 오류') || e.toString().contains('500')) {
+        print('getFriendLetters: 서버 에러로 인해 빈 리스트 반환');
+        return [];
+      }
       rethrow;
     }
   }

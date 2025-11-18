@@ -23,6 +23,14 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // Health check 엔드포인트는 인증 불필요
+          final path = options.path.toLowerCase();
+          if (path.contains('/actuator/health') || 
+              path.contains('/health') ||
+              path.contains('/actuator/info')) {
+            return handler.next(options);
+          }
+          
           // 토큰 자동 추가
           final token = await _tokenStorage.getToken();
           if (token != null) {

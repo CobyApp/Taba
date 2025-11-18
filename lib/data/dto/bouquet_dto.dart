@@ -92,6 +92,7 @@ class SharedFlowerDto {
   final DateTime sentAt;
   final bool sentByMe;
   final bool? isRead;
+  final String? fontFamily; // 최상위 레벨의 fontFamily
 
   SharedFlowerDto({
     required this.id,
@@ -99,49 +100,70 @@ class SharedFlowerDto {
     required this.sentAt,
     required this.sentByMe,
     this.isRead,
+    this.fontFamily,
   });
 
   factory SharedFlowerDto.fromJson(Map<String, dynamic> json) {
-    // Swagger API 응답 구조에 맞춰 파싱
-    // 응답 구조: { id, letter: { id, title, preview }, flowerType, sentAt, sentByMe, isRead }
-    final letterJson = json['letter'] as Map<String, dynamic>?;
-    
-    // letter 객체에서 정보 추출 (Swagger 명세에 따르면 id, title, preview만 포함)
-    final letterId = letterJson?['id'] as String? ?? json['id'] as String;
-    final letterTitle = letterJson?['title'] as String? ?? '';
-    final letterPreview = letterJson?['preview'] as String? ?? '';
-    
-    // flowerType은 최상위 레벨에 있음 (Swagger 명세 기준)
-    final flowerType = json['flowerType'] as String? ?? 'ROSE';
-    
-    // LetterDto를 생성하기 위해 필수 필드 구성
-    // API 응답에는 일부 필드만 있으므로 기본값으로 채움
-    final letterDto = LetterDto.fromJson({
-      'id': letterId,
-      'title': letterTitle,
-      'content': letterPreview, // content가 없으면 preview 사용
-      'preview': letterPreview,
-      'sender': {
-        'id': '',
-        'email': '',
-        'username': '',
-        'nickname': '알 수 없음',
-        'avatarUrl': null,
-      },
-      'flowerType': flowerType,
-      'sentAt': json['sentAt'] as String,
-      'isAnonymous': false,
-      'views': 0,
-      'visibility': 'DIRECT',
-    });
-    
-    return SharedFlowerDto(
-      id: json['id'] as String,
-      letter: letterDto,
-      sentAt: DateTime.parse(json['sentAt'] as String),
-      sentByMe: json['sentByMe'] as bool,
-      isRead: json['isRead'] as bool?,
-    );
+    try {
+      // API 응답 구조: { id, letter: { id, title, preview, fontFamily }, flowerType, sentAt, sentByMe, isRead, fontFamily }
+      final letterJson = json['letter'] as Map<String, dynamic>?;
+      
+      // letter 객체에서 정보 추출
+      final letterId = letterJson?['id'] as String? ?? json['id'] as String? ?? '';
+      final letterTitle = letterJson?['title'] as String? ?? '';
+      final letterPreview = letterJson?['preview'] as String? ?? '';
+      final letterFontFamily = letterJson?['fontFamily'] as String?;
+      
+      // flowerType은 최상위 레벨에 있음
+      final flowerType = json['flowerType'] as String? ?? 'ROSE';
+      
+      // 최상위 레벨의 fontFamily (letter의 fontFamily보다 우선)
+      final fontFamily = json['fontFamily'] as String? ?? letterFontFamily;
+      
+      // sentAt 파싱 (ISO 8601 형식)
+      DateTime sentAt;
+      try {
+        sentAt = DateTime.parse(json['sentAt'] as String);
+      } catch (e) {
+        print('SharedFlowerDto sentAt 파싱 에러: $e, 값: ${json['sentAt']}');
+        sentAt = DateTime.now();
+      }
+      
+      // LetterDto를 생성하기 위해 필수 필드 구성
+      // API 응답에는 일부 필드만 있으므로 기본값으로 채움
+      final letterDto = LetterDto.fromJson({
+        'id': letterId,
+        'title': letterTitle,
+        'content': letterPreview, // content가 없으면 preview 사용
+        'preview': letterPreview,
+        'sender': {
+          'id': '',
+          'email': '',
+          'username': '',
+          'nickname': '알 수 없음',
+          'avatarUrl': null,
+        },
+        'flowerType': flowerType,
+        'sentAt': json['sentAt'] as String,
+        'isAnonymous': false,
+        'views': 0,
+        'visibility': 'DIRECT',
+      });
+      
+      return SharedFlowerDto(
+        id: json['id'] as String? ?? '',
+        letter: letterDto,
+        sentAt: sentAt,
+        sentByMe: json['sentByMe'] as bool? ?? false,
+        isRead: json['isRead'] as bool?,
+        fontFamily: fontFamily,
+      );
+    } catch (e, stackTrace) {
+      print('SharedFlowerDto.fromJson 에러: $e');
+      print('Stack trace: $stackTrace');
+      print('JSON: $json');
+      rethrow;
+    }
   }
 
   SharedFlower toModel() {
