@@ -109,7 +109,7 @@ class _MainShellState extends State<MainShell> {
       onRefresh: _loadData,
       onLoadMore: (page) async {
         try {
-          final letters = await _repository.getPublicLetters(page: page, size: 20);
+          final letters = await _repository.getPublicLetters(page: page, size: 10);
           return letters;
         } catch (e) {
           print('다음 페이지 로드 실패: $e');

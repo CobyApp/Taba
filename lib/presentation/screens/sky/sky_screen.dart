@@ -54,9 +54,10 @@ class _SkyScreenState extends State<SkyScreen> {
     super.initState();
     _pageController = PageController();
     _allLetters.addAll(widget.letters);
-    _pageLetters[0] = List.from(widget.letters);
+    // 한 페이지에 10개씩 표시
+    _pageLetters[0] = widget.letters.take(10).toList();
     // 초기 데이터가 있으면 다음 페이지가 있다고 가정
-    _hasMorePages = widget.letters.length >= 20;
+    _hasMorePages = widget.letters.length >= 10;
   }
 
   @override
@@ -67,8 +68,9 @@ class _SkyScreenState extends State<SkyScreen> {
       _allLetters.clear();
       _allLetters.addAll(widget.letters);
       _pageLetters.clear();
-      _pageLetters[0] = List.from(widget.letters);
-      _hasMorePages = widget.letters.length >= 20;
+      // 한 페이지에 10개씩 표시
+      _pageLetters[0] = widget.letters.take(10).toList();
+      _hasMorePages = widget.letters.length >= 10;
       _currentPage = 0;
     }
   }
@@ -99,7 +101,7 @@ class _SkyScreenState extends State<SkyScreen> {
         newLetters = await widget.onLoadMore!(pageIndex);
       } else {
         // onLoadMore가 없으면 기존 데이터에서 가져오기
-        const itemsPerPage = 20;
+        const itemsPerPage = 10; // 한 페이지에 10개
         final startIndex = pageIndex * itemsPerPage;
         if (startIndex < _allLetters.length) {
           final endIndex = (startIndex + itemsPerPage < _allLetters.length)
@@ -116,8 +118,8 @@ class _SkyScreenState extends State<SkyScreen> {
           final existingIds = _allLetters.map((l) => l.id).toSet();
           final uniqueNewLetters = newLetters.where((l) => !existingIds.contains(l.id)).toList();
           _allLetters.addAll(uniqueNewLetters);
-          // 20개 미만이면 마지막 페이지
-          _hasMorePages = newLetters.length >= 20;
+          // 10개 미만이면 마지막 페이지
+          _hasMorePages = newLetters.length >= 10;
           _isLoadingMore = false;
         });
       }
@@ -218,26 +220,72 @@ class _SkyScreenState extends State<SkyScreen> {
                                 )
                               : null,
                         )
-                  : PageView.builder(
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        // 스크롤 진행률에 따라 다음 페이지 미리 로드
+                        if (notification is ScrollUpdateNotification) {
+                          final position = _pageController.position;
+                          if (position.hasPixels && position.hasContentDimensions) {
+                            final page = _pageController.page?.round() ?? 0;
+                            final progress = (position.pixels / position.maxScrollExtent).clamp(0.0, 1.0);
+                            
+                            // 현재 페이지가 변경되면 다음 페이지들 미리 로드
+                            if (page != _currentPage) {
+                              _currentPage = page;
+                              // 빌드 완료 후 로드
+                              Future.microtask(() {
+                                if (mounted) {
+                                  _loadPage(page + 1);
+                                  if (_hasMorePages) {
+                                    _loadPage(page + 2);
+                                  }
+                                }
+                              });
+                            }
+                            
+                            // 스크롤이 80% 이상 진행되면 다음 페이지 미리 로드
+                            if (progress > 0.8 && _hasMorePages && !_isLoadingMore) {
+                              final nextPage = page + 1;
+                              if (!_pageLetters.containsKey(nextPage)) {
+                                Future.microtask(() {
+                                  if (mounted) {
+                                    _loadPage(nextPage);
+                                  }
+                                });
+                              }
+                            }
+                          }
+                        }
+                        return false;
+                      },
+                      child: PageView.builder(
                       controller: _pageController,
                       onPageChanged: (page) {
                         _currentPage = page;
-                        // 다음 페이지와 그 다음 페이지 미리 로드
+                          // 다음 페이지와 그 다음 페이지 미리 로드 (빌드 완료 후)
+                          Future.microtask(() {
+                            if (mounted) {
                         _loadPage(page + 1);
                         if (_hasMorePages) {
                           _loadPage(page + 2);
                         }
+                            }
+                          });
                       },
                       itemBuilder: (context, index) {
-                        // 페이지가 로드되지 않았으면 로드 시도
+                        // 페이지가 로드되지 않았으면 빌드 완료 후 로드 시도
                         if (!_pageLetters.containsKey(index)) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted && !_pageLetters.containsKey(index)) {
                           _loadPage(index);
+                            }
+                          });
                         }
                         
                         final pageLetters = _pageLetters[index] ?? [];
                         
                         // 로딩 중이면 로딩 인디케이터 표시
-                        if (pageLetters.isEmpty && _isLoadingMore && index > 0) {
+                        if (pageLetters.isEmpty && (_isLoadingMore || index > 0)) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: Colors.white70,
@@ -255,6 +303,7 @@ class _SkyScreenState extends State<SkyScreen> {
                           : _pageLetters.length > 0 
                               ? _pageLetters.length 
                               : 1,  // 최소 1페이지는 있어야 함
+                      ),
                     );
                 },
               ),
@@ -321,12 +370,16 @@ class _SkyCanvas extends StatefulWidget {
 
 class _SkyCanvasState extends State<_SkyCanvas> {
   late List<_StarDot> _stars;
+  Map<String, Offset>? _positionCache; // 편지 위치 캐시
+  double? _cachedWidth;
+  double? _cachedHeight;
   
   @override
   void initState() {
     super.initState();
     // 초기화 시 한 번만 별 생성
     _stars = [];
+    _positionCache = null;
   }
 
   @override
@@ -341,6 +394,16 @@ class _SkyCanvasState extends State<_SkyCanvas> {
             (_stars.isNotEmpty && 
              (_stars.first.width != width || _stars.first.height != height))) {
           _stars = _generateBackgroundDots(width, height);
+        }
+        
+        // 화면 크기나 편지 목록이 변경되면 위치 재계산
+        if (_positionCache == null || 
+            _cachedWidth != width || 
+            _cachedHeight != height ||
+            _positionCache!.length != widget.letters.length) {
+          _positionCache = _calculateAllPositions(widget.letters, width, height);
+          _cachedWidth = width;
+          _cachedHeight = height;
         }
         
         return Stack(
@@ -365,9 +428,9 @@ class _SkyCanvasState extends State<_SkyCanvas> {
                 ),
               ),
             )).toList(),
-            // 고정된 씨앗들
+            // 고정된 씨앗들 (겹치지 않게 배치)
             ...widget.letters.map((letter) {
-              final position = _getFixedPosition(letter.id, width, height);
+              final position = _positionCache![letter.id] ?? Offset(0, 0);
               return Positioned(
                 left: position.dx,
                 top: position.dy,
@@ -383,16 +446,99 @@ class _SkyCanvasState extends State<_SkyCanvas> {
     );
   }
 
-  // 편지 ID 기반으로 고정 위치 계산 (같은 ID면 항상 같은 위치)
-  Offset _getFixedPosition(String letterId, double width, double height) {
-    final hash = letterId.hashCode;
-    final random = math.Random(hash);
+  // 모든 편지의 위치를 한 번에 계산하여 겹치지 않게 배치
+  Map<String, Offset> _calculateAllPositions(List<Letter> allLetters, double width, double height) {
+    final positions = <String, Offset>{};
     
-    // 화면에서 안전한 영역 내의 고정 위치
-    final x = 32 + (random.nextDouble() * (width - 120));
-    final y = 120 + (random.nextDouble() * (height - 200));
+    // 씨앗 크기와 최소 간격
+    const seedSize = 56.0;
+    const seedRadius = seedSize / 2; // 28px
+    const shadowBlur = 12.0; // boxShadow blurRadius
+    const shadowOffset = 4.0; // boxShadow offset y
+    const extraPadding = 24.0; // 추가 여유 공간
     
-    return Offset(x, y);
+    // 실제 씨앗이 차지하는 공간 (반지름 + shadow blur + 여유)
+    final effectiveRadius = seedRadius + shadowBlur + extraPadding;
+    const minDistance = seedSize + 20.0; // 씨앗 크기 + 여유 공간
+    
+    // 안전한 영역 (상하좌우 여유 공간 - 화면 밖으로 나가지 않도록)
+    final safeArea = EdgeInsets.only(
+      left: effectiveRadius,  // 씨앗 반지름 + shadow + 여유
+      top: 120.0,
+      right: effectiveRadius,
+      bottom: 200.0,
+    );
+    
+    final availableWidth = width - safeArea.left - safeArea.right;
+    final availableHeight = height - safeArea.top - safeArea.bottom;
+    
+    // 최대 시도 횟수 증가
+    const maxAttempts = 500;
+    
+    // 각 편지에 대해 겹치지 않는 위치 찾기
+    for (final letter in allLetters) {
+      final hash = letter.id.hashCode;
+      final random = math.Random(hash);
+    
+      Offset? bestPosition;
+      double bestDistance = 0;
+      
+      // 겹치지 않는 위치 찾기
+      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        final x = safeArea.left + (random.nextDouble() * availableWidth);
+        final y = safeArea.top + (random.nextDouble() * availableHeight);
+        final candidate = Offset(x, y);
+        
+        // 화면 경계 체크 (씨앗 + shadow가 화면 밖으로 나가지 않도록)
+        if (x < effectiveRadius || x > width - effectiveRadius ||
+            y < effectiveRadius || y > height - effectiveRadius) {
+          continue;
+        }
+        
+        // 기존 위치들과 겹치는지 확인
+        bool overlaps = false;
+        double minDistToExisting = double.infinity;
+        
+        for (final existingPos in positions.values) {
+          final distance = (candidate - existingPos).distance;
+          minDistToExisting = math.min(minDistToExisting, distance);
+          if (distance < minDistance) {
+            overlaps = true;
+            break;
+          }
+        }
+        
+        if (!overlaps) {
+          // 겹치지 않는 위치를 찾았으면 바로 사용
+          positions[letter.id] = candidate;
+          bestPosition = null; // 더 이상 필요 없음
+          break;
+        }
+        
+        // 겹치지만, 가장 멀리 떨어진 위치를 저장 (최후의 수단)
+        if (bestPosition == null || minDistToExisting > bestDistance) {
+          bestPosition = candidate;
+          bestDistance = minDistToExisting;
+        }
+      }
+      
+      // 최대 시도 횟수 내에 겹치지 않는 위치를 찾지 못한 경우
+      // 최선의 위치 사용
+      if (!positions.containsKey(letter.id)) {
+        if (bestPosition != null) {
+          positions[letter.id] = bestPosition;
+        } else {
+          // 완전 실패한 경우 (거의 없어야 함)
+          final hash = letter.id.hashCode;
+          final random = math.Random(hash);
+          final x = safeArea.left + (random.nextDouble() * availableWidth);
+          final y = safeArea.top + (random.nextDouble() * availableHeight);
+          positions[letter.id] = Offset(x, y);
+        }
+      }
+    }
+    
+    return positions;
   }
 
   List<_StarDot> _generateBackgroundDots(double width, double height) {
