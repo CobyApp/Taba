@@ -200,9 +200,9 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildTitleText(style, textColor),
-                        // 제목-본문 간격을 본문 줄간격(height: 1.6, 폰트 20px 기준 약 32px)보다 넓게 설정
-                        // 48px = 20px * 2.4
-                        const SizedBox(height: 48),
+                        // 제목-본문 간격을 본문 줄간격(height: 2.0, 폰트 24px 기준 약 48px)보다 좁게 설정
+                        // 24px = 24px * 1.0
+                        const SizedBox(height: 24),
                         _buildContentText(style, textColor),
                       ],
                     ),
@@ -294,7 +294,9 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   }
 
   Widget _buildTitleText(LetterStyle? style, Color textColor) {
-    final fontSize = (style?.fontSize ?? 20) * 1.2; // 제목은 본문보다 20% 크게
+    // 기본 폰트 크기를 더 크게 설정 (24 -> 28)
+    final baseFontSize = style?.fontSize ?? 24;
+    final fontSize = baseFontSize * 1.15; // 제목은 본문보다 15% 크게
     final fontFamily = style?.fontFamily;
     
     TextStyle titleTextStyle;
@@ -304,7 +306,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
         color: Colors.white,
         fontSize: fontSize,
         fontWeight: FontWeight.w700,
-        height: 1.4,
+        height: 1.8, // 줄간격 더 넓게
       );
     } else {
       // 템플릿 폰트가 없으면 테마 폰트 사용
@@ -313,7 +315,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
         color: Colors.white,
         fontSize: fontSize,
         fontWeight: FontWeight.w700,
-        height: 1.4,
+        height: 1.8, // 줄간격 더 넓게
         fontFamily: themeFont,
       );
     }
@@ -328,7 +330,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   }
 
   Widget _buildContentText(LetterStyle? style, Color textColor) {
-    final fontSize = style?.fontSize ?? 20;
+    // 기본 폰트 크기를 더 크게 설정 (20 -> 24)
+    final fontSize = style?.fontSize ?? 24;
     final fontFamily = style?.fontFamily;
     
     TextStyle contentTextStyle;
@@ -337,7 +340,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
         fontFamily,
         color: Colors.white,
         fontSize: fontSize,
-        height: 1.6,
+        height: 1.5, // 본문 줄간격
       );
     } else {
       // 템플릿 폰트가 없으면 테마 폰트 사용
@@ -345,7 +348,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       contentTextStyle = TextStyle(
         color: Colors.white,
         fontSize: fontSize,
-        height: 1.6,
+        height: 1.5, // 본문 줄간격
         fontFamily: themeFont,
       );
     }

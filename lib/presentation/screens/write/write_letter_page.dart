@@ -44,57 +44,12 @@ class _TemplateOption {
   final Color textColor;
 }
 
-class _NotesController extends TextEditingController {
-  _NotesController({required this.titleStyle, required this.bodyStyle, this.firstGapHeight = 3.0});
-  TextStyle titleStyle;
-  TextStyle bodyStyle;
-  double firstGapHeight;
-
-  @override
-  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
-    final full = value.text;
-    final nl = full.indexOf('\n');
-    final hasBody = nl >= 0;
-    final title = hasBody ? full.substring(0, nl) : full;
-    final body = hasBody ? full.substring(nl + 1) : '';
-    
-    // 본문을 줄 단위로 분리하여 각 줄바꿈에 명시적으로 height 적용
-    List<InlineSpan> buildBodySpans(String bodyText) {
-      if (bodyText.isEmpty) return [];
-      
-      final lines = bodyText.split('\n');
-      final spans = <InlineSpan>[];
-      
-      for (var i = 0; i < lines.length; i++) {
-        if (i > 0) {
-          // 줄바꿈 문자에 명시적으로 bodyStyle의 height 적용
-          spans.add(TextSpan(text: '\n', style: bodyStyle));
-        }
-        spans.add(TextSpan(text: lines[i], style: bodyStyle));
-      }
-      
-      return spans;
-    }
-    
-    final children = <InlineSpan>[
-      TextSpan(text: title, style: titleStyle),
-      if (hasBody) ...[
-        // 제목과 본문 사이 간격 (편지 보기 화면과 동일하게)
-        TextSpan(text: '\n', style: bodyStyle.copyWith(height: firstGapHeight)),
-        // 본문을 줄 단위로 처리하여 줄간격 제대로 적용
-        ...buildBodySpans(body),
-      ],
-    ];
-    // bodyStyle을 기본 스타일로 사용
-    return TextSpan(style: bodyStyle, children: children);
-  }
-}
 
 class _WriteLetterPageState extends State<WriteLetterPage> {
   final _repository = DataRepository.instance;
   bool _sendToFriend = false;
   String? _fontFamily;
-  static const double _editorFontSize = 20;
+  static const double _editorFontSize = 24; // 편지 읽기 화면과 동일하게
   List<FriendProfile> _friends = [];
   FriendProfile? _selectedFriend;
   bool _isLoadingFriends = false;
@@ -164,7 +119,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     ),
   ];
   late _TemplateOption _selectedTemplate = _templateOptions.first;
-  late _NotesController _notesController;
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _bodyController = TextEditingController();
+  final FocusNode _titleFocusNode = FocusNode();
+  final FocusNode _bodyFocusNode = FocusNode();
   final List<String> _attachedImages = []; // 첨부된 사진 경로 리스트
   final List<File> _attachedImageFiles = []; // 첨부된 사진 파일 리스트
   final ImagePicker _imagePicker = ImagePicker();
@@ -176,12 +134,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     // 시스템 언어에 맞게 기본 폰트 설정
     final locale = AppLocaleController.localeNotifier.value;
     _fontFamily = _getDefaultFontForLocale(locale.languageCode);
-    // 제목-본문 간격을 편지 보기 화면과 동일하게 설정
-    // 편지 보기: SizedBox(height: 48)
-    // 제목 줄 높이: 24px * 1.4 = 33.6px, 본문 줄 높이: 20px * 1.6 = 32px
-    // 제목 하단부터 본문 상단까지 약 48px 간격을 만들기 위해 height 배수 조정
-    _notesController = _NotesController(titleStyle: _titleStyle(), bodyStyle: _bodyStyle(), firstGapHeight: 2.8);
     _loadFriends();
+    
+    // 제목에서 엔터를 치면 본문으로 포커스 이동
+    _titleFocusNode.addListener(() {
+      if (!_titleFocusNode.hasFocus) {
+        // 제목에서 포커스가 나갔을 때 처리
+      }
+    });
     
     // initialRecipient가 있으면 친구에게 보내기로 설정
     if (widget.initialRecipient != null) {
@@ -238,57 +198,70 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
   void _applyFont(String family) {
     setState(() => _fontFamily = family);
-    _updateNotesStyles();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
   }
 
   TextStyle _titleStyle() => (_fontFamily != null
       ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
       : const TextStyle(color: Colors.white)).copyWith(
-    fontSize: 24,
+    fontSize: _editorFontSize * 1.15, // 제목은 본문보다 15% 크게 (편지 읽기 화면과 동일)
     fontWeight: FontWeight.w700,
-    height: 1.4,
+    height: 1.8, // 줄간격 더 넓게 (편지 읽기 화면과 동일)
   );
 
   TextStyle _bodyStyle() => (_fontFamily != null
       ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
       : const TextStyle(color: Colors.white)).copyWith(
     fontSize: _editorFontSize,
-    height: 1.6,
+    height: 1.5, // 본문 줄간격 (편지 읽기 화면과 동일)
   );
 
-  String _getPlaceholderForFont() {
-    if (_fontFamily == null) return '제목\n내용을 입력하세요... ';
+  String _getTitlePlaceholder() {
+    final locale = AppLocaleController.localeNotifier.value;
+    if (_fontFamily == null) return '제목';
     
     // 영어 폰트
     final enFonts = ['Press Start 2P', 'VT323', 'IBM Plex Mono', 'Bungee'];
     if (enFonts.contains(_fontFamily)) {
-      return 'Title\nEnter your content...';
+      return 'Title';
     }
     
     // 일본어 폰트
     final jpFonts = ['DotGothic16', 'Kosugi Maru'];
     if (jpFonts.contains(_fontFamily)) {
-      return 'タイトル\n内容を入力してください...';
+      return 'タイトル';
     }
     
     // 한국어 폰트 (기본)
-    return '제목\n내용을 입력하세요... ';
+    return '제목';
   }
 
-  void _updateNotesStyles() {
-    _notesController
-      ..titleStyle = _titleStyle()
-      ..bodyStyle = _bodyStyle()
-      ..firstGapHeight = 2.8; // 제목-본문 간격을 편지 보기 화면과 동일하게 설정
+  String _getBodyPlaceholder() {
+    final locale = AppLocaleController.localeNotifier.value;
+    if (_fontFamily == null) return '내용을 입력하세요...';
+    
+    // 영어 폰트
+    final enFonts = ['Press Start 2P', 'VT323', 'IBM Plex Mono', 'Bungee'];
+    if (enFonts.contains(_fontFamily)) {
+      return 'Enter your content...';
+    }
+    
+    // 일본어 폰트
+    final jpFonts = ['DotGothic16', 'Kosugi Maru'];
+    if (jpFonts.contains(_fontFamily)) {
+      return '内容を入力してください...';
+    }
+    
+    // 한국어 폰트 (기본)
+    return '내용을 입력하세요...';
   }
 
 
   @override
   void dispose() {
-    _notesController.dispose();
+    _titleController.dispose();
+    _bodyController.dispose();
+    _titleFocusNode.dispose();
+    _bodyFocusNode.dispose();
     super.dispose();
   }
 
@@ -709,9 +682,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: SingleChildScrollView(
-                  child: _buildEditor(context),
-                ),
+                child: _buildEditor(context),
               ),
             ),
           ],
@@ -753,23 +724,72 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       contentPadding: EdgeInsets.zero,
     );
 
+    final titleStyle = _titleStyle();
+    final bodyStyle = _bodyStyle();
+
     return Theme(
       data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
-      child: TextField(
-        controller: _notesController,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-        cursorColor: Colors.white,
-        cursorWidth: 2.0,
-        cursorHeight: _editorFontSize * 1.2,
-        decoration: InputDecoration(
-          hintText: _getPlaceholderForFont(),
-          hintStyle: (_fontFamily != null
-                  ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
-                  : const TextStyle(color: Colors.white))
-              .copyWith(color: Colors.white.withOpacity(.5), height: 1.6),
-        ),
-        style: _bodyStyle(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제목 TextField
+          TextField(
+            controller: _titleController,
+            focusNode: _titleFocusNode,
+            maxLines: null,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            cursorColor: Colors.white,
+            cursorWidth: 2.0,
+            cursorHeight: titleStyle.fontSize! * titleStyle.height!,
+            decoration: InputDecoration(
+              hintText: _getTitlePlaceholder(),
+              hintStyle: (_fontFamily != null
+                      ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
+                      : const TextStyle(color: Colors.white))
+                  .copyWith(
+                    color: Colors.white.withOpacity(.5),
+                    fontSize: titleStyle.fontSize,
+                    fontWeight: titleStyle.fontWeight,
+                    height: titleStyle.height,
+                  ),
+            ),
+            style: titleStyle,
+            onSubmitted: (_) {
+              // 제목에서 엔터를 치면 본문으로 포커스 이동
+              _bodyFocusNode.requestFocus();
+            },
+          ),
+          // 제목-본문 간격 (편지 읽기 화면과 동일)
+          const SizedBox(height: 24),
+          // 본문 TextField
+          Expanded(
+            child: SingleChildScrollView(
+              child: TextField(
+                controller: _bodyController,
+                focusNode: _bodyFocusNode,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                cursorColor: Colors.white,
+                cursorWidth: 2.0,
+                cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
+                decoration: InputDecoration(
+                  hintText: _getBodyPlaceholder(),
+                  hintStyle: (_fontFamily != null
+                          ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
+                          : const TextStyle(color: Colors.white))
+                      .copyWith(
+                        color: Colors.white.withOpacity(.5),
+                        fontSize: bodyStyle.fontSize,
+                        height: bodyStyle.height,
+                      ),
+                ),
+                style: bodyStyle,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -777,22 +797,19 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
   Future<void> _sendLetter() async {
     final locale = AppLocaleController.localeNotifier.value;
-    final text = _notesController.text.trim();
-    if (text.isEmpty) {
-      if (mounted) {
-        showTabaError(context, message: AppStrings.contentRequired(locale));
-      }
-      return;
-    }
-
-    // 제목과 본문 분리
-    final nl = text.indexOf('\n');
-    final title = nl >= 0 ? text.substring(0, nl).trim() : text.trim();
-    final content = nl >= 0 ? text.substring(nl + 1).trim() : '';
+    final title = _titleController.text.trim();
+    final content = _bodyController.text.trim();
     
     if (title.isEmpty) {
       if (mounted) {
         showTabaError(context, message: AppStrings.titleRequired(locale));
+      }
+      return;
+    }
+    
+    if (content.isEmpty) {
+      if (mounted) {
+        showTabaError(context, message: AppStrings.contentRequired(locale));
       }
       return;
     }
@@ -840,9 +857,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         'fontSize': _editorFontSize,
       };
       
-      final preview = content.isNotEmpty 
-          ? content.substring(0, content.length > 50 ? 50 : content.length) 
-          : title;
+      final preview = content.length > 50 
+          ? content.substring(0, 50) 
+          : content;
       
       bool success;
       
@@ -852,7 +869,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         success = await _repository.replyLetter(
           letterId: widget.replyToLetterId!,
           title: title,
-          content: content.isNotEmpty ? content : title,
+          content: content,
           preview: preview,
           template: template,
           attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
@@ -861,7 +878,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         // 일반 편지 작성 API 사용
         success = await _repository.createLetter(
           title: title,
-          content: content.isNotEmpty ? content : title,
+          content: content,
           preview: preview,
           visibility: _sendToFriend ? 'DIRECT' : 'PUBLIC', // API 명세서에 따라 대문자
           template: template,
