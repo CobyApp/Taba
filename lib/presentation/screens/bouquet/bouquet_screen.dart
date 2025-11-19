@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/bouquet.dart';
+import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/widgets/taba_button.dart';
@@ -123,14 +124,21 @@ class _BouquetScreenState extends State<BouquetScreen> {
       
       if (mounted) {
         setState(() {
+          List<SharedFlower> sortedFlowers;
+          
           if (reset) {
-            _loadedFlowers[friendId] = flowers;
+            sortedFlowers = flowers;
           } else {
             // 기존 목록에 추가 (중복 제거)
             final existingIds = _loadedFlowers[friendId]?.map((f) => f.id).toSet() ?? {};
             final newFlowers = flowers.where((f) => !existingIds.contains(f.id)).toList();
-            _loadedFlowers[friendId] = [...(_loadedFlowers[friendId] ?? []), ...newFlowers];
+            sortedFlowers = [...(_loadedFlowers[friendId] ?? []), ...newFlowers];
           }
+          
+          // 정렬: 첫 공개편지가 맨 위에 오도록
+          sortedFlowers = _sortFlowersWithPublicFirst(sortedFlowers);
+          
+          _loadedFlowers[friendId] = sortedFlowers;
           
           // 페이지네이션 정보 업데이트
           _currentPages[friendId] = currentPage + 1;
@@ -157,6 +165,42 @@ class _BouquetScreenState extends State<BouquetScreen> {
         showTabaError(context, message: '편지 목록을 불러오는데 실패했습니다: $e');
       }
     }
+  }
+
+  /// 편지 목록을 정렬: 공개편지가 있으면 첫 공개편지부터 시간순으로 정렬, 없으면 그냥 시간순
+  List<SharedFlower> _sortFlowersWithPublicFirst(List<SharedFlower> flowers) {
+    if (flowers.isEmpty) return flowers;
+    
+    // 공개편지(PUBLIC) 찾기
+    final publicFlowers = flowers.where((f) => f.letter.visibility == VisibilityScope.public).toList();
+    
+    if (publicFlowers.isEmpty) {
+      // 공개편지가 없으면 시간순으로 정렬 (최신순)
+      return flowers..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+    }
+    
+    // 첫 공개편지 찾기 (가장 오래된 공개편지)
+    publicFlowers.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    final firstPublicFlower = publicFlowers.first;
+    final firstPublicFlowerSentAt = firstPublicFlower.sentAt;
+    
+    // 첫 공개편지 이후의 모든 편지들 (공개편지 포함)
+    final allFlowers = List<SharedFlower>.from(flowers);
+    
+    // 모든 편지를 시간순으로 정렬 (최신순)
+    allFlowers.sort((a, b) => b.sentAt.compareTo(a.sentAt));
+    
+    // 첫 공개편지가 가장 오래된 편지인 경우, 그대로 반환
+    // 첫 공개편지가 중간에 있는 경우, 첫 공개편지부터 시작하도록 재정렬
+    final firstPublicIndex = allFlowers.indexWhere((f) => f.id == firstPublicFlower.id);
+    if (firstPublicIndex > 0) {
+      // 첫 공개편지가 중간에 있으면, 첫 공개편지부터 시작하도록 재정렬
+      final beforeFirstPublic = allFlowers.sublist(0, firstPublicIndex);
+      final fromFirstPublic = allFlowers.sublist(firstPublicIndex);
+      return [...fromFirstPublic, ...beforeFirstPublic];
+    }
+    
+    return allFlowers;
   }
 
   int _unreadFor(FriendBouquet bouquet) {

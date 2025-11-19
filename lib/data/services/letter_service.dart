@@ -11,7 +11,6 @@ class LetterService {
     required String content,
     required String preview,
     required String visibility,
-    bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
     DateTime? scheduledAt,
@@ -27,7 +26,6 @@ class LetterService {
         'content': content,
         'preview': preview,
         'visibility': visibility.toUpperCase(), // PUBLIC, FRIENDS, DIRECT, PRIVATE
-        'isAnonymous': isAnonymous,
         if (template != null) 'template': template,
         'attachedImages': attachedImages ?? [],
         if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
@@ -346,7 +344,6 @@ class LetterService {
     required String title,
     required String content,
     required String preview,
-    bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
   }) async {
@@ -356,7 +353,6 @@ class LetterService {
         'content': content,
         'preview': preview,
         // visibility는 포함하지 않음 (서버에서 자동으로 DIRECT로 설정)
-        'isAnonymous': isAnonymous,
         if (template != null) 'template': template,
         'attachedImages': attachedImages ?? [],
       };

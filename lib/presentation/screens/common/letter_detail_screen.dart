@@ -22,7 +22,7 @@ class LetterDetailScreen extends StatefulWidget {
   });
 
   final Letter letter;
-  final String? friendName; // if null and anonymous => '익명의 사용자'
+  final String? friendName;
 
   @override
   State<LetterDetailScreen> createState() => _LetterDetailScreenState();

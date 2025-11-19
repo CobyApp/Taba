@@ -50,7 +50,6 @@ class Letter {
     required this.content,
     required this.sentAt,
     required this.sender,
-    this.isAnonymous = false,
     this.views = 0,
     this.visibility = VisibilityScope.public,
     this.tags = const [],
@@ -64,20 +63,17 @@ class Letter {
   final String content;
   final DateTime sentAt;
   final TabaUser sender;
-  final bool isAnonymous;
   final int views;
   final VisibilityScope visibility;
   final List<String> tags;
   final LetterStyle? template;
   final List<String> attachedImages; // 사진 첨부 경로/URL 리스트
 
-  String get senderDisplay => isAnonymous ? '익명' : sender.nickname;
+  String get senderDisplay => sender.nickname;
   
   /// 로컬라이즈된 발신자 표시
   String localizedSenderDisplay(Locale locale) {
-    return isAnonymous 
-        ? AppStrings.anonymous(locale)
-        : sender.nickname;
+    return sender.nickname;
   }
 
   String timeAgo() {

@@ -296,7 +296,7 @@ class _SkyScreenState extends State<SkyScreen> {
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
             child: LetterDetailScreen(
               letter: letter,
-              friendName: letter.isAnonymous ? null : letter.sender.nickname,
+              friendName: letter.sender.nickname,
             ),
           );
         },

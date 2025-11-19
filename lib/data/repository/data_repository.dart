@@ -14,6 +14,7 @@ import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
 import 'package:taba_app/data/services/fcm_service.dart';
+import 'package:taba_app/core/storage/reply_storage.dart';
 import 'dart:io';
 
 class DataRepository {
@@ -117,7 +118,6 @@ class DataRepository {
     required String content,
     required String preview,
     required String visibility,
-    bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
     DateTime? scheduledAt,
@@ -129,7 +129,6 @@ class DataRepository {
         content: content,
         preview: preview,
         visibility: visibility,
-        isAnonymous: isAnonymous,
         template: template,
         attachedImages: attachedImages,
         scheduledAt: scheduledAt,
@@ -169,7 +168,6 @@ class DataRepository {
     required String title,
     required String content,
     required String preview,
-    bool isAnonymous = false,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
   }) async {
@@ -179,7 +177,6 @@ class DataRepository {
         title: title,
         content: content,
         preview: preview,
-        isAnonymous: isAnonymous,
         template: template,
         attachedImages: attachedImages,
       );
@@ -188,10 +185,75 @@ class DataRepository {
         print('답장 전송 실패: ${response.error?.message}');
       }
       
+      // 답장 성공 시 원본 편지 ID 저장 (공개편지에 답장한 경우를 위해)
+      if (response.isSuccess && response.data != null) {
+        final replyLetterId = response.data!.id;
+        await ReplyStorage.saveReplyOriginal(
+          replyLetterId: replyLetterId,
+          originalLetterId: letterId,
+        );
+      }
+      
       return response.isSuccess;
     } catch (e) {
       print('답장 전송 예외: $e');
       return false;
+    }
+  }
+
+  /// 답장한 편지의 원본 공개편지를 찾아서 목록에 추가
+  /// 공개편지는 답장한 시점(sentAt)에 읽은 것으로 간주하고, 읽음 표시를 함
+  Future<List<SharedFlower>> _addOriginalPublicLetters(
+    List<SharedFlower> flowers,
+    String friendId,
+  ) async {
+    try {
+      // 이미 목록에 있는 편지 ID들
+      final existingLetterIds = flowers.map((f) => f.letter.id).toSet();
+      
+      // 내가 보낸 답장들 중에서 원본 공개편지 찾기
+      final myReplies = flowers.where((f) => f.sentByMe).toList();
+      final originalPublicLetters = <SharedFlower>[];
+      
+      for (final reply in myReplies) {
+        // 답장한 편지의 원본 편지 ID 조회
+        final originalLetterId = await ReplyStorage.getOriginalLetterId(reply.id);
+        if (originalLetterId == null) continue;
+        
+        // 이미 목록에 있으면 스킵
+        if (existingLetterIds.contains(originalLetterId)) continue;
+        
+        // 원본 편지 조회
+        final originalLetter = await getLetter(originalLetterId);
+        if (originalLetter == null) continue;
+        
+        // 원본 편지가 공개편지이고, 친구가 보낸 편지인지 확인
+        if (originalLetter.visibility == VisibilityScope.public &&
+            originalLetter.sender.id == friendId) {
+          // 원본 공개편지를 SharedFlower로 변환
+          // sentAt은 답장한 시점으로 설정 (내가 읽은 시점)
+          // isRead는 true로 설정 (답장을 했다는 것은 읽었다는 의미)
+          final originalFlower = SharedFlower(
+            id: originalLetter.id,
+            letter: originalLetter,
+            sentAt: reply.sentAt, // 답장한 시점 = 읽은 시점
+            sentByMe: false, // 친구가 보낸 편지
+            isRead: true, // 답장을 했다는 것은 읽었다는 의미
+          );
+          originalPublicLetters.add(originalFlower);
+          existingLetterIds.add(originalLetterId);
+        }
+      }
+      
+      // 원본 공개편지들과 기존 편지들을 합쳐서 시간순으로 정렬 (최신순)
+      final allFlowers = [...originalPublicLetters, ...flowers];
+      allFlowers.sort((a, b) => b.sentAt.compareTo(a.sentAt));
+      
+      return allFlowers;
+    } catch (e) {
+      print('원본 공개편지 추가 중 에러: $e');
+      // 에러가 발생해도 기존 목록은 반환
+      return flowers;
     }
   }
 
@@ -225,7 +287,11 @@ class DataRepository {
             }
           }).toList();
           print('getFriendLetters 변환 완료: ${flowers.length}개');
-          return flowers;
+          
+          // 답장한 편지의 원본 공개편지 추가
+          final flowersWithOriginal = await _addOriginalPublicLetters(flowers, friendId);
+          
+          return flowersWithOriginal;
         } catch (e, stackTrace) {
           print('getFriendLetters 변환 에러: $e');
           print('Stack trace: $stackTrace');

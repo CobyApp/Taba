@@ -160,7 +160,6 @@ class SharedFlowerDto {
           'avatarUrl': null,
         },
         'sentAt': json['sentAt'] as String,
-        'isAnonymous': false,
         'views': 0,
         'visibility': 'DIRECT', // 친구별 편지는 항상 DIRECT (API 명세서 참고)
       });

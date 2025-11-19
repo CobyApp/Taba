@@ -9,7 +9,6 @@ class LetterDto {
   final String preview;
   final UserDto sender;
   final DateTime sentAt;
-  final bool isAnonymous;
   final int views;
   final String visibility;
   final List<String>? tags;
@@ -24,7 +23,6 @@ class LetterDto {
     required this.preview,
     required this.sender,
     required this.sentAt,
-    this.isAnonymous = false,
     this.views = 0,
     required this.visibility,
     this.tags,
@@ -52,7 +50,6 @@ class LetterDto {
       sentAt: json['sentAt'] != null 
           ? DateTime.parse(json['sentAt'] as String)
           : DateTime.now(), // 안전장치: sentAt이 없으면 현재 시간 사용
-      isAnonymous: json['isAnonymous'] as bool? ?? false,
       views: json['views'] as int? ?? 0,
       visibility: json['visibility'] as String? ?? 'PUBLIC',
       tags: json['tags'] != null
@@ -81,7 +78,6 @@ class LetterDto {
       'preview': preview,
       // flowerType 제거됨
       'visibility': visibility,
-      'isAnonymous': isAnonymous,
       'template': template?.toJson(),
       'attachedImages': attachedImages,
       'scheduledAt': null, // 필요시 추가
@@ -98,7 +94,6 @@ class LetterDto {
       sentAt: sentAt,
       sender: sender.toModel(),
       // flower 필드 제거됨
-      isAnonymous: isAnonymous,
       views: views,
       visibility: _parseVisibility(visibility),
       tags: tags ?? [],
