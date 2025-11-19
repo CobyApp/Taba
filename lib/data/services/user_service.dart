@@ -6,7 +6,7 @@ import 'package:taba_app/data/dto/api_response.dart';
 import 'package:taba_app/data/dto/user_dto.dart';
 
 class UserService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
 
   Future<ApiResponse<UserDto>> getCurrentUser() async {
     try {

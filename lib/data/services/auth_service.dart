@@ -6,7 +6,7 @@ import 'package:taba_app/data/dto/api_response.dart';
 import 'package:taba_app/data/dto/user_dto.dart';
 
 class AuthService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
   final TokenStorage _tokenStorage = TokenStorage();
 
   Future<ApiResponse<LoginResponse>> login({

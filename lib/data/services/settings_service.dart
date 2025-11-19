@@ -3,7 +3,7 @@ import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/data/dto/api_response.dart';
 
 class SettingsService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
 
   Future<ApiResponse<bool>> getPushNotificationSetting() async {
     try {

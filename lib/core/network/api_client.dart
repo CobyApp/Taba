@@ -3,14 +3,24 @@ import 'package:taba_app/core/config/api_config.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
 
 class ApiClient {
+  static ApiClient? _instance;
+  static ApiClient get instance {
+    _instance ??= ApiClient._();
+    return _instance!;
+  }
+
   late final Dio _dio;
   final TokenStorage _tokenStorage = TokenStorage();
   bool _tokenPrinted = false; // 토큰 출력 여부 추적
+  static bool _environmentPrinted = false; // 환경 정보 출력 여부 (한 번만)
 
-  ApiClient() {
-    // 환경 정보 출력 (디버깅용)
-    print('🌍 API Environment: ${ApiConfig.environmentName}');
-    print('🔗 API Base URL: ${ApiConfig.apiBaseUrl}');
+  ApiClient._() {
+    // 환경 정보 출력 (디버깅용, 한 번만)
+    if (!_environmentPrinted) {
+      print('🌍 API Environment: ${ApiConfig.environmentName}');
+      print('🔗 API Base URL: ${ApiConfig.apiBaseUrl}');
+      _environmentPrinted = true;
+    }
     
     _dio = Dio(
       BaseOptions(
@@ -48,9 +58,8 @@ class ApiClient {
               print('   (Copy this token to use in Swagger Authorization)');
               _tokenPrinted = true;
             }
-          } else {
-            print('⚠️ No token found. Please login first.');
           }
+          // 토큰이 없어도 요청은 진행 (일부 엔드포인트는 인증 선택사항)
           return handler.next(options);
         },
         onError: (error, handler) {

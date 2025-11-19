@@ -4,7 +4,7 @@ import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/data/dto/api_response.dart';
 
 class FileService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
 
   Future<ApiResponse<String>> uploadImage(File imageFile) async {
     try {

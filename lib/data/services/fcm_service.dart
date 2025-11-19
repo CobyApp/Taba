@@ -5,7 +5,7 @@ import 'package:taba_app/core/storage/token_storage.dart';
 import 'package:taba_app/data/dto/api_response.dart';
 
 class FcmService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   String? _currentToken;
   bool _isInitialized = false;

@@ -4,7 +4,7 @@ import 'package:taba_app/data/dto/api_response.dart';
 import 'package:taba_app/data/dto/notification_dto.dart';
 
 class NotificationService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
 
   Future<ApiResponse<PageResponse<NotificationDto>>> getNotifications({
     int page = 0,

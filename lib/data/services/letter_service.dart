@@ -4,7 +4,7 @@ import 'package:taba_app/data/dto/api_response.dart';
 import 'package:taba_app/data/dto/letter_dto.dart';
 
 class LetterService {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient.instance;
 
   Future<ApiResponse<LetterDto>> createLetter({
     required String title,
