@@ -180,19 +180,14 @@ jobs:
             cat ios/ExportOptions-dev.plist
           fi
           
-          # Build with verbose logging and explicit build configuration
-          # Use xcodebuild directly to ensure Release configuration is used
-          cd ios
-          xcodebuild clean -workspace Runner.xcworkspace -scheme Runner || true
-          cd ..
-          
+          # Build with verbose logging
+          # Note: flutter build ipa automatically uses Release configuration
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
             --export-options-plist=ios/ExportOptions-dev.plist \
-            --verbose \
-            --build-configuration=Release
+            --verbose
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
