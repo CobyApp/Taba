@@ -114,7 +114,7 @@ class AppTheme {
         foregroundColor: AppColors.textPrimary,
         titleTextStyle: textTheme.titleLarge,
       ),
-      cardTheme: CardThemeData(
+      cardTheme: base.cardTheme.copyWith(
         color: AppColors.midnightGlass,
         elevation: 0,
         shape: RoundedRectangleBorder(
