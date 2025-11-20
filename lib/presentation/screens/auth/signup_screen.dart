@@ -223,7 +223,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.xl * 1.5),
                         // 프로필 이미지 선택
                         Center(
                           child: GestureDetector(
@@ -276,7 +276,7 @@ class _SignupScreenState extends State<SignupScreen> {
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.xl * 1.5),
                         TabaCard(
                           padding: const EdgeInsets.all(AppSpacing.xl),
                           child: Column(
@@ -287,27 +287,27 @@ class _SignupScreenState extends State<SignupScreen> {
                                 labelText: AppStrings.email(locale),
                                 hintText: AppStrings.emailHint(locale),
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _nicknameCtrl,
                                 labelText: AppStrings.nickname(locale),
                                 hintText: '네온길잡이',
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _passwordCtrl,
                                 obscureText: true,
                                 labelText: AppStrings.password(locale),
                                 hintText: '••••••••',
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _confirmCtrl,
                                 obscureText: true,
                                 labelText: AppStrings.confirmPassword(locale),
                                 hintText: '••••••••',
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(height: AppSpacing.lg),
                               Row(
                                 children: [
                                   Checkbox(
@@ -386,7 +386,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(height: AppSpacing.md),
                               TabaButton(
                                 onPressed: (_agreeTerms && _agreePrivacy && !_isLoading)
                                     ? _submit

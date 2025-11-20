@@ -72,41 +72,46 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: ValueListenableBuilder<Locale>(
           valueListenable: AppLocaleController.localeNotifier,
           builder: (context, locale, _) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
-                vertical: AppSpacing.xl,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  NavHeader(
-                    showBackButton: true,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(AppStrings.forgotPasswordSubtitle(locale)),
-                  const SizedBox(height: AppSpacing.md),
-                  TabaCard(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
+            return Column(
+              children: [
+                NavHeader(
+                  showBackButton: true,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                      vertical: AppSpacing.xl,
+                    ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TabaTextField(
-                          controller: _emailCtrl,
-                          keyboardType: TextInputType.emailAddress,
-                          labelText: AppStrings.email(locale),
-                          hintText: AppStrings.emailHint(locale),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        TabaButton(
-                          onPressed: _isLoading ? null : _sendReset,
-                          label: AppStrings.sendResetLink(locale),
-                          isLoading: _isLoading,
+                        Text(AppStrings.forgotPasswordSubtitle(locale)),
+                        const SizedBox(height: AppSpacing.xl * 1.5),
+                        TabaCard(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          child: Column(
+                            children: [
+                              TabaTextField(
+                                controller: _emailCtrl,
+                                keyboardType: TextInputType.emailAddress,
+                                labelText: AppStrings.email(locale),
+                                hintText: AppStrings.emailHint(locale),
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              TabaButton(
+                                onPressed: _isLoading ? null : _sendReset,
+                                label: AppStrings.sendResetLink(locale),
+                                isLoading: _isLoading,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           },
         ),

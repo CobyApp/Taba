@@ -96,42 +96,41 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         // 앱 로고 (일관된 스타일)
                         const AppLogo(
-                          fontSize: 34,
+                          fontSize: 24,
                           letterSpacing: 3,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 12),
                         Text(
                           AppStrings.loginSubtitle(locale),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 16),
                         ),
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.xl * 1.5),
                         TabaCard(
                           padding: const EdgeInsets.all(AppSpacing.xl),
                           child: Column(
                             children: [
-                              const SizedBox(height: 4),
                               TabaTextField(
                                 controller: _emailCtrl,
                                 keyboardType: TextInputType.emailAddress,
                                 labelText: AppStrings.email(locale),
                                 hintText: AppStrings.emailHint(locale),
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _passwordCtrl,
                                 obscureText: true,
                                 labelText: AppStrings.password(locale),
                                 hintText: AppStrings.passwordHint(locale),
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               TabaButton(
                                 onPressed: _isLoading ? null : _handleLogin,
                                 label: AppStrings.loginWithEmail(locale),
                                 isLoading: _isLoading,
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(height: AppSpacing.md),
                               Center(
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
