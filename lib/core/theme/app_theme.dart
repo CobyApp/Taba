@@ -41,7 +41,7 @@ class AppTheme {
     final displayFont = _getFontForLocale(locale.languageCode, 'display');
     final bodyFont = _getFontForLocale(locale.languageCode, 'body');
 
-    final mutedBody = AppColors.textPrimary.withValues(alpha: 0.82);
+    final mutedBody = AppColors.textPrimary.withOpacity(0.82);
     final textTheme = TextTheme(
       displayLarge: displayFont.copyWith(
         color: AppColors.textPrimary,
