@@ -88,25 +88,22 @@ jobs:
             if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
               echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
               
-              # Extract UUID from provisioning profile using multiple methods
+              # Extract UUID and other info from provisioning profile
               PROFILE_UUID=""
+              PROFILE_NAME=""
               
-              # Method 1: Using security cms and plutil
-              if command -v plutil &> /dev/null; then
-                PROFILE_UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null | plutil -extract UUID raw -o - - 2>/dev/null)
-              fi
-              
-              # Method 2: Using grep and sed as fallback
-              if [ -z "$PROFILE_UUID" ]; then
-                PROFILE_UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null | grep -A1 "<key>UUID</key>" | grep -o "<string>.*</string>" | sed 's/<string>\(.*\)<\/string>/\1/' | head -1)
-              fi
-              
-              # Method 3: Using PlistBuddy
-              if [ -z "$PROFILE_UUID" ]; then
-                TEMP_PLIST=$(mktemp)
-                security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+              # Decode provisioning profile to plist
+              TEMP_PLIST=$(mktemp)
+              if security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null; then
+                # Extract UUID using PlistBuddy
                 PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
-                rm -f "$TEMP_PLIST"
+                PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null)
+                echo "Provisioning Profile Name: $PROFILE_NAME"
+                echo "Provisioning Profile UUID: $PROFILE_UUID"
+                
+                # Extract Bundle ID to verify
+                APP_ID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" "$TEMP_PLIST" 2>/dev/null | sed 's/.*\.//')
+                echo "App Bundle ID from profile: $APP_ID"
               fi
               
               # Install provisioning profile
@@ -114,14 +111,18 @@ jobs:
               if [ -n "$PROFILE_UUID" ]; then
                 cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
                 echo "✅ Provisioning profile installed as: $PROFILE_UUID.mobileprovision"
-                echo "Profile UUID: $PROFILE_UUID"
+                
+                # Save UUID to file for later use
+                echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
               else
-                # Fallback: Use a generic name
-                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-                echo "⚠️ Provisioning profile installed with generic name (UUID extraction failed)"
-                echo "Trying to list installed profiles..."
-                ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
+                echo "❌ Failed to extract UUID from provisioning profile"
+                echo "Profile content preview:"
+                head -20 "$TEMP_PLIST" || true
+                rm -f "$TEMP_PLIST"
+                exit 1
               fi
+              
+              rm -f "$TEMP_PLIST"
               
               # Verify profile installation
               echo "Installed profiles:"
@@ -136,6 +137,20 @@ jobs:
 
       - name: Build iOS IPA (Dev)
         run: |
+          # Update ExportOptions with provisioning profile UUID if available
+          if [ -f /tmp/profile_uuid.txt ]; then
+            PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+            echo "Using provisioning profile UUID: $PROFILE_UUID"
+            
+            # Create updated ExportOptions with UUID
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
+            
+            echo "Updated ExportOptions:"
+            cat ios/ExportOptions-dev.plist
+          fi
+          
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
