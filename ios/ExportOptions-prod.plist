@@ -10,6 +10,10 @@
     <true/>
     <key>destination</key>
     <string>upload</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>teamID</key>
+    <string>6M5JX8T4LL</string>
 </dict>
 </plist>
 
