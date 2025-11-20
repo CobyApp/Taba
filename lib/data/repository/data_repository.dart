@@ -30,7 +30,7 @@ class DataRepository {
   final FileService _fileService = FileService();
   final InviteCodeService _inviteCodeService = InviteCodeService();
   final SettingsService _settingsService = SettingsService();
-  final FcmService _fcmService = FcmService();
+  final FcmService _fcmService = FcmService.instance;
 
   // Auth
   Future<bool> login(String email, String password) async {

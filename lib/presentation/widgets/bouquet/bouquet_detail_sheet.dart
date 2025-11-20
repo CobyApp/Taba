@@ -39,71 +39,67 @@ class BouquetDetailSheet extends StatelessWidget {
     return ValueListenableBuilder<Locale>(
       valueListenable: AppLocaleController.localeNotifier,
       builder: (context, locale, _) {
-        return TabaModalSheet(
-          initialChildSize: 0.6,
-          maxChildSize: 0.9,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ModalSheetHeader(
-                title: AppStrings.bouquetDetail(locale),
-                subtitle: AppStrings.bouquetWithFriend(locale, bouquet.friend.user.nickname),
-                onClose: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              TabaTextField(
-                controller: controller,
-                labelText: AppStrings.bouquetName(locale),
-                onSubmitted: (value) {
-                  final trimmed = value.trim();
-                  if (trimmed.isEmpty) return;
-                  onSaveName(trimmed);
-                  Navigator.of(context).pop();
-                  showTabaSuccess(
-                    context,
-                    title: AppStrings.bouquetNameSaved(locale),
-                    message: trimmed,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _FlowerGridSection(
-                bouquet: bouquet,
-                loadedFlowers: loadedFlowers,
-                onFlowerTap: onFlowerTap,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ModalSheetHeader(
+              title: AppStrings.bouquetDetail(locale),
+              subtitle: AppStrings.bouquetWithFriend(locale, bouquet.friend.user.nickname),
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            TabaTextField(
+              controller: controller,
+              labelText: AppStrings.bouquetName(locale),
+              onSubmitted: (value) {
+                final trimmed = value.trim();
+                if (trimmed.isEmpty) return;
+                onSaveName(trimmed);
+                Navigator.of(context).pop();
+                showTabaSuccess(
+                  context,
+                  title: AppStrings.bouquetNameSaved(locale),
+                  message: trimmed,
+                );
+              },
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _FlowerGridSection(
+              bouquet: bouquet,
+              loadedFlowers: loadedFlowers,
+              onFlowerTap: onFlowerTap,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            TabaButton(
+              onPressed: onShare,
+              label: AppStrings.shareBouquet(locale),
+              icon: Icons.share,
+              variant: TabaButtonVariant.outline,
+            ),
+            if (onDeleteFriend != null) ...[
+              const SizedBox(height: AppSpacing.md),
               TabaButton(
-                onPressed: onShare,
-                label: AppStrings.shareBouquet(locale),
-                icon: Icons.share,
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  final confirmed = await TabaModalSheet.showConfirm(
+                    context: context,
+                    title: AppStrings.deleteFriend(locale),
+                    message: AppStrings.deleteFriendConfirm(locale, bouquet.friend.user.nickname),
+                    confirmText: AppStrings.deleteFriend(locale),
+                    cancelText: AppStrings.cancel(locale),
+                    confirmColor: Colors.red,
+                  );
+                  if (confirmed == true) {
+                    onDeleteFriend!();
+                  }
+                },
+                label: AppStrings.deleteFriend(locale),
+                icon: Icons.person_remove,
                 variant: TabaButtonVariant.outline,
               ),
-              if (onDeleteFriend != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                TabaButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                    final confirmed = await TabaModalSheet.showConfirm(
-                      context: context,
-                      title: AppStrings.deleteFriend(locale),
-                      message: AppStrings.deleteFriendConfirm(locale, bouquet.friend.user.nickname),
-                      confirmText: AppStrings.deleteFriend(locale),
-                      cancelText: AppStrings.cancel(locale),
-                      confirmColor: Colors.red,
-                    );
-                    if (confirmed == true) {
-                      onDeleteFriend!();
-                    }
-                  },
-                  label: AppStrings.deleteFriend(locale),
-                  icon: Icons.person_remove,
-                  variant: TabaButtonVariant.outline,
-                ),
-              ],
             ],
-          ),
+          ],
         );
       },
     );

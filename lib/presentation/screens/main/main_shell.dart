@@ -1,9 +1,12 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/notification.dart';
 import 'package:taba_app/data/models/bouquet.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/data/services/fcm_service.dart';
 import 'package:taba_app/presentation/screens/bouquet/bouquet_screen.dart';
+import 'package:taba_app/presentation/screens/common/letter_detail_screen.dart';
 import 'package:taba_app/presentation/screens/settings/settings_screen.dart';
 import 'package:taba_app/presentation/screens/sky/sky_screen.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
@@ -35,6 +38,185 @@ class _MainShellState extends State<MainShell> {
     super.initState();
     _loadLanguageFilters();
     _loadData();
+    _setupPushNotificationHandlers();
+  }
+
+  void _setupPushNotificationHandlers() {
+    final fcmService = FcmService.instance;
+    
+    // 포그라운드 메시지 핸들러
+    fcmService.setOnMessageHandler((message) {
+      if (!mounted) return;
+      
+      // 데이터 새로고침
+      _loadData();
+      
+      // 스낵바로 알림 표시
+      final title = message.notification?.title ?? '새 알림';
+      final body = message.notification?.body ?? '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              if (body.isNotEmpty) Text(body),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    });
+    
+    // 백그라운드에서 알림 탭 시 핸들러
+    fcmService.setOnMessageOpenedAppHandler((message) {
+      if (!mounted) return;
+      _handlePushNotificationTap(message);
+    });
+  }
+
+  Future<void> _handlePushNotificationTap(RemoteMessage message) async {
+    if (!mounted) return;
+    
+    final data = message.data;
+    final deepLink = data['deepLink'] as String?;
+    final category = data['category'] as String? ?? data['type'] as String?;
+    final relatedId = data['relatedId'] as String?;
+    
+    try {
+      // 1. deepLink가 있으면 우선 사용
+      if (deepLink != null && deepLink.isNotEmpty) {
+        await _navigateToDeepLink(deepLink);
+        if (mounted) {
+          _loadData();
+        }
+        return;
+      }
+      
+      // 2. category와 relatedId로 자동 처리
+      if (category == null) return;
+      
+      switch (category.toUpperCase()) {
+        case 'LETTER':
+        case 'REACTION':
+          // 편지 알림: 편지 상세 화면으로 이동
+          if (relatedId != null) {
+            final letter = await _repository.getLetter(relatedId);
+            if (mounted && letter != null) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LetterDetailScreen(
+                    letter: letter,
+                    friendName: letter.sender.nickname,
+                  ),
+                ),
+              );
+              // 데이터 새로고침
+              _loadData();
+            }
+          }
+          break;
+          
+        case 'FRIEND':
+          // 친구 알림: 꽃다발 화면으로 이동
+          if (mounted) {
+            await _openBouquet(context);
+            // 데이터 새로고침
+            _loadData();
+          }
+          break;
+          
+        case 'SYSTEM':
+        default:
+          // 시스템 알림: 데이터만 새로고침 (알림 센터는 이미 메인 화면에 표시됨)
+          if (mounted) {
+            _loadData();
+          }
+          break;
+      }
+    } catch (e) {
+      print('푸시 알림 처리 실패: $e');
+      // 에러가 발생해도 데이터는 새로고침
+      if (mounted) {
+        _loadData();
+      }
+    }
+  }
+
+  /// 딥링크를 파싱하여 해당 화면으로 이동
+  Future<void> _navigateToDeepLink(String deepLink) async {
+    if (!mounted) return;
+    
+    // taba:// 제거
+    String path = deepLink.replaceFirst(RegExp(r'^taba://'), '');
+    path = path.replaceFirst(RegExp(r'^/'), '');
+    
+    final uri = Uri.parse('/$path');
+    final segments = uri.pathSegments;
+    
+    if (segments.isEmpty) return;
+    
+    try {
+      switch (segments[0]) {
+        case 'letter':
+          if (segments.length > 1) {
+            final letterId = segments[1];
+            final letter = await _repository.getLetter(letterId);
+            if (mounted && letter != null) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LetterDetailScreen(
+                    letter: letter,
+                    friendName: letter.sender.nickname,
+                  ),
+                ),
+              );
+            }
+          }
+          break;
+          
+        case 'bouquet':
+          if (segments.length > 1) {
+            final friendId = segments[1];
+            // 특정 친구의 꽃다발로 이동 (구현 필요 시 추가)
+            await _openBouquet(context);
+          } else {
+            await _openBouquet(context);
+          }
+          break;
+          
+        case 'notifications':
+          // 알림 센터는 이미 메인 화면에 표시됨
+          // 필요 시 스크롤하여 알림 센터로 이동하는 로직 추가 가능
+          break;
+          
+        case 'write':
+          final replyTo = uri.queryParameters['replyTo'];
+          if (replyTo != null) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => WriteLetterPage(
+                  replyToLetterId: replyTo,
+                  onSuccess: () => _loadData(),
+                ),
+              ),
+            );
+          } else {
+            _openWritePage(context);
+          }
+          break;
+          
+        case 'settings':
+          await _openSettings(context);
+          break;
+      }
+    } catch (e) {
+      print('딥링크 처리 실패: $e');
+    }
   }
   
   Future<void> _loadLanguageFilters() async {

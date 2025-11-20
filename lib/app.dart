@@ -40,8 +40,7 @@ class _TabaAppState extends State<TabaApp> {
       await AppLocaleController.initialize();
       
       // FCM 초기화
-      final fcmService = FcmService();
-      await fcmService.initialize();
+      await FcmService.instance.initialize();
       
       _checkAuth();
     } catch (e) {

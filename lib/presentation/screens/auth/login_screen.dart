@@ -94,10 +94,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // 앱 로고 (일관된 스타일)
+                        // 앱 로고 (메인 화면과 동일하게)
                         const AppLogo(
                           fontSize: 20,
                           letterSpacing: 2,
+                          shadows: [], // 그림자 제거
                         ),
                         const SizedBox(height: 12),
                         Text(

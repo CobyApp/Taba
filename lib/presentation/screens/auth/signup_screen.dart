@@ -331,9 +331,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                     onPressed: () async {
                                       final agreed = await TabaModalSheet.show<bool>(
                                         context: context,
-                                        fixedSize: false,
-                                        initialChildSize: 0.7,
-                                        maxChildSize: 0.9,
+                                        fixedSize: true,
                                         child: const TermsOnlyContent(),
                                       );
                                       if (agreed == true && mounted) {

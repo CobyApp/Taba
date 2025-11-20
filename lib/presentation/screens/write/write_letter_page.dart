@@ -475,15 +475,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
     TabaModalSheet.show<void>(
       context: context,
-      fixedSize: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.85,
+      fixedSize: true,
       child: _FontPickerSheet(
         enFonts: enFonts,
         krFonts: krFonts,
         jpFonts: jpFonts,
         onFontSelected: (font) {
           _applyFont(font);
+          Navigator.of(context).pop();
         },
       ),
     );
@@ -494,16 +493,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     // 답장인 경우 항상 친구에게 보내기로 고정
     bool initialSendToFriend = widget.initialRecipient != null ? true : _sendToFriend;
     
-    // 시트 높이 계산: 공개 선택 시 작게, 친구 선택 시 크게
-    // DraggableScrollableSheet는 동적으로 높이를 변경할 수 없으므로 충분히 큰 maxSize 설정
-    final double initialSize = initialSendToFriend ? 0.5 : 0.35;
-    final double maxSize = 0.85; // 충분히 큰 최대 높이
-    
     TabaModalSheet.show<void>(
       context: context,
-      fixedSize: false,
-      initialChildSize: initialSize,
-      maxChildSize: maxSize,
+      fixedSize: true, // 내용에 맞게 높이 자동 조정
       builder: (context) {
         // StatefulBuilder를 위한 상태 변수 (클로저 밖에서 선언하여 상태 유지)
         bool localSendToFriend = widget.initialRecipient != null ? true : _sendToFriend;
@@ -522,18 +514,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                 return ValueListenableBuilder<bool>(
                   valueListenable: _isSendingNotifier,
                   builder: (context, isSending, _) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
-                    left: AppSpacing.xl,
-                    right: AppSpacing.xl,
-                    top: AppSpacing.xl,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                         Row(
                           children: [
                             Text(
@@ -554,7 +538,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                         ),
                         // 답장인 경우 visibility 선택 옵션 숨기기
                         if (widget.initialRecipient == null) ...[
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.xl),
                           Row(
                             children: [
                               ChoiceChip(
@@ -583,7 +567,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           ),
                         ] else ...[
                           // 답장인 경우 자동으로 친구에게 보내기로 설정
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.xl),
                           Container(
                             padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
@@ -606,11 +590,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           ),
                         ],
                         if (localSendToFriend) ...[
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.xl),
                           // 답장인 경우 친구 선택 UI 숨기기 (이미 선택됨)
                           if (widget.initialRecipient == null) ...[
                             Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                              padding: const EdgeInsets.only(bottom: AppSpacing.md),
                               child: Text(
                                 AppStrings.selectFriend(locale),
                                 style: const TextStyle(
@@ -744,7 +728,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                             ),
                           ],
                         ],
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.xl * 1.5),
                         TabaButton(
                           onPressed: isSending ? null : () async {
                             // Commit local state to parent, then send
@@ -764,14 +748,12 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           icon: Icons.auto_awesome,
                           isLoading: isSending,
                         ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      );
+                  ],
+                );
+                  },
+                );
+              },
+            );
           },
         );
       },
@@ -1165,16 +1147,6 @@ class _TemplateSelector extends StatelessWidget {
             separatorBuilder: (context, index) => const SizedBox(width: 16),
             itemCount: templates.length,
           ),
-        ),
-        const SizedBox(height: 16),
-        ValueListenableBuilder<Locale>(
-          valueListenable: AppLocaleController.localeNotifier,
-          builder: (context, locale, _) {
-            return Text(
-              AppStrings.premiumTemplatesComing(locale),
-              style: const TextStyle(color: Colors.white70),
-            );
-          },
         ),
       ],
     );

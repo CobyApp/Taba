@@ -4,11 +4,19 @@ import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
 import 'package:taba_app/data/dto/api_response.dart';
 
+/// 푸시 알림 메시지 핸들러 콜백 타입
+typedef PushMessageHandler = void Function(RemoteMessage message);
+
 class FcmService {
+  FcmService._();
+  static final FcmService instance = FcmService._();
+  
   final ApiClient _apiClient = ApiClient.instance;
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   String? _currentToken;
   bool _isInitialized = false;
+  PushMessageHandler? _onMessageHandler;
+  PushMessageHandler? _onMessageOpenedAppHandler;
 
   /// FCM 토큰 초기화 및 등록
   Future<void> initialize() async {
@@ -70,6 +78,33 @@ class FcmService {
         // iOS에서 APNS 토큰이 나중에 설정될 수 있으므로 백그라운드에서 주기적으로 확인
         if (Platform.isIOS && !apnsTokenReady) {
           _waitForApnsTokenAndGetFcmToken();
+        }
+
+        // 포그라운드 메시지 핸들러 설정
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+          print('📬 포그라운드 메시지 수신: ${message.messageId}');
+          print('   제목: ${message.notification?.title}');
+          print('   본문: ${message.notification?.body}');
+          print('   데이터: ${message.data}');
+          _onMessageHandler?.call(message);
+        });
+
+        // 백그라운드에서 알림 탭 시 핸들러 설정
+        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+          print('📬 백그라운드에서 알림 탭: ${message.messageId}');
+          print('   제목: ${message.notification?.title}');
+          print('   데이터: ${message.data}');
+          _onMessageOpenedAppHandler?.call(message);
+        });
+
+        // 앱이 종료된 상태에서 알림 탭 시 처리
+        final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+        if (initialMessage != null) {
+          print('📬 앱 종료 상태에서 알림 탭: ${initialMessage.messageId}');
+          // 앱이 완전히 초기화된 후 처리하도록 약간의 지연
+          Future.delayed(const Duration(seconds: 2), () {
+            _onMessageOpenedAppHandler?.call(initialMessage);
+          });
         }
       } else {
         print('⚠️ FCM 권한이 거부되었습니다: ${settings.authorizationStatus}');
@@ -191,6 +226,34 @@ class FcmService {
     } catch (e) {
       print('❌ FCM 토큰 삭제 실패: $e');
     }
+  }
+
+  /// 포그라운드 메시지 핸들러 설정
+  void setOnMessageHandler(PushMessageHandler? handler) {
+    _onMessageHandler = handler;
+  }
+
+  /// 백그라운드에서 알림 탭 시 핸들러 설정
+  void setOnMessageOpenedAppHandler(PushMessageHandler? handler) {
+    _onMessageOpenedAppHandler = handler;
+  }
+
+  /// 현재 알림 권한 상태 확인
+  Future<AuthorizationStatus> getNotificationPermissionStatus() async {
+    try {
+      final settings = await _firebaseMessaging.getNotificationSettings();
+      return settings.authorizationStatus;
+    } catch (e) {
+      print('❌ 알림 권한 상태 확인 실패: $e');
+      return AuthorizationStatus.notDetermined;
+    }
+  }
+
+  /// 알림 권한이 허용되었는지 확인
+  Future<bool> isNotificationPermissionGranted() async {
+    final status = await getNotificationPermissionStatus();
+    return status == AuthorizationStatus.authorized ||
+           status == AuthorizationStatus.provisional;
   }
 }
 

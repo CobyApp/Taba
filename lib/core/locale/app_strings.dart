@@ -125,6 +125,39 @@ class AppStrings {
     }
   }
 
+  static String notificationPermissionDenied(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Notification permission denied';
+      case 'ja':
+        return '通知の許可が拒否されました';
+      default:
+        return '알림 권한이 거부되었습니다';
+    }
+  }
+
+  static String openSystemSettings(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Open System Settings';
+      case 'ja':
+        return 'システム設定を開く';
+      default:
+        return '시스템 설정 열기';
+    }
+  }
+
+  static String notificationPermissionDeniedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Please enable notifications in system settings to receive push notifications.';
+      case 'ja':
+        return 'プッシュ通知を受信するには、システム設定で通知を有効にしてください。';
+      default:
+        return '푸시 알림을 받으려면 시스템 설정에서 알림을 허용해주세요.';
+    }
+  }
+
   static String friendInviteSection(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
@@ -2308,22 +2341,22 @@ class AppStrings {
   static String tutorialPage3Title(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
-        return 'Bloom Flowers';
+        return 'New Connections';
       case 'ja':
-        return '花を咲かせる';
+        return '新しい出会い';
       default:
-        return '꽃 피우기';
+        return '새로운 인연과 우정';
     }
   }
 
   static String tutorialPage3Subtitle(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
-        return 'Bloom seeds to exchange hearts with flowers';
+        return 'Form new connections or deepen friendships through letters';
       case 'ja':
-        return '種を咲かせて花と共に心を交換しましょう';
+        return '新しい出会いを、または友情を深めましょう';
       default:
-        return '씨앗을 피워 꽃과 함께 마음을 주고받아요';
+        return '새로운 인연을 꽃피우고\n친구와 함께 성장해요';
     }
   }
 

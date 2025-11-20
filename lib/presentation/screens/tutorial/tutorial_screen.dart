@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
@@ -29,22 +30,17 @@ class _TutorialScreenState extends State<TutorialScreen> {
       _TutorialPage(
         title: AppStrings.tutorialPage1Title(locale),
         subtitle: AppStrings.tutorialPage1Subtitle(locale),
-        imageAsset: 'assets/images/flower.png',
+        svgAsset: 'assets/svg/welcome_letter.svg', // 환영 - 편지 아이콘
       ),
       _TutorialPage(
         title: AppStrings.tutorialPage2Title(locale),
         subtitle: AppStrings.tutorialPage2Subtitle(locale),
-        imageAsset: 'assets/images/flower.png',
+        svgAsset: 'assets/svg/seed_bubble.svg', // 씨앗 잡기
       ),
       _TutorialPage(
         title: AppStrings.tutorialPage3Title(locale),
         subtitle: AppStrings.tutorialPage3Subtitle(locale),
-        imageAsset: 'assets/images/flower.png',
-      ),
-      _TutorialPage(
-        title: AppStrings.tutorialPage4Title(locale),
-        subtitle: AppStrings.tutorialPage4Subtitle(locale),
-        imageAsset: 'assets/images/flower.png',
+        svgAsset: 'assets/svg/friendship_connection.svg', // 새로운 인연과 우정
       ),
     ];
   }
@@ -121,12 +117,13 @@ class _TutorialScreenState extends State<TutorialScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // 꽃 이미지
+                              // SVG 이미지
                               Container(
                                 width: 180,
                                 height: 180,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
+                                  color: const Color(0xFF1A0016).withOpacity(0.3),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Colors.black.withAlpha(100),
@@ -136,19 +133,19 @@ class _TutorialScreenState extends State<TutorialScreen> {
                                   ],
                                 ),
                                 child: ClipOval(
-                                  child: Image.asset(
-                                    page.imageAsset,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: const Color(0xFF1A0016),
-                                        child: const Icon(
-                                          Icons.local_florist,
-                                          color: Colors.white70,
-                                          size: 90,
-                                        ),
-                                      );
-                                    },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: SvgPicture.asset(
+                                      page.svgAsset,
+                                      fit: BoxFit.contain,
+                                      placeholderBuilder: (context) {
+                                        return const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white54,
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
@@ -234,10 +231,10 @@ class _TutorialPage {
   const _TutorialPage({
     required this.title,
     required this.subtitle,
-    required this.imageAsset,
+    required this.svgAsset,
   });
 
   final String title;
   final String subtitle;
-  final String imageAsset;
+  final String svgAsset;
 }

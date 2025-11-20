@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/user.dart';
@@ -18,6 +19,8 @@ import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/presentation/widgets/nav_header.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/storage/language_filter_storage.dart';
+import 'package:taba_app/data/services/fcm_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -627,6 +630,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _updatePushNotification(bool enabled) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    
+    // 푸시 알림을 켜려고 할 때 권한 확인
+    if (enabled) {
+      final fcmService = FcmService.instance;
+      final isGranted = await fcmService.isNotificationPermissionGranted();
+      
+      if (!isGranted) {
+        // 권한이 거부된 경우 시스템 설정으로 이동
+        final shouldOpenSettings = await TabaModalSheet.showConfirm(
+          context: context,
+          title: AppStrings.notificationPermissionDenied(locale),
+          message: AppStrings.notificationPermissionDeniedMessage(locale),
+          confirmText: AppStrings.openSystemSettings(locale),
+          cancelText: AppStrings.cancel(locale),
+          icon: Icons.settings,
+        );
+        
+        if (shouldOpenSettings == true) {
+          await AppSettings.openAppSettings();
+        }
+        
+        // 토글을 원래 상태로 되돌림
+        setState(() => _pushEnabled = false);
+        return;
+      }
+    }
+    
+    // 권한이 허용된 경우 또는 알림을 끄는 경우 서버에 설정 업데이트
     setState(() => _pushEnabled = enabled);
     try {
       final success = await _repository.updatePushNotificationSetting(enabled);
@@ -634,17 +666,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       
       if (!success) {
         setState(() => _pushEnabled = !enabled);
-        final locale = AppLocaleController.localeNotifier.value;
         showTabaError(context, message: AppStrings.notificationUpdateFailed(locale));
       }
     } catch (e) {
       if (!mounted) return;
-      final locale = AppLocaleController.localeNotifier.value;
       showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
       setState(() => _pushEnabled = !enabled);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
-      );
     }
   }
 
