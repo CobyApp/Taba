@@ -9,6 +9,7 @@ import 'package:taba_app/data/services/file_service.dart';
 import 'package:taba_app/data/services/friend_service.dart';
 import 'package:taba_app/data/services/invite_code_service.dart';
 import 'package:taba_app/data/dto/invite_code_dto.dart';
+import 'package:taba_app/data/dto/add_friend_response_dto.dart';
 import 'package:taba_app/data/services/letter_service.dart';
 import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
@@ -103,6 +104,21 @@ class DataRepository {
       return response.data!.content.map((dto) => dto.toModel()).toList();
     }
     return [];
+  }
+
+  /// 공개 편지 목록 조회 (페이징 정보 포함)
+  Future<({List<Letter> letters, bool hasMore})> getPublicLettersWithPagination({int page = 0, int size = 20}) async {
+    final response = await _letterService.getPublicLetters(
+      page: page,
+      size: size,
+    );
+    if (response.isSuccess && response.data != null) {
+      return (
+        letters: response.data!.content.map((dto) => dto.toModel()).toList(),
+        hasMore: !response.data!.last, // PageResponse의 last 필드 사용
+      );
+    }
+    return (letters: <Letter>[], hasMore: false);
   }
 
   Future<Letter?> getLetter(String letterId) async {
@@ -325,6 +341,42 @@ class DataRepository {
     }
   }
 
+  /// 친구 편지 목록 조회 (페이징 정보 포함)
+  Future<({List<SharedFlower> flowers, bool hasMore})> getFriendLettersWithPagination({
+    required String friendId,
+    int page = 0,
+    int size = 20,
+    String sort = 'sentAt,desc',
+  }) async {
+    try {
+      final response = await _bouquetService.getFriendLetters(
+        friendId: friendId,
+        page: page,
+        size: size,
+        sort: sort,
+      );
+      
+      if (response.isSuccess && response.data != null) {
+        final flowers = response.data!.content.map((dto) => dto.toModel()).toList();
+        
+        // 답장한 편지의 원본 공개편지 추가
+        final flowersWithOriginal = await _addOriginalPublicLetters(flowers, friendId);
+        
+        // PageResponse의 last 필드를 사용하여 더 불러올 페이지가 있는지 확인
+        // 단, _addOriginalPublicLetters로 추가된 편지가 있으면 hasMore를 true로 유지할 수 있지만,
+        // API 응답의 last 필드를 우선 사용
+        final hasMore = !response.data!.last;
+        
+        return (flowers: flowersWithOriginal, hasMore: hasMore);
+      }
+      
+      return (flowers: <SharedFlower>[], hasMore: false);
+    } catch (e) {
+      print('getFriendLettersWithPagination 예외: $e');
+      return (flowers: <SharedFlower>[], hasMore: false);
+    }
+  }
+
   // Notifications
   Future<List<NotificationItem>> getNotifications({
     String? category,
@@ -366,9 +418,12 @@ class DataRepository {
     return [];
   }
 
-  Future<bool> addFriendByInviteCode(String inviteCode) async {
+  Future<AddFriendResponseDto?> addFriendByInviteCode(String inviteCode) async {
     final response = await _friendService.addFriendByInviteCode(inviteCode);
-    return response.isSuccess;
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    return null;
   }
 
   Future<bool> deleteFriend(String friendId) async {
@@ -395,11 +450,21 @@ class DataRepository {
 
   // Invite Codes
   Future<InviteCodeDto?> generateInviteCode() async {
-    final response = await _inviteCodeService.generateCode();
-    if (response.isSuccess && response.data != null) {
-      return response.data!;
+    try {
+      final response = await _inviteCodeService.generateCode();
+      if (response.isSuccess && response.data != null) {
+        return response.data!;
+      }
+      // 에러가 있으면 로그 출력 (디버깅용)
+      if (response.error != null) {
+        print('초대 코드 생성 실패: ${response.error?.code} - ${response.error?.message}');
+      }
+      return null;
+    } catch (e, stackTrace) {
+      print('초대 코드 생성 예외: $e');
+      print('Stack trace: $stackTrace');
+      return null;
     }
-    return null;
   }
 
   Future<InviteCodeDto?> getCurrentInviteCode() async {
@@ -473,6 +538,22 @@ class DataRepository {
       return response.isSuccess;
     } catch (e) {
       print('updateUserProfile 예외: $e');
+      return false;
+    }
+  }
+
+  /// 회원탈퇴
+  /// DELETE /users/{userId}
+  Future<bool> deleteUser(String userId) async {
+    try {
+      final response = await _userService.deleteUser(userId);
+      if (response.isSuccess) {
+        // 회원탈퇴 성공 시 로그아웃 처리
+        await logout();
+      }
+      return response.isSuccess;
+    } catch (e) {
+      print('deleteUser 예외: $e');
       return false;
     }
   }

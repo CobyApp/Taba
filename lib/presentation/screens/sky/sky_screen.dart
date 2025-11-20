@@ -24,6 +24,7 @@ class SkyScreen extends StatefulWidget {
     this.onOpenSettings,
     this.onRefresh,
     this.onLoadMore,
+    this.onLoadMoreWithPagination,
     this.floatingActionButton,
   });
 
@@ -34,6 +35,7 @@ class SkyScreen extends StatefulWidget {
   final VoidCallback? onOpenSettings;
   final VoidCallback? onRefresh;
   final Future<List<Letter>> Function(int page)? onLoadMore;
+  final Future<({List<Letter> letters, bool hasMore})> Function(int page)? onLoadMoreWithPagination;
   final Widget? floatingActionButton;
 
   @override
@@ -95,10 +97,18 @@ class _SkyScreenState extends State<SkyScreen> {
     
     try {
       List<Letter> newLetters = [];
+      bool hasMore = false;
       
-      if (widget.onLoadMore != null) {
-        // API에서 다음 페이지 로드
+      if (widget.onLoadMoreWithPagination != null) {
+        // 페이징 정보를 포함한 API 호출
+        final result = await widget.onLoadMoreWithPagination!(pageIndex);
+        newLetters = result.letters;
+        hasMore = result.hasMore;
+      } else if (widget.onLoadMore != null) {
+        // 기존 방식 (하위 호환성)
         newLetters = await widget.onLoadMore!(pageIndex);
+        // 10개 미만이면 마지막 페이지로 간주
+        hasMore = newLetters.length >= 10;
       } else {
         // onLoadMore가 없으면 기존 데이터에서 가져오기
         const itemsPerPage = 10; // 한 페이지에 10개
@@ -108,6 +118,9 @@ class _SkyScreenState extends State<SkyScreen> {
               ? startIndex + itemsPerPage
               : _allLetters.length;
           newLetters = _allLetters.sublist(startIndex, endIndex);
+          hasMore = endIndex < _allLetters.length;
+        } else {
+          hasMore = false;
         }
       }
       
@@ -118,8 +131,8 @@ class _SkyScreenState extends State<SkyScreen> {
           final existingIds = _allLetters.map((l) => l.id).toSet();
           final uniqueNewLetters = newLetters.where((l) => !existingIds.contains(l.id)).toList();
           _allLetters.addAll(uniqueNewLetters);
-          // 10개 미만이면 마지막 페이지
-          _hasMorePages = newLetters.length >= 10;
+          // PageResponse의 last 필드를 사용하여 더 불러올 페이지가 있는지 확인
+          _hasMorePages = hasMore;
           _isLoadingMore = false;
         });
       }

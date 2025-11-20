@@ -116,7 +116,8 @@ class _BouquetScreenState extends State<BouquetScreen> {
     setState(() => _loadingFlowers[friendId] = true);
     
     try {
-      final flowers = await _repository.getFriendLetters(
+      // 페이징 정보를 포함한 API 호출
+      final result = await _repository.getFriendLettersWithPagination(
         friendId: friendId,
         page: currentPage,
         size: 20,
@@ -127,11 +128,11 @@ class _BouquetScreenState extends State<BouquetScreen> {
           List<SharedFlower> sortedFlowers;
           
           if (reset) {
-            sortedFlowers = flowers;
+            sortedFlowers = result.flowers;
           } else {
             // 기존 목록에 추가 (중복 제거)
             final existingIds = _loadedFlowers[friendId]?.map((f) => f.id).toSet() ?? {};
-            final newFlowers = flowers.where((f) => !existingIds.contains(f.id)).toList();
+            final newFlowers = result.flowers.where((f) => !existingIds.contains(f.id)).toList();
             sortedFlowers = [...(_loadedFlowers[friendId] ?? []), ...newFlowers];
           }
           
@@ -143,16 +144,16 @@ class _BouquetScreenState extends State<BouquetScreen> {
           // 페이지네이션 정보 업데이트
           _currentPages[friendId] = currentPage + 1;
           
-          // 더 불러올 페이지가 있는지 확인 (응답이 20개 미만이면 마지막 페이지로 간주)
-          _hasMorePages[friendId] = flowers.length >= 20;
+          // PageResponse의 last 필드를 사용하여 더 불러올 페이지가 있는지 확인
+          _hasMorePages[friendId] = result.hasMore;
           
-          print('📄 편지 페이징: friendId=$friendId, page=$currentPage, loaded=${flowers.length}개, hasMore=${_hasMorePages[friendId]}');
+          print('📄 편지 페이징: friendId=$friendId, page=$currentPage, loaded=${result.flowers.length}개, hasMore=${result.hasMore}');
           
           _loadingFlowers[friendId] = false;
           
           // 읽은 편지 ID 업데이트
           _readFlowerIds.addAll(
-            flowers.where((f) => (f.isRead ?? false) || f.sentByMe).map((f) => f.id),
+            result.flowers.where((f) => (f.isRead ?? false) || f.sentByMe).map((f) => f.id),
           );
         });
       }

@@ -116,6 +116,14 @@ class _MainShellState extends State<MainShell> {
           return <Letter>[];
         }
       },
+      onLoadMoreWithPagination: (page) async {
+        try {
+          return await _repository.getPublicLettersWithPagination(page: page, size: 10);
+        } catch (e) {
+          print('다음 페이지 로드 실패: $e');
+          return (letters: <Letter>[], hasMore: false);
+        }
+      },
       floatingActionButton: ValueListenableBuilder<Locale>(
         valueListenable: AppLocaleController.localeNotifier,
         builder: (context, locale, _) {
@@ -207,17 +215,25 @@ class _MainShellState extends State<MainShell> {
       
       if (!mounted) return;
       final navigator = Navigator.of(context);
-      final result = await navigator.push<bool>(
-        MaterialPageRoute<bool>(
+      
+      // SettingsScreen을 push하되, 프로필 수정 시 알림을 받기 위해 콜백 사용
+      await navigator.push(
+        MaterialPageRoute(
           builder: (_) => SettingsScreen(
             currentUser: user,
             onLogout: widget.onLogout,
+            onProfileUpdated: () {
+              // 프로필이 업데이트되면 데이터 새로고침
+              if (mounted) {
+                _loadData();
+              }
+            },
           ),
         ),
       );
       
-      // 프로필이 수정되었으면 데이터 새로고침
-      if (result == true && mounted) {
+      // SettingsScreen이 닫힐 때마다 데이터 새로고침 (프로필 수정 여부와 관계없이)
+      if (mounted) {
         _loadData();
       }
     } catch (e) {

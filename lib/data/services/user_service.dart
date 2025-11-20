@@ -219,5 +219,69 @@ class UserService {
       );
     }
   }
+
+  /// 회원탈퇴
+  /// DELETE /users/{userId}
+  Future<ApiResponse<void>> deleteUser(String userId) async {
+    try {
+      final response = await _apiClient.dio.delete('/users/$userId');
+
+      // API 명세서에 따르면 success: true, data: null, message: "회원탈퇴가 완료되었습니다."
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        if (data['success'] == true) {
+          return ApiResponse<void>(
+            success: true,
+            data: null,
+          );
+        }
+      }
+
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'DELETE_USER_ERROR',
+          message: '회원탈퇴에 실패했습니다.',
+        ),
+      );
+    } on DioException catch (e) {
+      String errorMessage = '회원탈퇴에 실패했습니다.';
+      // API 명세서: 401 Unauthorized, 403 Forbidden, 404 Not Found
+      if (e.response?.statusCode == 401) {
+        errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.statusCode == 403) {
+        // API 명세서: 403 Forbidden - 본인만 탈퇴 가능
+        errorMessage = '권한이 없습니다.';
+      } else if (e.response?.statusCode == 404) {
+        // API 명세서: 404 Not Found - USER_NOT_FOUND
+        errorMessage = '사용자를 찾을 수 없습니다.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          final error = errorData['error'] as Map<String, dynamic>?;
+          errorMessage = error?['message'] as String? ?? 
+                        errorData['message'] as String? ?? 
+                        errorData['errorMessage'] as String? ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'DELETE_USER_ERROR',
+          message: errorMessage,
+        ),
+      );
+    } catch (e) {
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'DELETE_USER_ERROR',
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
+        ),
+      );
+    }
+  }
 }
 

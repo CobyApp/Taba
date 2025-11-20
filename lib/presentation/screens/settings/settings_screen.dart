@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/user.dart';
@@ -24,10 +23,12 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.currentUser,
     this.onLogout,
+    this.onProfileUpdated,
   });
 
   final TabaUser currentUser;
   final VoidCallback? onLogout;
+  final VoidCallback? onProfileUpdated;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -41,10 +42,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingSettings = false;
   bool _isLoadingCode = false;
   Timer? _timer;
+  late TabaUser _currentUser; // 프로필 수정 후 업데이트하기 위해 state로 관리
 
   @override
   void initState() {
     super.initState();
+    _currentUser = widget.currentUser; // 초기 사용자 정보 저장
     _loadSettings();
     _loadInviteCode();
     _startTimer();
@@ -105,9 +108,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.currentUser;
     final remaining = _remainingValidity();
     return Scaffold(
+      backgroundColor: AppColors.midnightSoft,
       appBar: PreferredSize(
         preferredSize: Size.zero,
         child: AppBar(
@@ -136,18 +139,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     children: [
                       GestureDetector(
-                        onTap: () => _openEditProfile(context, user),
-                        child: _ProfileCard(user: user),
+                        onTap: () => _openEditProfile(context, _currentUser),
+                        child: _ProfileCard(user: _currentUser),
                       ),
-                      const SizedBox(height: 24),
-                      _SectionHeader(title: AppStrings.notificationsSection(locale)),
-                      SwitchListTile(
-                        title: Text(AppStrings.pushNotifications(locale)),
-                        subtitle: Text(AppStrings.pushNotificationsSubtitle(locale)),
-                        value: _pushEnabled,
-                        onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
-                      ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       _SectionHeader(title: AppStrings.friendInviteSection(locale)),
                       TabaCard(
                         padding: const EdgeInsets.all(AppSpacing.md),
@@ -179,32 +174,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                Expanded(
-                                  child: TabaButton(
-                                    onPressed: _inviteCode == null
-                                        ? null
-                                        : () => _copyInvite(_inviteCode!),
-                                    label: AppStrings.copyButton(locale),
-                                    icon: Icons.copy,
-                                    variant: TabaButtonVariant.outline,
+                                if (_inviteCode != null)
+                                  Expanded(
+                                    child: TabaButton(
+                                      onPressed: () => _copyInvite(_inviteCode!),
+                                      label: AppStrings.copyButton(locale),
+                                      icon: Icons.copy,
+                                      variant: TabaButtonVariant.outline,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
+                                if (_inviteCode != null) const SizedBox(width: 8),
                                 Expanded(
                                   child: TabaButton(
-                                    onPressed: _inviteCode == null
+                                    onPressed: (_isLoadingCode || (remaining != null && remaining.inSeconds > 0))
                                         ? null
-                                        : () => _shareInvite(_inviteCode!),
-                                    label: AppStrings.shareButton(locale),
-                                    icon: Icons.share,
-                                    variant: TabaButtonVariant.outline,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TabaButton(
-                                    onPressed: _isLoadingCode ? null : _regenerateCode,
-                                    label: AppStrings.regenerateButton(locale),
+                                        : _regenerateCode,
+                                    label: _inviteCode == null
+                                        ? AppStrings.generateButton(locale)
+                                        : AppStrings.regenerateButton(locale),
                                     isLoading: _isLoadingCode,
                                   ),
                                 ),
@@ -240,13 +227,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
+                      _SectionHeader(title: AppStrings.notificationsSection(locale)),
+                      SwitchListTile(
+                        title: Text(AppStrings.pushNotifications(locale)),
+                        subtitle: Text(AppStrings.pushNotificationsSubtitle(locale)),
+                        value: _pushEnabled,
+                        onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
+                      ),
+                      const SizedBox(height: 32),
                       _SectionHeader(title: AppStrings.accountSection(locale)),
                       ListTile(
                         leading: const Icon(Icons.lock_outline),
                         title: Text(AppStrings.changePassword(locale)),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _showChangePasswordDialog(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.logout),
+                        title: Text(AppStrings.logout(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _handleLogout(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        title: Text(
+                          AppStrings.deleteAccount(locale),
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.redAccent),
+                        onTap: () => _handleDeleteAccount(context),
                       ),
                       const SizedBox(height: 8),
                       _SectionHeader(title: AppStrings.languageSection(locale)),
@@ -271,17 +281,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           labelText: AppStrings.appLanguage(locale),
                         ),
                       ),
-                      ListTile(
-                        leading: const Icon(Icons.shield_outlined),
-                        title: Text(AppStrings.privacySettings(locale)),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.logout),
-                        title: Text(AppStrings.logout(locale)),
-                        onTap: () => _handleLogout(context),
-                      ),
                     ],
                   ),
                 ),
@@ -303,40 +302,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _shareInvite(String code) {
-    final locale = AppLocaleController.localeNotifier.value;
-    Share.share(AppStrings.shareInviteMessage(locale, code));
-  }
 
   void _showAddFriendDialog(BuildContext context) {
     final locale = AppLocaleController.localeNotifier.value;
     final codeController = TextEditingController();
-    showDialog<void>(
+    TabaModalSheet.show<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppStrings.addFriend(locale)),
-        content: TabaTextField(
-          controller: codeController,
-          labelText: AppStrings.friendCode(locale),
-          hintText: '예: A1B2C3',
-          autofocus: true,
-          textCapitalization: TextCapitalization.characters,
-          maxLength: 6,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppStrings.cancel(locale)),
+      fixedSize: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ModalSheetHeader(
+            title: AppStrings.addFriend(locale),
+            onClose: () => Navigator.of(context).pop(),
           ),
-          TextButton(
-            onPressed: () {
-              final code = codeController.text.trim();
-              if (code.isNotEmpty) {
-                Navigator.of(context).pop();
-                _addFriendByCode(code);
-              }
-            },
-            child: Text(AppStrings.add(locale)),
+          const SizedBox(height: 24),
+          TabaTextField(
+            controller: codeController,
+            labelText: AppStrings.friendCode(locale),
+            hintText: '예: A1B2C3',
+            autofocus: true,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+          ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
+            child: TabaButton(
+              onPressed: () {
+                final code = codeController.text.trim();
+                if (code.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  _addFriendByCode(code);
+                }
+              },
+              label: AppStrings.add(locale),
+              icon: Icons.person_add,
+            ),
           ),
         ],
       ),
@@ -346,23 +349,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _addFriendByCode(String inviteCode) async {
     final locale = AppLocaleController.localeNotifier.value;
     if (inviteCode.isEmpty) {
-        showTabaError(context, message: AppStrings.enterFriendCode(locale));
+      showTabaError(context, message: AppStrings.enterFriendCode(locale));
       return;
     }
 
     try {
-      final success = await _repository.addFriendByInviteCode(inviteCode);
+      final response = await _repository.addFriendByInviteCode(inviteCode);
       if (!mounted) return;
 
-      final locale = AppLocaleController.localeNotifier.value;
-      if (success) {
+      if (response == null) {
+        showTabaError(context, message: AppStrings.addFriendFailed(locale));
+        return;
+      }
+
+      // API 명세서에 따른 응답 처리
+      if (response.isOwnCode) {
+        // 자신의 초대 코드를 사용한 경우
+        showTabaError(
+          context,
+          title: AppStrings.cannotAddSelf(locale),
+          message: AppStrings.cannotAddSelfMessage(locale),
+        );
+      } else if (response.alreadyFriends) {
+        // 이미 친구인 경우
+        showTabaSuccess(
+          context,
+          title: AppStrings.alreadyFriends(locale),
+          message: AppStrings.alreadyFriendsMessage(locale),
+        );
+      } else {
+        // 새로운 친구 추가 성공
         showTabaSuccess(
           context,
           title: AppStrings.friendAdded(locale),
           message: AppStrings.friendAddedMessage(locale),
         );
-      } else {
-        showTabaError(context, message: AppStrings.addFriendFailed(locale));
       }
     } catch (e) {
       if (!mounted) return;
@@ -377,8 +398,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    showDialog<void>(
+    TabaModalSheet.show<void>(
       context: context,
+      fixedSize: true,
       builder: (dialogContext) {
         bool isSubmitting = false;
         bool obscureCurrentPassword = true;
@@ -387,69 +409,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(AppStrings.changePassword(locale)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TabaTextField(
-                      controller: currentPasswordController,
-                      labelText: AppStrings.currentPassword(locale),
-                      obscureText: obscureCurrentPassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setDialogState(() {
-                            obscureCurrentPassword = !obscureCurrentPassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TabaTextField(
-                      controller: newPasswordController,
-                      labelText: AppStrings.newPassword(locale),
-                      obscureText: obscureNewPassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureNewPassword ? Icons.visibility : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setDialogState(() {
-                            obscureNewPassword = !obscureNewPassword;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TabaTextField(
-                      controller: confirmPasswordController,
-                      labelText: AppStrings.confirmPassword(locale),
-                      obscureText: obscureConfirmPassword,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                        ),
-                        onPressed: () {
-                          setDialogState(() {
-                            obscureConfirmPassword = !obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ModalSheetHeader(
+                  title: AppStrings.changePassword(locale),
+                  onClose: () => Navigator.of(context).pop(),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
-                  child: Text(AppStrings.cancel(locale)),
+                const SizedBox(height: 24),
+                TabaTextField(
+                  controller: currentPasswordController,
+                  labelText: AppStrings.currentPassword(locale),
+                  obscureText: obscureCurrentPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureCurrentPassword = !obscureCurrentPassword;
+                      });
+                    },
+                  ),
                 ),
-                TextButton(
-                  onPressed: isSubmitting ? null : () async {
+                const SizedBox(height: 12),
+                TabaTextField(
+                  controller: newPasswordController,
+                  labelText: AppStrings.newPassword(locale),
+                  obscureText: obscureNewPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureNewPassword = !obscureNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TabaTextField(
+                  controller: confirmPasswordController,
+                  labelText: AppStrings.confirmPassword(locale),
+                  obscureText: obscureConfirmPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setDialogState(() {
+                        obscureConfirmPassword = !obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
+                  child: TabaButton(
+                    onPressed: isSubmitting ? null : () async {
                     final currentPassword = currentPasswordController.text.trim();
                     final newPassword = newPasswordController.text.trim();
                     final confirmPassword = confirmPasswordController.text.trim();
@@ -501,13 +524,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
                     }
                   },
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(AppStrings.change(locale)),
+                  label: AppStrings.change(locale),
+                  icon: Icons.lock_outline,
+                  isLoading: isSubmitting,
+                  ),
                 ),
               ],
             );
@@ -561,12 +581,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       } else {
         final locale = AppLocaleController.localeNotifier.value;
-        showTabaError(context, message: AppStrings.inviteCodeGenerationFailed(locale));
+        // 에러 메시지를 더 자세히 표시
+        showTabaError(
+          context,
+          title: AppStrings.inviteCodeGenerationFailed(locale),
+          message: '초대 코드 생성에 실패했습니다. 다시 시도해주세요.',
+        );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
       final locale = AppLocaleController.localeNotifier.value;
-      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
+      print('초대 코드 생성 에러: $e');
+      print('Stack trace: $stackTrace');
+      showTabaError(
+        context,
+        title: AppStrings.inviteCodeGenerationFailed(locale),
+        message: '초대 코드 생성 중 오류가 발생했습니다: ${e.toString()}',
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoadingCode = false);
@@ -591,31 +622,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
     
+    // 프로필이 업데이트되었으면 설정 화면에 머물고 사용자 정보를 다시 불러옴
     if (result == true && mounted) {
-      // 프로필이 업데이트되었으면 부모에게 알림
-      // main_shell에서 사용자 정보를 다시 불러올 수 있도록
-      Navigator.of(context).pop(true);
+      // 사용자 정보를 다시 불러와서 프로필 카드 업데이트
+      final updatedUser = await _repository.getCurrentUser();
+      if (updatedUser != null && mounted) {
+        setState(() {
+          _currentUser = updatedUser;
+        });
+      }
+      // 프로필이 업데이트되었으면 부모(main_shell)에게 알림 전달
+      widget.onProfileUpdated?.call();
+      // 설정 화면은 닫지 않고 유지 (Navigator.pop 호출 안함)
+    }
+  }
+
+  Future<void> _handleDeleteAccount(BuildContext context) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    final confirmed = await TabaModalSheet.showConfirm(
+      context: context,
+      title: AppStrings.deleteAccount(locale),
+      message: AppStrings.deleteAccountConfirm(locale),
+      confirmText: AppStrings.deleteAccount(locale),
+      cancelText: AppStrings.cancel(locale),
+      confirmColor: Colors.redAccent,
+      icon: Icons.warning_amber_rounded,
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final success = await DataRepository.instance.deleteUser(widget.currentUser.id);
+      if (!mounted) return;
+
+      if (success) {
+        // 모든 화면을 닫고
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        
+        // 로그아웃 콜백 호출하여 앱 상태를 인증 화면으로 변경
+        widget.onLogout?.call();
+        
+        // 성공 메시지 표시
+        showTabaSuccess(
+          context,
+          title: AppStrings.accountDeleted(locale),
+          message: AppStrings.accountDeletedMessage(locale),
+        );
+      } else {
+        showTabaError(context, message: AppStrings.deleteAccountFailed(locale));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.deleteAccountFailed(locale) + ': ${e.toString()}');
     }
   }
 
   Future<void> _handleLogout(BuildContext context) async {
     final locale = AppLocaleController.localeNotifier.value;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await TabaModalSheet.showConfirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppStrings.logout(locale)),
-        content: Text(AppStrings.reallyLogout(locale)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(AppStrings.cancel(locale)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(AppStrings.logout(locale)),
-          ),
-        ],
-      ),
+      title: AppStrings.logout(locale),
+      message: AppStrings.reallyLogout(locale),
+      confirmText: AppStrings.logout(locale),
+      cancelText: AppStrings.cancel(locale),
+      icon: Icons.logout,
     );
 
     if (confirmed != true) return;
@@ -644,34 +715,32 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0x33FFFFFF), Color(0x11FFFFFF)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withAlpha(60)),
+        color: Colors.white.withAlpha(20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withAlpha(40)),
       ),
       child: Row(
         children: [
           UserAvatar(
             user: user,
-            radius: 42,
+            radius: 32,
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.nickname,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(color: Colors.white),
-                ),
-                // username, statusMessage 제거됨
-              ],
+            child: Text(
+              user.nickname,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+          ),
+          const Icon(
+            Icons.chevron_right,
+            color: Colors.white70,
+            size: 20,
           ),
         ],
       ),

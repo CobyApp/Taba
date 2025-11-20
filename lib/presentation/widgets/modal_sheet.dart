@@ -137,5 +137,108 @@ class TabaModalSheet extends StatelessWidget {
       ),
     );
   }
+
+  /// 확인 다이얼로그를 모달 시트로 표시
+  static Future<bool?> showConfirm<T>({
+    required BuildContext context,
+    required String title,
+    required String message,
+    String confirmText = '확인',
+    String cancelText = '취소',
+    Color? confirmColor,
+    IconData? icon,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.midnightSoft,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: IntrinsicHeight(
+            child: Padding(
+              padding: AppSpacing.screenPadding,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ModalSheetHeader(
+                    title: title,
+                    onClose: () => Navigator.of(context).pop(false),
+                  ),
+                  if (icon != null) ...[
+                    const SizedBox(height: 24),
+                    Center(
+                      child: Icon(
+                        icon,
+                        size: 48,
+                        color: confirmColor ?? Colors.white70,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(color: Colors.white.withAlpha(60)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              cancelText,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: confirmColor ?? AppColors.neonPink,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              confirmText,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 

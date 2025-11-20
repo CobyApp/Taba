@@ -191,6 +191,17 @@ class AppStrings {
     }
   }
 
+  static String generateButton(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Generate';
+      case 'ja':
+        return '発行';
+      default:
+        return '발급';
+    }
+  }
+
   static String regenerateButton(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
@@ -243,6 +254,61 @@ class AppStrings {
         return 'パスワード変更';
       default:
         return '비밀번호 변경';
+    }
+  }
+
+  static String deleteAccount(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Delete Account';
+      case 'ja':
+        return 'アカウント削除';
+      default:
+        return '회원탈퇴';
+    }
+  }
+
+  static String deleteAccountConfirm(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Are you sure you want to delete your account? This action cannot be undone.';
+      case 'ja':
+        return 'アカウントを削除してもよろしいですか？この操作は取り消せません。';
+      default:
+        return '정말 회원탈퇴를 하시겠습니까? 이 작업은 되돌릴 수 없습니다.';
+    }
+  }
+
+  static String accountDeleted(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Account deleted';
+      case 'ja':
+        return 'アカウントが削除されました';
+      default:
+        return '회원탈퇴가 완료되었습니다';
+    }
+  }
+
+  static String accountDeletedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Your account has been successfully deleted.';
+      case 'ja':
+        return 'アカウントが正常に削除されました。';
+      default:
+        return '회원 탈퇴가 완료되었습니다.';
+    }
+  }
+
+  static String deleteAccountFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to delete account';
+      case 'ja':
+        return 'アカウント削除に失敗しました';
+      default:
+        return '회원탈퇴에 실패했습니다';
     }
   }
 
@@ -1101,6 +1167,50 @@ class AppStrings {
         return 'これでお互いの手紙をやり取りできます。';
       default:
         return '이제 서로의 편지를 주고받을 수 있어요.';
+    }
+  }
+
+  static String cannotAddSelf(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Cannot add yourself';
+      case 'ja':
+        return '自分を追加できません';
+      default:
+        return '본인은 친구 추가할 수 없습니다';
+    }
+  }
+
+  static String cannotAddSelfMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'You cannot add yourself as a friend.';
+      case 'ja':
+        return '自分を友達として追加することはできません。';
+      default:
+        return '자신의 초대 코드로는 친구를 추가할 수 없습니다.';
+    }
+  }
+
+  static String alreadyFriends(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Already friends';
+      case 'ja':
+        return 'すでに友達です';
+      default:
+        return '이미 친구입니다';
+    }
+  }
+
+  static String alreadyFriendsMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'You are already friends with this user.';
+      case 'ja':
+        return 'このユーザーとはすでに友達です。';
+      default:
+        return '이미 친구 관계입니다.';
     }
   }
 
