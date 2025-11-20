@@ -146,11 +146,21 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
             
-            # Set PROVISIONING_PROFILE_SPECIFIER in Xcode project for Release build
-            sed -i '' "s/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = $PROFILE_UUID;/g" ios/Runner.xcodeproj/project.pbxproj || true
+            # Update Xcode project with PROVISIONING_PROFILE_SPECIFIER using profile name or UUID
+            # Extract profile name from provisioning profile
+            TEMP_PLIST=$(mktemp)
+            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "Taba App Store Distribution")
+            rm -f "$TEMP_PLIST"
+            
+            # Update PROVISIONING_PROFILE_SPECIFIER in Release and Profile configurations
+            # Use profile name as shown in Xcode (e.g., "Taba App Store Distribution")
+            sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
             
             echo "Updated ExportOptions:"
             cat ios/ExportOptions-dev.plist
+            echo ""
+            echo "Using Provisioning Profile: $PROFILE_NAME (UUID: $PROFILE_UUID)"
           else
             echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi

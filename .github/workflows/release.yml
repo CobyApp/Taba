@@ -136,9 +136,36 @@ jobs:
           # Update ExportOptions with provisioning profile UUID if available
           if [ -f /tmp/profile_uuid.txt ]; then
             PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+            echo "Using provisioning profile UUID: $PROFILE_UUID"
+            
+            # Verify profile exists
+            if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
+              echo "✅ Profile file exists"
+            else
+              echo "❌ Profile file NOT found: $PROFILE_UUID.mobileprovision"
+              exit 1
+            fi
+            
+            # Update ExportOptions
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-prod.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-prod.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-prod.plist 2>/dev/null || true
+            
+            # Extract profile name from provisioning profile
+            TEMP_PLIST=$(mktemp)
+            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "Taba App Store Distribution")
+            rm -f "$TEMP_PLIST"
+            
+            # Update PROVISIONING_PROFILE_SPECIFIER in Release and Profile configurations
+            sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
+            
+            echo "Updated ExportOptions:"
+            cat ios/ExportOptions-prod.plist
+            echo ""
+            echo "Using Provisioning Profile: $PROFILE_NAME (UUID: $PROFILE_UUID)"
+          else
+            echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi
           
           flutter build ipa --release \
