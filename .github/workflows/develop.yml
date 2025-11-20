@@ -87,17 +87,45 @@ jobs:
             # Import provisioning profile (if provided)
             if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
               echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-              # Extract UUID from provisioning profile
-              PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i profile.mobileprovision))
-              if [ -n "$PROFILE_UUID" ]; then
-                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-                echo "Provisioning profile installed as: $PROFILE_UUID.mobileprovision"
-              else
-                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-                echo "Provisioning profile installed (UUID extraction failed)"
+              
+              # Extract UUID from provisioning profile using multiple methods
+              PROFILE_UUID=""
+              
+              # Method 1: Using security cms and plutil
+              if command -v plutil &> /dev/null; then
+                PROFILE_UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null | plutil -extract UUID raw -o - - 2>/dev/null)
               fi
+              
+              # Method 2: Using grep and sed as fallback
+              if [ -z "$PROFILE_UUID" ]; then
+                PROFILE_UUID=$(security cms -D -i profile.mobileprovision 2>/dev/null | grep -A1 "<key>UUID</key>" | grep -o "<string>.*</string>" | sed 's/<string>\(.*\)<\/string>/\1/' | head -1)
+              fi
+              
+              # Method 3: Using PlistBuddy
+              if [ -z "$PROFILE_UUID" ]; then
+                TEMP_PLIST=$(mktemp)
+                security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+                PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
+                rm -f "$TEMP_PLIST"
+              fi
+              
+              # Install provisioning profile
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              if [ -n "$PROFILE_UUID" ]; then
+                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+                echo "✅ Provisioning profile installed as: $PROFILE_UUID.mobileprovision"
+                echo "Profile UUID: $PROFILE_UUID"
+              else
+                # Fallback: Use a generic name
+                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+                echo "⚠️ Provisioning profile installed with generic name (UUID extraction failed)"
+                echo "Trying to list installed profiles..."
+                ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
+              fi
+              
+              # Verify profile installation
+              echo "Installed profiles:"
+              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep -i mobileprovision || echo "No profiles found"
             fi
 
             # Set keychain to allow codesign
