@@ -93,9 +93,14 @@ class TermsContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ModalSheetHeader(
-          title: '이용약관 / 개인정보',
-          onClose: () => Navigator.of(context).pop(),
+        ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return ModalSheetHeader(
+              title: AppStrings.termsAndPrivacy(locale),
+              onClose: () => Navigator.of(context).pop(),
+            );
+          },
         ),
         const SizedBox(height: 12),
         TabaCard(
@@ -153,9 +158,14 @@ class _TermsOnlyContentState extends State<TermsOnlyContent> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ModalSheetHeader(
-          title: '이용약관',
-          onClose: () => Navigator.of(context).pop(),
+        ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return ModalSheetHeader(
+              title: AppStrings.termsTitle(locale),
+              onClose: () => Navigator.of(context).pop(),
+            );
+          },
         ),
         const SizedBox(height: 12),
         TabaCard(
@@ -216,9 +226,14 @@ class _PrivacyOnlyContentState extends State<PrivacyOnlyContent> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ModalSheetHeader(
-          title: '개인정보 처리방침',
-          onClose: () => Navigator.of(context).pop(),
+        ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            return ModalSheetHeader(
+              title: AppStrings.privacyPolicy(locale),
+              onClose: () => Navigator.of(context).pop(),
+            );
+          },
         ),
         const SizedBox(height: 12),
         TabaCard(

@@ -723,17 +723,6 @@ class AppStrings {
     }
   }
 
-  // 약관 화면
-  static String termsTitle(Locale locale) {
-    switch (locale.languageCode) {
-      case 'en':
-        return 'Terms / Privacy';
-      case 'ja':
-        return '利用規約 / プライバシー';
-      default:
-        return '이용약관 / 개인정보';
-    }
-  }
 
   // 편지 상세 화면
   static String replyButton(Locale locale) {
@@ -2453,22 +2442,313 @@ class AppStrings {
   static String termsContent(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
-        return 'These terms are related to service use... (sample text)';
+        return '''Article 1 (Purpose)
+These Terms of Service ("Terms") govern the use of the Taba service ("Service") provided by Taba ("Company"). The purpose of these Terms is to define the rights, obligations, and responsibilities of the Company and users in using the Service.
+
+Article 2 (Definitions)
+1. "Service" refers to the Taba letter exchange platform and all related services provided by the Company.
+2. "User" refers to any individual who accesses and uses the Service in accordance with these Terms.
+3. "Content" refers to letters, images, and all other materials created, posted, or transmitted by users through the Service.
+
+Article 3 (Acceptance of Terms)
+By accessing or using the Service, users agree to be bound by these Terms. If you do not agree to these Terms, you may not use the Service.
+
+Article 4 (Service Provision)
+1. The Company provides a platform for users to exchange letters with friends and discover public letters.
+2. The Company may modify, suspend, or terminate the Service at any time with or without notice.
+3. The Company is not responsible for any loss or damage resulting from service interruptions or modifications.
+
+Article 5 (User Obligations)
+1. Users must provide accurate information when registering for the Service.
+2. Users must not engage in any illegal activities or violate the rights of others.
+3. Users must not post content that is defamatory, obscene, or violates public order and morals.
+4. Users must not interfere with the operation of the Service or attempt to access the Service through unauthorized means.
+
+Article 6 (Intellectual Property)
+1. All content created by users belongs to the users who created it.
+2. Users grant the Company a license to use, store, and display their content for the purpose of providing the Service.
+3. The Company owns all intellectual property rights in the Service itself, including its design, functionality, and branding.
+
+Article 7 (Privacy)
+The Company respects user privacy. Please refer to our Privacy Policy for details on how we collect, use, and protect your personal information.
+
+Article 8 (Service Suspension and Termination)
+1. The Company may suspend or terminate a user's access to the Service if the user violates these Terms.
+2. Users may terminate their account at any time through the Service settings.
+
+Article 9 (Disclaimer)
+1. The Company does not guarantee the accuracy, completeness, or reliability of any content posted by users.
+2. The Company is not liable for any damages arising from the use or inability to use the Service.
+3. The Company is not responsible for disputes between users.
+
+Article 10 (Changes to Terms)
+The Company may modify these Terms at any time. Users will be notified of significant changes, and continued use of the Service constitutes acceptance of the modified Terms.
+
+Article 11 (Governing Law)
+These Terms shall be governed by and construed in accordance with the laws of the Republic of Korea.
+
+Effective Date: These Terms are effective as of the date of user registration.''';
       case 'ja':
-        return '本規約はサービス利用に関連して... (サンプルテキスト)';
+        return '''第1条（目的）
+本利用規約（「規約」）は、Taba（「当社」）が提供するTabaサービス（「サービス」）の利用に関する条件を定めるものです。本規約は、サービス利用に関連する当社とユーザー間の権利、義務、責任を規定することを目的とします。
+
+第2条（定義）
+1. 「サービス」とは、当社が提供するTaba手紙交換プラットフォームおよび関連するすべてのサービスを指します。
+2. 「ユーザー」とは、本規約に従ってサービスにアクセスし、利用するすべての個人を指します。
+3. 「コンテンツ」とは、ユーザーがサービスを通じて作成、投稿、または送信する手紙、画像、その他すべての資料を指します。
+
+第3条（規約の受諾）
+サービスにアクセスまたは利用することにより、ユーザーは本規約に拘束されることに同意したものとみなされます。本規約に同意しない場合、サービスを利用することはできません。
+
+第4条（サービスの提供）
+1. 当社は、ユーザーが友人と手紙を交換し、公開手紙を発見できるプラットフォームを提供します。
+2. 当社は、事前通知の有無に関わらず、いつでもサービスを変更、中断、または終了することができます。
+3. 当社は、サービス中断または変更に起因するいかなる損失または損害についても責任を負いません。
+
+第5条（ユーザーの義務）
+1. ユーザーは、サービス登録時に正確な情報を提供しなければなりません。
+2. ユーザーは、違法行為を行ったり、他人の権利を侵害したりしてはなりません。
+3. ユーザーは、中傷的、わいせつ、または公序良俗に反するコンテンツを投稿してはなりません。
+4. ユーザーは、サービスの運営を妨害したり、不正な手段でサービスにアクセスしようとしたりしてはなりません。
+
+第6条（知的財産権）
+1. ユーザーが作成したすべてのコンテンツは、そのコンテンツを作成したユーザーに帰属します。
+2. ユーザーは、サービス提供の目的で、当社にコンテンツの使用、保存、表示を許可するライセンスを付与します。
+3. 当社は、デザイン、機能、ブランディングを含むサービス自体のすべての知的財産権を所有します。
+
+第7条（プライバシー）
+当社はユーザーのプライバシーを尊重します。個人情報の収集、使用、保護に関する詳細は、プライバシーポリシーを参照してください。
+
+第8条（サービスの中断および終了）
+1. 当社は、ユーザーが本規約に違反した場合、ユーザーのサービスへのアクセスを中断または終了することができます。
+2. ユーザーは、サービス設定を通じていつでもアカウントを終了することができます。
+
+第9条（免責事項）
+1. 当社は、ユーザーが投稿したコンテンツの正確性、完全性、または信頼性を保証しません。
+2. 当社は、サービスの使用または使用不能に起因するいかなる損害についても責任を負いません。
+3. 当社は、ユーザー間の紛争について責任を負いません。
+
+第10条（規約の変更）
+当社は、いつでも本規約を変更することができます。重要な変更についてはユーザーに通知され、サービスの継続的な利用は変更された規約の受諾を構成します。
+
+第11条（準拠法）
+本規約は、大韓民国の法律に従って解釈され、準拠します。
+
+発効日：本規約は、ユーザー登録日から発効します。''';
       default:
-        return '본 약관은 서비스 이용과 관련하여... (샘플 텍스트)';
+        return '''제1조 (목적)
+본 이용약관("약관")은 Taba("회사")가 제공하는 Taba 서비스("서비스")의 이용과 관련하여 회사와 이용자 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.
+
+제2조 (정의)
+1. "서비스"란 회사가 제공하는 Taba 편지 교환 플랫폼 및 이와 관련된 모든 서비스를 의미합니다.
+2. "이용자"란 본 약관에 따라 서비스에 접속하여 이용하는 모든 개인을 의미합니다.
+3. "콘텐츠"란 이용자가 서비스를 통해 작성, 게시 또는 전송하는 편지, 이미지 및 기타 모든 자료를 의미합니다.
+
+제3조 (약관의 동의)
+서비스에 접속하거나 이용함으로써 이용자는 본 약관에 동의한 것으로 간주됩니다. 본 약관에 동의하지 않는 경우 서비스를 이용할 수 없습니다.
+
+제4조 (서비스의 제공)
+1. 회사는 이용자가 친구와 편지를 교환하고 공개 편지를 발견할 수 있는 플랫폼을 제공합니다.
+2. 회사는 사전 통지 없이 언제든지 서비스를 수정, 중단 또는 종료할 수 있습니다.
+3. 회사는 서비스 중단 또는 수정으로 인한 어떠한 손실이나 손해에 대해서도 책임을 지지 않습니다.
+
+제5조 (이용자의 의무)
+1. 이용자는 서비스 가입 시 정확한 정보를 제공해야 합니다.
+2. 이용자는 불법적인 활동을 하거나 타인의 권리를 침해해서는 안 됩니다.
+3. 이용자는 비방적, 음란하거나 공공질서 및 미풍양속에 반하는 콘텐츠를 게시해서는 안 됩니다.
+4. 이용자는 서비스 운영을 방해하거나 무단으로 서비스에 접근하려고 시도해서는 안 됩니다.
+
+제6조 (지적재산권)
+1. 이용자가 작성한 모든 콘텐츠는 해당 콘텐츠를 작성한 이용자에게 귀속됩니다.
+2. 이용자는 서비스 제공을 위한 목적으로 회사에 자신의 콘텐츠를 사용, 저장 및 표시할 수 있는 라이선스를 부여합니다.
+3. 회사는 서비스 자체의 디자인, 기능 및 브랜딩을 포함한 모든 지적재산권을 소유합니다.
+
+제7조 (개인정보)
+회사는 이용자의 개인정보를 존중합니다. 개인정보의 수집, 사용 및 보호에 대한 자세한 내용은 개인정보처리방침을 참조하시기 바랍니다.
+
+제8조 (서비스의 중단 및 종료)
+1. 회사는 이용자가 본 약관을 위반한 경우 이용자의 서비스 이용을 중단하거나 종료할 수 있습니다.
+2. 이용자는 서비스 설정을 통해 언제든지 계정을 종료할 수 있습니다.
+
+제9조 (면책조항)
+1. 회사는 이용자가 게시한 콘텐츠의 정확성, 완전성 또는 신뢰성을 보장하지 않습니다.
+2. 회사는 서비스 이용 또는 이용 불가로 인해 발생하는 어떠한 손해에 대해서도 책임을 지지 않습니다.
+3. 회사는 이용자 간의 분쟁에 대해 책임을 지지 않습니다.
+
+제10조 (약관의 변경)
+회사는 언제든지 본 약관을 수정할 수 있습니다. 중요한 변경사항에 대해서는 이용자에게 통지하며, 서비스를 계속 이용하는 것은 수정된 약관에 대한 동의로 간주됩니다.
+
+제11조 (준거법)
+본 약관은 대한민국 법률에 따라 해석되고 적용됩니다.
+
+시행일: 본 약관은 이용자 등록일부터 시행됩니다.''';
     }
   }
 
   static String privacyContent(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
-        return 'We collect minimal personal information for service provision... (sample text)';
+        return '''Article 1 (Purpose of Personal Information Processing)
+Taba ("Company") collects and processes personal information in accordance with the Personal Information Protection Act to provide the letter exchange service. This Privacy Policy explains how the Company collects, uses, and protects your personal information.
+
+Article 2 (Items of Personal Information Collected)
+The Company collects the following personal information for service provision:
+1. Required items: Email address, password (encrypted), nickname, profile image
+2. Automatically collected items: Device information, IP address, service usage records, access logs
+
+Article 3 (Purpose of Personal Information Processing)
+The Company processes personal information for the following purposes:
+1. Service provision: User authentication, letter delivery, friend management
+2. Service improvement: Service quality enhancement, new service development
+3. Customer support: Response to inquiries, complaint handling
+4. Security: Prevention of unauthorized use, fraud prevention
+
+Article 4 (Personal Information Processing and Retention Period)
+1. The Company processes and retains personal information for the period necessary to achieve the purpose of collection and use.
+2. When a user requests account deletion, personal information is immediately deleted, except for information that must be retained in accordance with relevant laws.
+
+Article 5 (Provision of Personal Information to Third Parties)
+The Company does not provide personal information to third parties without the user's consent, except in the following cases:
+1. When required by law or requested by investigative agencies for investigation purposes
+2. When necessary for the protection of life, body, or property of users or third parties
+
+Article 6 (Entrustment of Personal Information Processing)
+The Company may entrust personal information processing to external service providers for service operation. In such cases, the Company enters into necessary agreements to ensure the safe management of personal information.
+
+Article 7 (Rights and Obligations of Information Subjects)
+Users have the following rights regarding their personal information:
+1. Right to access personal information
+2. Right to request correction of errors
+3. Right to request deletion
+4. Right to request suspension of processing
+
+Article 8 (Destruction of Personal Information)
+When personal information becomes unnecessary, the Company immediately destroys it. The destruction procedure and method are as follows:
+1. Destruction procedure: Information that has achieved its purpose is selected and destroyed
+2. Destruction method: Electronic files are permanently deleted in a way that cannot be recovered, and printed materials are shredded or incinerated
+
+Article 9 (Measures to Ensure Personal Information Security)
+The Company takes the following technical and administrative measures to ensure personal information security:
+1. Encryption of passwords and important data
+2. Access control through authentication
+3. Regular security inspections and updates
+4. Employee training on personal information protection
+
+Article 10 (Personal Information Protection Officer)
+The Company designates a personal information protection officer to handle personal information protection matters and user complaints. Users may contact the officer for inquiries or complaints regarding personal information.
+
+Article 11 (Changes to Privacy Policy)
+This Privacy Policy may be amended in accordance with changes in laws, policies, or service needs. When significant changes are made, users will be notified through the service.
+
+Effective Date: This Privacy Policy is effective as of the date of user registration.''';
       case 'ja':
-        return '当社はサービス提供のために最小限の個人情報を収集します... (サンプルテキスト)';
+        return '''第1条（個人情報の処理目的）
+Taba（「当社」）は、手紙交換サービスを提供するため、個人情報保護法に従って個人情報を収集・処理します。本プライバシーポリシーは、当社が個人情報をどのように収集、使用、保護するかを説明するものです。
+
+第2条（収集する個人情報の項目）
+当社は、サービス提供のために以下の個人情報を収集します：
+1. 必須項目：メールアドレス、パスワード（暗号化）、ニックネーム、プロフィール画像
+2. 自動収集項目：デバイス情報、IPアドレス、サービス利用記録、アクセスログ
+
+第3条（個人情報の処理目的）
+当社は、以下の目的で個人情報を処理します：
+1. サービス提供：ユーザー認証、手紙配信、友達管理
+2. サービス改善：サービス品質向上、新サービス開発
+3. 顧客サポート：お問い合わせ対応、苦情処理
+4. セキュリティ：不正利用の防止、詐欺の防止
+
+第4条（個人情報の処理および保有期間）
+1. 当社は、収集・利用目的の達成に必要な期間、個人情報を処理・保有します。
+2. ユーザーがアカウント削除を要求した場合、関連法令に従って保有しなければならない情報を除き、個人情報は即座に削除されます。
+
+第5条（第三者への個人情報の提供）
+当社は、以下の場合を除き、ユーザーの同意なく第三者に個人情報を提供しません：
+1. 法令により要求される場合、または捜査機関が捜査目的で要求する場合
+2. ユーザーまたは第三者の生命、身体、財産の保護に必要な場合
+
+第6条（個人情報処理の委託）
+当社は、サービス運営のために外部サービス提供者に個人情報処理を委託する場合があります。この場合、当社は個人情報の安全な管理を確保するための必要な契約を締結します。
+
+第7条（情報主体の権利と義務）
+ユーザーは、個人情報に関して以下の権利を有します：
+1. 個人情報へのアクセス権
+2. 誤りの訂正を要求する権利
+3. 削除を要求する権利
+4. 処理の停止を要求する権利
+
+第8条（個人情報の破棄）
+個人情報が不要になった場合、当社は即座に破棄します。破棄手順および方法は以下のとおりです：
+1. 破棄手順：目的を達成した情報を選定して破棄
+2. 破棄方法：電子ファイルは復元不可能な方法で永続的に削除し、印刷物は粉砕または焼却
+
+第9条（個人情報の安全性確保措置）
+当社は、個人情報の安全性を確保するために以下の技術的・管理的措置を講じます：
+1. パスワードおよび重要データの暗号化
+2. 認証によるアクセス制御
+3. 定期的なセキュリティ検査および更新
+4. 個人情報保護に関する従業員教育
+
+第10条（個人情報保護責任者）
+当社は、個人情報保護に関する事項およびユーザーの苦情を処理するために個人情報保護責任者を指定しています。ユーザーは、個人情報に関するお問い合わせや苦情について責任者に連絡することができます。
+
+第11条（プライバシーポリシーの変更）
+本プライバシーポリシーは、法令、政策、またはサービスのニーズの変更に従って修正される場合があります。重要な変更が行われた場合、サービスを通じてユーザーに通知されます。
+
+発効日：本プライバシーポリシーは、ユーザー登録日から発効します。''';
       default:
-        return '당사는 서비스 제공을 위해 최소한의 개인정보를 수집하며... (샘플 텍스트)';
+        return '''제1조 (개인정보의 처리목적)
+Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보보호법에 따라 개인정보를 수집·처리합니다. 본 개인정보처리방침은 회사가 개인정보를 어떻게 수집, 사용, 보호하는지 설명합니다.
+
+제2조 (수집하는 개인정보의 항목)
+회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집합니다:
+1. 필수 항목: 이메일 주소, 비밀번호(암호화), 닉네임, 프로필 이미지
+2. 자동 수집 항목: 기기 정보, IP 주소, 서비스 이용 기록, 접속 로그
+
+제3조 (개인정보의 처리목적)
+회사는 다음의 목적을 위하여 개인정보를 처리합니다:
+1. 서비스 제공: 회원 인증, 편지 전달, 친구 관리
+2. 서비스 개선: 서비스 품질 향상, 신규 서비스 개발
+3. 고객 지원: 문의 응대, 불만 처리
+4. 보안: 부정 이용 방지, 사기 방지
+
+제4조 (개인정보의 처리 및 보유기간)
+1. 회사는 수집·이용 목적이 달성된 때까지 개인정보를 처리·보유합니다.
+2. 이용자가 계정 삭제를 요청한 경우, 관련 법령에 따라 보존하여야 하는 정보를 제외하고는 개인정보를 즉시 삭제합니다.
+
+제5조 (개인정보의 제3자 제공)
+회사는 이용자의 동의 없이 제3자에게 개인정보를 제공하지 않으며, 다음의 경우에는 예외로 합니다:
+1. 법령에 의해 요구되는 경우 또는 수사기관이 수사 목적으로 요청하는 경우
+2. 이용자 또는 제3자의 생명, 신체, 재산의 보호를 위하여 필요한 경우
+
+제6조 (개인정보 처리의 위탁)
+회사는 서비스 운영을 위해 외부 서비스 제공업체에 개인정보 처리를 위탁할 수 있습니다. 이 경우 회사는 개인정보의 안전한 관리를 위해 필요한 계약을 체결합니다.
+
+제7조 (정보주체의 권리·의무)
+이용자는 자신의 개인정보에 대해 다음과 같은 권리를 가집니다:
+1. 개인정보 열람 요구권
+2. 오류 정정 요구권
+3. 삭제 요구권
+4. 처리정지 요구권
+
+제8조 (개인정보의 파기)
+개인정보가 불필요하게 되었을 때에는 지체 없이 파기합니다. 파기 절차 및 방법은 다음과 같습니다:
+1. 파기 절차: 목적 달성된 정보를 선정하여 파기
+2. 파기 방법: 전자적 파일은 복구 불가능한 방법으로 영구 삭제하며, 출력물은 분쇄하거나 소각
+
+제9조 (개인정보의 안전성 확보조치)
+회사는 개인정보의 안전성 확보를 위해 다음과 같은 기술적·관리적 조치를 취합니다:
+1. 비밀번호 및 중요 데이터의 암호화
+2. 인증을 통한 접근 제어
+3. 정기적인 보안 점검 및 업데이트
+4. 개인정보 보호를 위한 직원 교육
+
+제10조 (개인정보 보호책임자)
+회사는 개인정보 보호에 관한 사항 및 이용자의 불만을 처리하기 위하여 개인정보 보호책임자를 지정합니다. 이용자는 개인정보에 관한 문의나 불만이 있을 경우 책임자에게 연락할 수 있습니다.
+
+제11조 (개인정보처리방침의 변경)
+본 개인정보처리방침은 법령, 정책 또는 서비스의 필요에 따라 변경될 수 있습니다. 중요한 변경사항이 있는 경우 서비스를 통해 이용자에게 공지합니다.
+
+시행일: 본 개인정보처리방침은 이용자 등록일부터 시행됩니다.''';
     }
   }
 
@@ -2491,6 +2771,28 @@ class AppStrings {
         return 'プライバシーポリシー';
       default:
         return '개인정보 처리방침';
+    }
+  }
+
+  static String termsAndPrivacy(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Terms of Service / Privacy Policy';
+      case 'ja':
+        return '利用規約 / プライバシーポリシー';
+      default:
+        return '이용약관 / 개인정보';
+    }
+  }
+
+  static String termsTitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Terms of Service';
+      case 'ja':
+        return '利用規約';
+      default:
+        return '이용약관';
     }
   }
 
