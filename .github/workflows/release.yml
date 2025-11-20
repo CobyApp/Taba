@@ -43,7 +43,7 @@ jobs:
           flutter build appbundle --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
-            --dart-define=ENV=prod
+            --dart-define=API_ENV=prod
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
@@ -111,7 +111,7 @@ jobs:
           flutter build ipa --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
-            --dart-define=ENV=prod \
+            --dart-define=API_ENV=prod \
             --export-options-plist=ios/ExportOptions-prod.plist
 
       - name: Upload IPA artifact
