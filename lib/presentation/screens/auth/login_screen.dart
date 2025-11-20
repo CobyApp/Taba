@@ -9,6 +9,7 @@ import 'package:taba_app/presentation/widgets/gradient_scaffold.dart';
 import 'package:taba_app/presentation/widgets/taba_text_field.dart';
 import 'package:taba_app/presentation/widgets/taba_button.dart';
 import 'package:taba_app/presentation/widgets/taba_card.dart';
+import 'package:taba_app/presentation/widgets/app_logo.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 
@@ -93,13 +94,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          AppStrings.appName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                                fontSize: 34,
-                              ),
+                        // 앱 로고 (일관된 스타일)
+                        const AppLogo(
+                          fontSize: 34,
+                          letterSpacing: 3,
                         ),
                         const SizedBox(height: 6),
                         Text(

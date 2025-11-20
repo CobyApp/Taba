@@ -29,7 +29,7 @@ class LetterService {
         'preview': preview,
         'visibility': visibility.toUpperCase(), // PUBLIC, FRIENDS, DIRECT, PRIVATE
         if (template != null) 'template': template,
-        'attachedImages': attachedImages ?? [],
+        if (attachedImages != null && attachedImages.isNotEmpty) 'attachedImages': attachedImages,
         if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
         if (recipientId != null) 'recipientId': recipientId, // DIRECT 편지인 경우 필수
         if (language != null) 'language': language, // ko, en, ja 중 하나
@@ -378,7 +378,7 @@ class LetterService {
         'preview': preview,
         // visibility는 포함하지 않음 (서버에서 자동으로 DIRECT로 설정)
         if (template != null) 'template': template,
-        'attachedImages': attachedImages ?? [],
+        if (attachedImages != null && attachedImages.isNotEmpty) 'attachedImages': attachedImages,
         if (language != null) 'language': language, // ko, en, ja 중 하나
       };
 

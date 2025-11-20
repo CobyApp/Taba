@@ -162,12 +162,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       bottom: AppSpacing.lg,
                     ),
                     children: [
+                      // 1. 프로필 카드
                       GestureDetector(
                         onTap: () => _openEditProfile(context, _currentUser),
                         child: _ProfileCard(user: _currentUser),
                       ),
                       const SizedBox(height: 32),
-                      _SectionHeader(title: '공개 편지'),
+                      // 2. 계정 섹션 (개인 정보 및 보안)
+                      _SectionHeader(title: AppStrings.accountSection(locale)),
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: Text(AppStrings.changePassword(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _showChangePasswordDialog(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.logout),
+                        title: Text(AppStrings.logout(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _handleLogout(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        title: Text(
+                          AppStrings.deleteAccount(locale),
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.redAccent),
+                        onTap: () => _handleDeleteAccount(context),
+                      ),
+                      const SizedBox(height: 32),
+                      // 3. 언어 섹션 (앱 기본 설정)
+                      _SectionHeader(title: AppStrings.languageSection(locale)),
+                      ValueListenableBuilder<Locale>(
+                        valueListenable: AppLocaleController.localeNotifier,
+                        builder: (context, currentLocale, _) {
+                          return TabaCard(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.language, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                child: Text(
+                                        AppStrings.appLanguage(currentLocale),
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                        ),
+                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _buildAppLanguageChip('ko', '한국어', currentLocale),
+                                    _buildAppLanguageChip('en', 'English', currentLocale),
+                                    _buildAppLanguageChip('ja', '日本語', currentLocale),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      // 4. 알림 섹션 (앱 기능 설정)
+                      _SectionHeader(title: AppStrings.notificationsSection(locale)),
+                      SwitchListTile(
+                        title: Text(AppStrings.pushNotifications(locale)),
+                        subtitle: Text(AppStrings.pushNotificationsSubtitle(locale)),
+                        value: _pushEnabled,
+                        onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
+                      ),
+                      const SizedBox(height: 32),
+                      // 5. 공개 편지 섹션 (기능 설정)
+                      _SectionHeader(title: AppStrings.publicLetterSection(locale)),
                       TabaCard(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         child: Column(
@@ -179,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    '언어 필터',
+                                    AppStrings.languageFilter(locale),
                                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
@@ -190,7 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '원하는 언어의 편지만 볼 수 있어요',
+                              AppStrings.languageFilterDescription(locale),
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Colors.white70,
                               ),
@@ -209,6 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
+                      // 6. 친구 초대 섹션 (소셜 기능)
                       _SectionHeader(title: AppStrings.friendInviteSection(locale)),
                       TabaCard(
                         padding: const EdgeInsets.all(AppSpacing.md),
@@ -293,84 +370,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 32),
-                      _SectionHeader(title: AppStrings.notificationsSection(locale)),
-                      SwitchListTile(
-                        title: Text(AppStrings.pushNotifications(locale)),
-                        subtitle: Text(AppStrings.pushNotificationsSubtitle(locale)),
-                        value: _pushEnabled,
-                        onChanged: _isLoadingSettings ? null : (value) => _updatePushNotification(value),
-                      ),
-                      const SizedBox(height: 32),
-                      _SectionHeader(title: AppStrings.accountSection(locale)),
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: Text(AppStrings.changePassword(locale)),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showChangePasswordDialog(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.logout),
-                        title: Text(AppStrings.logout(locale)),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _handleLogout(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        title: Text(
-                          AppStrings.deleteAccount(locale),
-                          style: const TextStyle(color: Colors.redAccent),
-                        ),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.redAccent),
-                        onTap: () => _handleDeleteAccount(context),
-                      ),
-                      const SizedBox(height: 32),
-                      _SectionHeader(title: AppStrings.languageSection(locale)),
-                      ValueListenableBuilder<Locale>(
-                        valueListenable: AppLocaleController.localeNotifier,
-                        builder: (context, currentLocale, _) {
-                          return TabaCard(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.language, size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                child: Text(
-                                        AppStrings.appLanguage(currentLocale),
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                        ),
-                      ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _buildAppLanguageChip('ko', '한국어', currentLocale),
-                                    _buildAppLanguageChip('en', 'English', currentLocale),
-                                    _buildAppLanguageChip('ja', '日本語', currentLocale),
-                                  ],
                                 ),
                               ],
-                            ),
                           );
                         },
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
       ),
     );
   }
@@ -1246,15 +1252,15 @@ class _ProfileImageAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shouldShowInitials = profileImage == null && 
+    final shouldShowFallback = profileImage == null && 
                                (avatarUrl == null || avatarUrl!.isEmpty || hasError);
     
     return CircleAvatar(
       radius: radius,
-      backgroundColor: shouldShowInitials 
-          ? user.avatarFallbackColor() 
+      backgroundColor: shouldShowFallback 
+          ? const Color(0xFF0A0024) // 어두운 배경
           : Colors.transparent,
-      backgroundImage: shouldShowInitials
+      backgroundImage: shouldShowFallback
           ? null
           : (profileImage != null
               ? FileImage(profileImage!)
@@ -1269,13 +1275,29 @@ class _ProfileImageAvatar extends StatelessWidget {
               onImageError();
             }
           : null,
-      child: shouldShowInitials
-          ? Text(
-              user.initials,
-              style: TextStyle(
-                fontSize: radius * 0.5,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+      child: shouldShowFallback
+          ? ClipOval(
+              child: Image.asset(
+                'assets/images/flower.png',
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // flower.png가 없을 경우를 대비한 fallback (기존 initials 표시)
+                  return Container(
+                    color: user.avatarFallbackColor(),
+                    child: Center(
+                      child: Text(
+                        user.initials,
+                        style: TextStyle(
+                          fontSize: radius * 0.5,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             )
           : null,

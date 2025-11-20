@@ -815,6 +815,51 @@ class AppStrings {
     }
   }
 
+  // 씨앗 열기 메시지 (감성적인 멘트)
+  static List<String> bloomSeedMessages(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return [
+          'A letter is waiting inside this seed',
+          'Someone left you a message',
+          'Open your heart and read',
+          'A gentle whisper awaits you',
+          'Words bloom like flowers',
+          'Someone thought of you',
+          'A moment of connection',
+          'Feel the warmth within',
+          'A story wants to be told',
+          'Love grows from small seeds',
+        ];
+      case 'ja':
+        return [
+          'この種の中に手紙が待っています',
+          '誰かがあなたにメッセージを残しました',
+          '心を開いて読んでください',
+          '優しいささやきがあなたを待っています',
+          '言葉は花のように咲きます',
+          '誰かがあなたのことを考えていました',
+          'つながりの瞬間',
+          '中の温かさを感じてください',
+          '物語が語られたいと思っています',
+          '愛は小さな種から育ちます',
+        ];
+      default:
+        return [
+          '이 씨앗 안에 편지가 기다리고 있어요',
+          '누군가 당신에게 메시지를 남겼어요',
+          '마음을 열고 읽어보세요',
+          '따뜻한 이야기가 기다리고 있어요',
+          '작은 씨앗에서 피어나는 마음',
+          '누군가 당신을 생각했어요',
+          '마음을 전하는 순간',
+          '씨앗 속에 담긴 따뜻함',
+          '전하고 싶은 이야기가 있어요',
+          '작은 씨앗에서 자라나는 마음',
+        ];
+    }
+  }
+
 
   static String emailHint(Locale locale) {
     switch (locale.languageCode) {
@@ -2337,6 +2382,40 @@ class AppStrings {
         return '友達リストの読み込みに失敗しました: ';
       default:
         return '친구 목록을 불러오는데 실패했습니다: ';
+    }
+  }
+
+  // 공개 편지 섹션
+  static String publicLetterSection(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Public Letters';
+      case 'ja':
+        return '公開手紙';
+      default:
+        return '공개 편지';
+    }
+  }
+
+  static String languageFilter(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Language Filter';
+      case 'ja':
+        return '言語フィルター';
+      default:
+        return '언어 필터';
+    }
+  }
+
+  static String languageFilterDescription(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'You can only see letters in the desired language';
+      case 'ja':
+        return '希望する言語の手紙だけを見ることができます';
+      default:
+        return '원하는 언어의 편지만 볼 수 있어요';
     }
   }
 }

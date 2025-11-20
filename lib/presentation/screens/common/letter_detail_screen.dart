@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/letter.dart';
@@ -264,27 +267,6 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                       ),
                     ],
                   ),
-                ),
-                if (widget.letter.attachedImages.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl,
-                      0,
-                      AppSpacing.xl,
-                      AppSpacing.md,
-                    ),
-                    child: Column(
-                      children: [
-                        TabaButton(
-                          onPressed: () => _openImageViewer(context, widget.letter.attachedImages),
-                          label: AppStrings.viewAttachedPhotos(locale),
-                          icon: Icons.photo_library,
-                          variant: TabaButtonVariant.outline,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        _buildImageGallery(context, widget.letter.attachedImages),
-                      ],
-                    ),
                   ),
                 // Letter content
                 Expanded(
@@ -301,6 +283,16 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                         // 24px = 24px * 1.0
                         const SizedBox(height: 24),
                         _buildContentText(style, textColor),
+                        // 첨부한 사진 보기 버튼을 편지 내용 하단에 배치
+                        if (widget.letter.attachedImages.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.xl),
+                          TabaButton(
+                            onPressed: () => _openImageViewer(context, widget.letter.attachedImages),
+                            label: AppStrings.viewAttachedPhotos(locale),
+                            icon: Icons.photo_library,
+                            variant: TabaButtonVariant.outline,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -591,6 +583,7 @@ class _ImageViewerScreen extends StatefulWidget {
 class _ImageViewerScreenState extends State<_ImageViewerScreen> {
   late PageController _pageController;
   late int _currentIndex;
+  final GlobalKey _shareButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -603,6 +596,163 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _shareImage(BuildContext context, String imagePath) async {
+    try {
+      XFile? file;
+      
+      if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
+        // 네트워크 이미지는 다운로드 후 공유
+        if (!mounted) return;
+        
+        // 로딩 표시
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('이미지를 다운로드하는 중...'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        
+        try {
+          // 이미지 다운로드
+          final uri = Uri.parse(imagePath);
+          final response = await http.get(uri).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception('다운로드 시간 초과');
+            },
+          );
+          
+          if (response.statusCode != 200) {
+            throw Exception('이미지 다운로드 실패: HTTP ${response.statusCode}');
+          }
+          
+          // Content-Type에서 MIME 타입 확인
+          final contentType = response.headers['content-type'] ?? 'image/jpeg';
+          String fileExtension = 'jpg';
+          if (contentType.contains('png')) {
+            fileExtension = 'png';
+          } else if (contentType.contains('gif')) {
+            fileExtension = 'gif';
+          } else if (contentType.contains('webp')) {
+            fileExtension = 'webp';
+          }
+          
+          // 파일명에서 확장자 추출 시도
+          final urlPath = uri.path;
+          if (urlPath.isNotEmpty) {
+            final urlExtension = urlPath.split('.').last.toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(urlExtension)) {
+              fileExtension = urlExtension;
+            }
+          }
+          
+          // 임시 디렉토리에 파일 저장
+          final tempDir = await getTemporaryDirectory();
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final tempFile = File('${tempDir.path}/share_$timestamp.$fileExtension');
+          await tempFile.writeAsBytes(response.bodyBytes);
+          
+          // 파일이 제대로 생성되었는지 확인
+          if (!await tempFile.exists()) {
+            throw Exception('임시 파일 생성 실패');
+          }
+          
+          file = XFile(
+            tempFile.path,
+            mimeType: contentType,
+          );
+        } catch (e) {
+          print('이미지 다운로드 에러: $e');
+          rethrow;
+        }
+      } else {
+        // 로컬 파일은 직접 사용
+        final localFile = File(imagePath);
+        if (!await localFile.exists()) {
+          throw Exception('파일을 찾을 수 없습니다: $imagePath');
+        }
+        
+        // MIME 타입 추정
+        String mimeType = 'image/jpeg';
+        final extension = imagePath.split('.').last.toLowerCase();
+        switch (extension) {
+          case 'png':
+            mimeType = 'image/png';
+            break;
+          case 'gif':
+            mimeType = 'image/gif';
+            break;
+          case 'webp':
+            mimeType = 'image/webp';
+            break;
+          default:
+            mimeType = 'image/jpeg';
+        }
+        
+        file = XFile(
+          imagePath,
+          mimeType: mimeType,
+        );
+      }
+      
+      if (file == null) {
+        throw Exception('파일을 준비할 수 없습니다');
+      }
+      
+      // 이미지 공유
+      if (mounted) {
+        // iOS에서 sharePositionOrigin이 필요함 (공유 버튼의 위치)
+        Rect? sharePositionOrigin;
+        try {
+          final RenderBox? box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+          if (box != null && box.hasSize) {
+            final size = box.size;
+            final offset = box.localToGlobal(Offset.zero);
+            // 공유 버튼의 위치를 계산
+            sharePositionOrigin = Rect.fromLTWH(
+              offset.dx,
+              offset.dy,
+              size.width > 0 ? size.width : 44, // 최소 크기 보장
+              size.height > 0 ? size.height : 44,
+            );
+            print('sharePositionOrigin: $sharePositionOrigin');
+          } else {
+            print('RenderBox를 찾을 수 없거나 크기가 없음');
+          }
+        } catch (e) {
+          print('sharePositionOrigin 계산 실패: $e');
+          // 계산 실패 시 null로 두고 공유 시도 (Android에서는 문제 없음)
+        }
+        
+        await Share.shareXFiles(
+          [file],
+          text: '이미지 공유',
+          subject: '이미지',
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      }
+    } catch (e, stackTrace) {
+      print('공유 에러: $e');
+      print('스택 트레이스: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('공유에 실패했습니다: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: '확인',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -619,6 +769,16 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          Builder(
+            key: _shareButtonKey,
+            builder: (buttonContext) => IconButton(
+              icon: const Icon(Icons.share, color: Colors.white),
+              onPressed: () => _shareImage(buttonContext, widget.images[_currentIndex]),
+              tooltip: '공유하기',
+            ),
+          ),
+        ],
       ),
       body: PageView.builder(
         controller: _pageController,
@@ -630,25 +790,41 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
         },
         itemBuilder: (context, index) {
           final imagePath = widget.images[index];
-          return Center(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 3.0,
-              child: imagePath.startsWith('http')
-                  ? Image.network(
-                      imagePath,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
-                      ),
-                    )
-                  : Image.file(
-                      File(imagePath),
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => const Center(
-                        child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
-                      ),
-                    ),
+          // AppBar 높이를 고려하여 이미지를 약간 위로 올림
+          final appBarHeight = AppBar().preferredSize.height;
+          final statusBarHeight = MediaQuery.of(context).padding.top;
+          final offsetY = -(appBarHeight + statusBarHeight) / 2;
+          
+          return SizedBox.expand(
+            // 화면 전체를 사용하고 이미지를 가운데에 배치 (약간 위로)
+            child: Transform.translate(
+              offset: Offset(0, offsetY),
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                // boundaryMargin을 무한대로 설정하여 클리핑 방지
+                boundaryMargin: const EdgeInsets.all(double.infinity),
+                // 클리핑 비활성화하여 줌 시 이미지가 잘리지 않도록
+                clipBehavior: Clip.none,
+                // 화면 가운데에 이미지 배치
+                child: Center(
+                  child: imagePath.startsWith('http')
+                      ? Image.network(
+                          imagePath,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                          ),
+                        )
+                      : Image.file(
+                          File(imagePath),
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                          ),
+                        ),
+                ),
+              ),
             ),
           );
         },

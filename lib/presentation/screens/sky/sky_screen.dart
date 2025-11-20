@@ -11,6 +11,7 @@ import 'package:taba_app/presentation/widgets/gradient_scaffold.dart';
 import 'package:taba_app/presentation/widgets/empty_state.dart';
 import 'package:taba_app/presentation/widgets/taba_button.dart';
 import 'package:taba_app/presentation/widgets/nav_header.dart';
+import 'package:taba_app/presentation/widgets/app_logo.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 
@@ -191,13 +192,11 @@ class _SkyScreenState extends State<SkyScreen> {
               valueListenable: AppLocaleController.localeNotifier,
               builder: (context, locale, _) {
                 return NavHeader(
-                  child: Text(
-                    AppStrings.appName,
-                    style: GoogleFonts.pressStart2p().copyWith(
-                      fontSize: 20,
-                      letterSpacing: 2,
-                      color: Colors.white,
-                    ),
+                  child: AppLogo(
+                    fontSize: 20,
+                    letterSpacing: 2,
+                    color: Colors.white,
+                    shadows: [], // NavHeader에서는 그림자 제거
                   ),
                   actions: [
                     if (widget.onOpenBouquet != null)
@@ -330,7 +329,6 @@ class _SkyScreenState extends State<SkyScreen> {
   }
 
   Future<void> _openSeedBloom(BuildContext context, Letter letter) async {
-    final locale = AppLocaleController.localeNotifier.value;
     final bloomFlower = _bloomCatalog[_random.nextInt(_bloomCatalog.length)];
     final shouldOpen = await showGeneralDialog<bool>(
       context: context,
@@ -341,7 +339,6 @@ class _SkyScreenState extends State<SkyScreen> {
         return _SeedBloomOverlay(
           letter: letter,
           bloomFlower: bloomFlower,
-          locale: locale,
         );
       },
     );
@@ -658,12 +655,10 @@ class _SeedBloomOverlay extends StatefulWidget {
   const _SeedBloomOverlay({
     required this.letter,
     required this.bloomFlower,
-    required this.locale,
   });
 
   final Letter letter;
   final _BloomSpec bloomFlower;
-  final Locale locale;
 
   @override
   State<_SeedBloomOverlay> createState() => _SeedBloomOverlayState();
@@ -676,24 +671,16 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
     duration: const Duration(milliseconds: 1500),
   )..repeat(reverse: true);
   bool _isBlooming = false;
-  late final String _randomMessage;
+  late final String _message; // 멘트를 한 번만 선택하고 고정
 
   @override
   void initState() {
     super.initState();
-    _randomMessage = _getRandomBloomMessage(widget.locale);
-  }
-
-  String _getRandomBloomMessage(Locale locale) {
-    final messages = [
-      '씨앗으로부터 꽃을 피워볼까요?',
-      '이 씨앗에서 아름다운 꽃이 피어날 거예요',
-      '씨앗을 열어 꽃을 만나보세요',
-      '작은 씨앗에서 큰 꽃이 피어나요',
-      '씨앗 속에 숨겨진 꽃을 발견해보세요',
-    ];
+    // 초기화 시 한 번만 랜덤 메시지 선택
+    final locale = AppLocaleController.localeNotifier.value;
+    final messages = AppStrings.bloomSeedMessages(locale);
     final random = DateTime.now().millisecondsSinceEpoch % messages.length;
-    return messages[random];
+    _message = messages[random];
   }
 
   @override
@@ -713,6 +700,9 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppLocaleController.localeNotifier,
+      builder: (context, locale, _) {
     return Stack(
       children: [
         // 배경 탭 시 닫기
@@ -776,7 +766,7 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _randomMessage,
+                          _message, // 고정된 멘트 사용
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
@@ -790,8 +780,8 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
                       icon: const Icon(Icons.auto_awesome),
                       label: Text(
                         _isBlooming 
-                            ? AppStrings.blooming(widget.locale)
-                            : AppStrings.bloomButton(widget.locale),
+                                ? AppStrings.blooming(locale)
+                                : AppStrings.bloomButton(locale),
                       ),
                     ),
                   ],
@@ -801,6 +791,8 @@ class _SeedBloomOverlayState extends State<_SeedBloomOverlay>
           ),
         ),
       ],
+        );
+      },
     );
   }
 }

@@ -375,11 +375,23 @@ class DataRepository {
   }
 
   Future<List<String>> uploadImages(List<File> imageFiles) async {
+    if (imageFiles.isEmpty) {
+      return [];
+    }
+    
     final response = await _fileService.uploadImages(imageFiles);
     if (response.isSuccess && response.data != null) {
+      // 업로드된 URL 개수가 첨부된 파일 개수와 일치하는지 확인
+      if (response.data!.length == imageFiles.length) {
       return response.data!;
+      } else {
+        throw Exception('일부 이미지 업로드에 실패했습니다. (${response.data!.length}/${imageFiles.length})');
+      }
     }
-    return [];
+    
+    // 업로드 실패 시 에러 메시지와 함께 예외 발생
+    final errorMessage = response.error?.message ?? '이미지 업로드에 실패했습니다.';
+    throw Exception(errorMessage);
   }
 
   // Invite Codes

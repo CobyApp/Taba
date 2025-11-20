@@ -49,19 +49,19 @@ class _UserAvatarState extends State<UserAvatar> {
   @override
   Widget build(BuildContext context) {
     final hasAvatar = _effectiveAvatarUrl.isNotEmpty;
-    final shouldShowInitials = !hasAvatar || _hasImageError;
+    final shouldShowFallback = !hasAvatar || _hasImageError;
     final hasValidImage = hasAvatar && !_hasImageError;
     
     return CircleAvatar(
       radius: widget.radius,
       backgroundColor: widget.backgroundColor ?? 
-          (shouldShowInitials ? _effectiveFallbackColor : Colors.transparent),
+          (shouldShowFallback ? const Color(0xFF0A0024) : Colors.transparent), // 어두운 배경
       backgroundImage: hasValidImage
           ? NetworkImage(_effectiveAvatarUrl)
           : null,
       onBackgroundImageError: hasValidImage
           ? (exception, stackTrace) {
-              // 이미지 로드 실패 시 에러 상태로 변경하여 initials 표시
+              // 이미지 로드 실패 시 에러 상태로 변경하여 fallback 표시
               if (mounted) {
                 setState(() {
                   _hasImageError = true;
@@ -72,13 +72,29 @@ class _UserAvatarState extends State<UserAvatar> {
               }
             }
           : null, // backgroundImage가 null이면 onBackgroundImageError도 null이어야 함
-      child: shouldShowInitials
-          ? Text(
-              _effectiveInitials,
-              style: TextStyle(
-                fontSize: widget.radius * 0.6,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+      child: shouldShowFallback
+          ? ClipOval(
+              child: Image.asset(
+                'assets/images/flower.png',
+                width: widget.radius * 2,
+                height: widget.radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // flower.png가 없을 경우를 대비한 fallback (기존 initials 표시)
+                  return Container(
+                    color: _effectiveFallbackColor,
+                    child: Center(
+                      child: Text(
+                        _effectiveInitials,
+                        style: TextStyle(
+                          fontSize: widget.radius * 0.6,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             )
           : null,

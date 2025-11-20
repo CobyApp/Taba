@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/friend.dart';
@@ -49,6 +52,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   final _repository = DataRepository.instance;
   bool _sendToFriend = false;
   String? _fontFamily;
+  String? _previousLocaleCode; // 이전 locale 추적
   static const double _editorFontSize = 24; // 편지 읽기 화면과 동일하게
   List<FriendProfile> _friends = [];
   FriendProfile? _selectedFriend;
@@ -131,8 +135,12 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     super.initState();
     // 시스템 언어에 맞게 기본 폰트 설정
     final locale = AppLocaleController.localeNotifier.value;
+    _previousLocaleCode = locale.languageCode;
     _fontFamily = _getDefaultFontForLocale(locale.languageCode);
     _loadFriends();
+    
+    // 언어 변경 시 기본 폰트 업데이트
+    AppLocaleController.localeNotifier.addListener(_onLocaleChanged);
     
     // 제목과 내용 변경 시 버튼 활성화 상태 업데이트
     _titleController.addListener(() {
@@ -154,6 +162,33 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _sendToFriend = true;
       });
+    }
+  }
+
+  void _onLocaleChanged() {
+    if (!mounted) return;
+    final locale = AppLocaleController.localeNotifier.value;
+    final newLocaleCode = locale.languageCode;
+    
+    // locale이 실제로 변경되었는지 확인
+    if (_previousLocaleCode == newLocaleCode) return;
+    
+    // 이전 locale의 기본 폰트
+    final previousDefaultFont = _previousLocaleCode != null 
+        ? _getDefaultFontForLocale(_previousLocaleCode!)
+        : null;
+    
+    // 현재 폰트가 이전 locale의 기본 폰트와 같으면 (사용자가 수동으로 변경하지 않았으면)
+    // 새 locale의 기본 폰트로 업데이트
+    if (previousDefaultFont != null && _fontFamily == previousDefaultFont) {
+      final newDefaultFont = _getDefaultFontForLocale(newLocaleCode);
+      setState(() {
+        _fontFamily = newDefaultFont;
+        _previousLocaleCode = newLocaleCode;
+      });
+    } else {
+      // 사용자가 수동으로 폰트를 변경한 경우 locale만 업데이트
+      _previousLocaleCode = newLocaleCode;
     }
   }
 
@@ -253,58 +288,83 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     height: 1.5, // 본문 줄간격 (편지 읽기 화면과 동일)
   );
 
-  String _getTitlePlaceholder() {
-    final locale = AppLocaleController.localeNotifier.value;
-    if (_fontFamily == null) return '제목';
-    
-    // 영어 폰트
-    final enFonts = ['Press Start 2P', 'VT323', 'IBM Plex Mono', 'Bungee'];
-    if (enFonts.contains(_fontFamily)) {
-      return 'Title';
-    }
-    
-    // 일본어 폰트
-    final jpFonts = ['DotGothic16', 'Kosugi Maru'];
-    if (jpFonts.contains(_fontFamily)) {
-      return 'タイトル';
-    }
-    
-    // 한국어 폰트 (기본)
-    return '제목';
+  String _getTitlePlaceholder(Locale locale) {
+    return AppStrings.titleHint(locale);
   }
 
-  String _getBodyPlaceholder() {
-    final locale = AppLocaleController.localeNotifier.value;
-    if (_fontFamily == null) return '내용을 입력하세요...';
-    
-    // 영어 폰트
-    final enFonts = ['Press Start 2P', 'VT323', 'IBM Plex Mono', 'Bungee'];
-    if (enFonts.contains(_fontFamily)) {
-      return 'Enter your content...';
-    }
-    
-    // 일본어 폰트
-    final jpFonts = ['DotGothic16', 'Kosugi Maru'];
-    if (jpFonts.contains(_fontFamily)) {
-      return '内容を入力してください...';
-    }
-    
-    // 한국어 폰트 (기본)
-    return '내용을 입력하세요...';
+  String _getBodyPlaceholder(Locale locale) {
+    return AppStrings.contentHint(locale);
   }
 
 
+
+  Future<File?> _compressImage(File imageFile) async {
+    try {
+      // 임시 디렉토리 가져오기
+      final tempDir = await getTemporaryDirectory();
+      final targetPath = path.join(
+        tempDir.path,
+        '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}',
+      );
+
+      // 이미지 압축
+      // 최대 너비/높이: 1920px, 품질: 85%
+      final compressedFile = await FlutterImageCompress.compressAndGetFile(
+        imageFile.absolute.path,
+        targetPath,
+        minWidth: 1920,
+        minHeight: 1920,
+        quality: 85,
+        format: CompressFormat.jpeg,
+      );
+
+      return compressedFile != null ? File(compressedFile.path) : null;
+    } catch (e) {
+      print('이미지 압축 실패: $e');
+      // 압축 실패 시 원본 파일 반환
+      return imageFile;
+    }
+  }
 
   Future<void> _pickImages() async {
     try {
       final List<XFile> pickedFiles = await _imagePicker.pickMultiImage();
       if (pickedFiles.isNotEmpty) {
-        setState(() {
-          for (final file in pickedFiles) {
-            _attachedImages.add(file.path);
-            _attachedImageFiles.add(File(file.path));
+        if (mounted) {
+          final locale = AppLocaleController.localeNotifier.value;
+          // 이미지 압축 중 표시 (선택사항)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('이미지를 압축하는 중...'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+
+        final List<String> compressedPaths = [];
+        final List<File> compressedFiles = [];
+
+        // 각 이미지를 압축
+        for (final file in pickedFiles) {
+          final originalFile = File(file.path);
+          final compressedFile = await _compressImage(originalFile);
+          
+          if (compressedFile != null) {
+            compressedPaths.add(compressedFile.path);
+            compressedFiles.add(compressedFile);
+          } else {
+            // 압축 실패 시 원본 사용
+            compressedPaths.add(file.path);
+            compressedFiles.add(originalFile);
           }
-        });
+        }
+
+        if (mounted) {
+          setState(() {
+            _attachedImages.addAll(compressedPaths);
+            _attachedImageFiles.addAll(compressedFiles);
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -814,6 +874,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       contentPadding: EdgeInsets.zero,
     );
 
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppLocaleController.localeNotifier,
+      builder: (context, locale, _) {
     final titleStyle = _titleStyle();
     final bodyStyle = _bodyStyle();
 
@@ -833,7 +896,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
             cursorWidth: 2.0,
             cursorHeight: titleStyle.fontSize! * titleStyle.height!,
             decoration: InputDecoration(
-              hintText: _getTitlePlaceholder(),
+                  hintText: _getTitlePlaceholder(locale),
               hintStyle: (_fontFamily != null
                       ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
                       : const TextStyle(color: Colors.white))
@@ -865,7 +928,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         cursorWidth: 2.0,
                 cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
         decoration: InputDecoration(
-                  hintText: _getBodyPlaceholder(),
+                      hintText: _getBodyPlaceholder(locale),
           hintStyle: (_fontFamily != null
                   ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
                   : const TextStyle(color: Colors.white))
@@ -881,6 +944,8 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           ),
         ],
       ),
+        );
+      },
     );
   }
 
@@ -912,7 +977,29 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       // 이미지 업로드
       List<String> uploadedImageUrls = [];
       if (_attachedImageFiles.isNotEmpty) {
+        try {
         uploadedImageUrls = await _repository.uploadImages(_attachedImageFiles);
+          // 업로드된 URL 개수가 첨부된 파일 개수와 일치하는지 확인
+          if (uploadedImageUrls.length != _attachedImageFiles.length) {
+            if (mounted) {
+              final locale = AppLocaleController.localeNotifier.value;
+              showTabaError(
+                context,
+                message: '일부 이미지 업로드에 실패했습니다. (${uploadedImageUrls.length}/${_attachedImageFiles.length})',
+        );
+            }
+            return;
+          }
+        } catch (e) {
+          if (mounted) {
+            final locale = AppLocaleController.localeNotifier.value;
+            showTabaError(
+              context,
+              message: '이미지 업로드에 실패했습니다: ${e.toString()}',
+            );
+          }
+          return;
+        }
       }
 
       // Color를 16진수 문자열로 변환 (#RRGGBB)
@@ -1006,6 +1093,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
   @override
   void dispose() {
+    AppLocaleController.localeNotifier.removeListener(_onLocaleChanged);
     _titleController.dispose();
     _bodyController.dispose();
     _titleFocusNode.dispose();

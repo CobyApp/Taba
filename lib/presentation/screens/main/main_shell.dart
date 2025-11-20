@@ -174,13 +174,13 @@ class _MainShellState extends State<MainShell> {
       // 친구 목록을 FriendBouquet 형태로 변환
       // API에서 받은 unreadLetterCount 사용 (API 명세서: 안 읽은 개인편지(DIRECT) 개수)
       final friendBouquets = friends.map((friend) {
-        return FriendBouquet(
-          friend: friend,
-          bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
-          trustScore: 0, // 계산 로직이 없으므로 기본값
-          bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
+            return FriendBouquet(
+              friend: friend,
+              bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
+              trustScore: 0, // 계산 로직이 없으므로 기본값
+              bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
           unreadCount: friend.unreadLetterCount, // API에서 받은 안 읽은 개인편지 개수 사용
-        );
+            );
       }).toList();
       
       if (!mounted) return;
