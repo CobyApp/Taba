@@ -145,26 +145,43 @@ jobs:
               exit 1
             fi
             
-            # Update ExportOptions
+            # Extract profile name and certificate info from provisioning profile
+            TEMP_PLIST=$(mktemp)
+            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "Taba App Store Distribution")
+            
+            # Extract DeveloperCertificates to find certificate name
+            CERT_COUNT=$(/usr/libexec/PlistBuddy -c "Print DeveloperCertificates" "$TEMP_PLIST" 2>/dev/null | grep -c "data" || echo "0")
+            if [ "$CERT_COUNT" -gt "0" ]; then
+              echo "Found $CERT_COUNT certificate(s) in provisioning profile"
+            fi
+            rm -f "$TEMP_PLIST"
+            
+            # Update ExportOptions with provisioning profile UUID
+            /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
             
-            # Update Xcode project with PROVISIONING_PROFILE_SPECIFIER using profile name or UUID
-            # Extract profile name from provisioning profile
-            TEMP_PLIST=$(mktemp)
-            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
-            PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "Taba App Store Distribution")
-            rm -f "$TEMP_PLIST"
+            # Ensure signingStyle is manual
+            /usr/libexec/PlistBuddy -c "Set :signingStyle manual" ios/ExportOptions-dev.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-dev.plist 2>/dev/null || true
+            
+            # Ensure teamID is set
+            /usr/libexec/PlistBuddy -c "Set :teamID 6M5JX8T4LL" ios/ExportOptions-dev.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :teamID string 6M5JX8T4LL" ios/ExportOptions-dev.plist 2>/dev/null || true
             
             # Update PROVISIONING_PROFILE_SPECIFIER in Release and Profile configurations
-            # Use profile name as shown in Xcode (e.g., "Taba App Store Distribution")
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
             
             echo "Updated ExportOptions:"
             cat ios/ExportOptions-dev.plist
             echo ""
             echo "Using Provisioning Profile: $PROFILE_NAME (UUID: $PROFILE_UUID)"
+            
+            # Verify certificates in keychain
+            echo "Available signing identities:"
+            security find-identity -v -p codesigning build.keychain | grep "Distribution" || security find-identity -v -p codesigning build.keychain || true
           else
             echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi
