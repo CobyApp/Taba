@@ -1,0 +1,101 @@
+name: Develop Build & Deploy
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-android-dev:
+    name: Build Android Dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Android APK (Dev)
+        run: |
+          flutter build apk --release \
+            --build-name=1.0.0-dev \
+            --build-number=${{ github.run_number }} \
+            --dart-define=ENV=dev
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-dev-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  build-ios-dev:
+    name: Build iOS Dev
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+
+      - name: Build iOS IPA (Dev)
+        run: |
+          flutter build ipa --release \
+            --build-name=1.0.0-dev \
+            --build-number=${{ github.run_number }} \
+            --dart-define=ENV=dev \
+            --export-options-plist=ios/ExportOptions-dev.plist
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-dev-ipa
+          path: build/ios/ipa/*.ipa
+          retention-days: 30
+
+      - name: Upload to TestFlight (Dev)
+        if: success()
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+        run: |
+          # Create API key file
+          mkdir -p ~/private_keys
+          echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
+          chmod 600 ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
+          
+          # Upload using xcrun altool
+          xcrun altool --upload-app \
+            --type ios \
+            --file build/ios/ipa/*.ipa \
+            --apiKey $APP_STORE_CONNECT_API_KEY_ID \
+            --apiIssuer $APP_STORE_CONNECT_ISSUER_ID \
+            --verbose
+

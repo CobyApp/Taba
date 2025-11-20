@@ -143,6 +143,22 @@ flutter build apk --release
 flutter build ios --release
 ```
 
+## 🔄 CI/CD
+
+이 프로젝트는 GitHub Actions를 사용한 자동 빌드 및 배포 파이프라인을 지원합니다.
+
+### 브랜치 전략
+
+- **`develop`**: 개발 빌드 → TestFlight (iOS) / Artifact (Android)
+- **`release`**: 프로덕션 빌드 → App Store (iOS) / Google Play Production (Android)
+
+### 설정 가이드
+
+- [빠른 시작 가이드](./docs/QUICK_START.md) - 5분 안에 설정하기
+- [상세 설정 가이드](./docs/CI_CD_SETUP.md) - 전체 설정 방법
+- [설정 체크리스트](./docs/CI_CD_CHECKLIST.md) - 단계별 확인 사항
+- [설정 요약](./docs/CI_CD_SUMMARY.md) - 필요한 환경 변수 및 준비 사항
+
 ## 📝 앱 정보
 
 - **패키지명**: `com.coby.taba`
