@@ -122,6 +122,10 @@ jobs:
 
             # Set keychain to allow codesign
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
+            
+            # List imported certificates
+            echo "Imported certificates:"
+            security find-identity -v -p codesigning -k build.keychain || true
           else
             echo "No certificate provided. Will use automatic signing."
           fi
