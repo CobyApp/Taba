@@ -30,6 +30,7 @@ class BouquetScreen extends StatefulWidget {
 
 class _BouquetScreenState extends State<BouquetScreen> {
   final _repository = DataRepository.instance;
+  late List<FriendBouquet> _friendBouquets; // 상태로 관리하여 삭제된 친구 제거 가능
   int _selectedIndex = 0;
   late Set<String> _readFlowerIds;
   final Map<String, String> _customBouquetNames = {};
@@ -42,10 +43,11 @@ class _BouquetScreenState extends State<BouquetScreen> {
   @override
   void initState() {
     super.initState();
+    _friendBouquets = List.from(widget.friendBouquets); // 상태로 복사
     _readFlowerIds = {};
     // 초기 선택된 친구의 편지 목록 로드
-    if (widget.friendBouquets.isNotEmpty) {
-      _loadFriendLetters(widget.friendBouquets[_selectedIndex].friend.user.id, reset: true);
+    if (_friendBouquets.isNotEmpty) {
+      _loadFriendLetters(_friendBouquets[_selectedIndex].friend.user.id, reset: true);
     }
     
     // 무한 스크롤을 위한 스크롤 리스너
@@ -78,7 +80,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
     }
   }
 
-  FriendBouquet get _selectedBouquet => widget.friendBouquets[_selectedIndex];
+  FriendBouquet get _selectedBouquet => _friendBouquets[_selectedIndex];
   String _resolveBouquetName(FriendBouquet bouquet) =>
       _customBouquetNames[bouquet.friend.user.id] ?? bouquet.bouquetName;
 
@@ -91,7 +93,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
     if (index == _selectedIndex) return;
     setState(() => _selectedIndex = index);
     // 선택된 친구의 편지 목록이 없으면 로드
-    final friendId = widget.friendBouquets[index].friend.user.id;
+    final friendId = _friendBouquets[index].friend.user.id;
     if (!_loadedFlowers.containsKey(friendId) && !(_loadingFlowers[friendId] ?? false)) {
       _loadFriendLetters(friendId, reset: true);
     }
@@ -137,6 +139,48 @@ class _BouquetScreenState extends State<BouquetScreen> {
           }
           
           // 서버에서 정렬된 순서 그대로 사용
+          // 정렬 순서 확인 로깅
+          print('📋 편지 정렬 확인 (friendId=$friendId):');
+          for (int i = 0; i < sortedFlowers.length; i++) {
+            final flower = sortedFlowers[i];
+            print('  [$i] sentAt=${flower.sentAt.toIso8601String()}, sentByMe=${flower.sentByMe}, title=${flower.title}');
+          }
+          
+          // 시간순 정렬 검증
+          bool isTimeOrdered = true;
+          for (int i = 1; i < sortedFlowers.length; i++) {
+            if (sortedFlowers[i].sentAt.isBefore(sortedFlowers[i-1].sentAt)) {
+              isTimeOrdered = false;
+              print('  ⚠️ 시간순 정렬 위반: 인덱스 ${i-1}(${sortedFlowers[i-1].sentAt}) > 인덱스 $i(${sortedFlowers[i].sentAt})');
+              break;
+            }
+          }
+          
+          // sentByMe로 분리되어 있는지 확인
+          bool isSeparatedBySentByMe = true;
+          bool? lastSentByMe;
+          for (int i = 0; i < sortedFlowers.length; i++) {
+            if (lastSentByMe != null && lastSentByMe != sortedFlowers[i].sentByMe) {
+              // sentByMe가 바뀌는 지점이 있으면 분리되어 있지 않음
+              isSeparatedBySentByMe = false;
+              print('  ⚠️ sentByMe 분리 위반: 인덱스 ${i-1}($lastSentByMe) -> 인덱스 $i(${sortedFlowers[i].sentByMe})');
+              break;
+            }
+            lastSentByMe = sortedFlowers[i].sentByMe;
+          }
+          
+          print('  ✅ 시간순 정렬: $isTimeOrdered');
+          print('  ✅ sentByMe 분리: $isSeparatedBySentByMe');
+          if (isTimeOrdered && !isSeparatedBySentByMe) {
+            print('  ✅ 결론: 시간순으로 섞여서 정렬됨 (친구 편지와 내 편지가 시간순으로 섞임)');
+          } else if (!isTimeOrdered && isSeparatedBySentByMe) {
+            print('  ⚠️ 결론: sentByMe로 분리되어 있지만 시간순이 아님');
+          } else if (isTimeOrdered && isSeparatedBySentByMe) {
+            print('  ⚠️ 결론: sentByMe로 분리되어 있고, 각 그룹 내에서 시간순 정렬됨');
+          } else {
+            print('  ⚠️ 결론: 시간순도 아니고 sentByMe로 분리되지도 않음');
+          }
+          
           _loadedFlowers[friendId] = sortedFlowers;
           
           // 페이지네이션 정보 업데이트
@@ -242,7 +286,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
     return ValueListenableBuilder<Locale>(
       valueListenable: AppLocaleController.localeNotifier,
       builder: (context, locale, _) {
-        if (widget.friendBouquets.isEmpty) {
+        if (_friendBouquets.isEmpty) {
           return GradientScaffold(
             body: EmptyState(
               icon: Icons.local_florist_outlined,
@@ -278,6 +322,38 @@ class _BouquetScreenState extends State<BouquetScreen> {
               children: [
                 NavHeader(
                   showBackButton: true,
+                  actions: [
+                    PopupMenuButton<String>(
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Colors.white,
+                      ),
+                      color: Colors.white,
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          _deleteFriend(_selectedBouquet);
+                        }
+                      },
+                      itemBuilder: (context) {
+                        final locale = AppLocaleController.localeNotifier.value;
+                        return [
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.person_remove, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text(
+                                  AppStrings.deleteFriend(locale),
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ];
+                      },
+                    ),
+                  ],
                 ),
             Expanded(
               child: CustomScrollView(
@@ -285,7 +361,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: FriendStoryStrip(
-                      bouquets: widget.friendBouquets,
+                      bouquets: _friendBouquets,
                       selectedIndex: _selectedIndex,
                       unreadResolver: _unreadFor,
                       onSelect: _selectFriend,
@@ -310,13 +386,13 @@ class _BouquetScreenState extends State<BouquetScreen> {
                             title: AppStrings.noLettersYet(locale),
                             subtitle: AppStrings.writeLetterToStart(locale),
                           ),
-                        )
-                      : ChatMessagesList(
-                          flowers: _selectedFlowers,
-                          readFlowerIds: _readFlowerIds,
-                          onOpen: _openFlower,
-                          friendUser: selected.friend.user,
-                        ),
+                    )
+                  : ChatMessagesList(
+                      flowers: _selectedFlowers,
+                      readFlowerIds: _readFlowerIds,
+                      onOpen: _openFlower,
+                      friendUser: selected.friend.user,
+                    ),
             ),
                   // 무한 스크롤 로딩 인디케이터
                   if (isLoading && _selectedFlowers.isNotEmpty)
@@ -375,6 +451,71 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
         ),
       ),
     );
+  }
+
+  Future<void> _deleteFriend(FriendBouquet bouquet) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    final friendName = bouquet.friend.user.nickname;
+    final friendId = bouquet.friend.user.id;
+    
+    // 확인 다이얼로그 표시
+    final confirmed = await TabaModalSheet.showConfirm(
+      context: context,
+      title: AppStrings.deleteFriend(locale),
+      message: AppStrings.deleteFriendConfirm(locale, friendName),
+      confirmText: AppStrings.deleteFriend(locale),
+      cancelText: AppStrings.cancel(locale),
+      confirmColor: Colors.red,
+    );
+    
+    if (confirmed != true) return;
+    
+    try {
+      final success = await _repository.deleteFriend(friendId);
+      
+      if (!mounted) return;
+      
+      if (success) {
+        // 친구 삭제 성공 시 목록에서 제거
+        setState(() {
+          _friendBouquets.removeWhere((b) => b.friend.user.id == friendId);
+          // 삭제된 친구의 캐시 데이터도 제거
+          _loadedFlowers.remove(friendId);
+          _loadingFlowers.remove(friendId);
+          _hasMorePages.remove(friendId);
+          _currentPages.remove(friendId);
+          
+          // 선택된 인덱스 조정
+          if (_friendBouquets.isEmpty) {
+            _selectedIndex = 0;
+          } else if (_selectedIndex >= _friendBouquets.length) {
+            _selectedIndex = _friendBouquets.length - 1;
+          }
+          
+          // 남은 친구가 있으면 선택된 친구의 편지 목록 로드
+          if (_friendBouquets.isNotEmpty) {
+            _loadFriendLetters(_friendBouquets[_selectedIndex].friend.user.id, reset: true);
+          }
+        });
+        
+        showTabaSuccess(
+          context,
+          title: AppStrings.friendDeleted(locale),
+          message: AppStrings.friendDeletedMessage(locale),
+        );
+      } else {
+        showTabaError(
+          context,
+          message: AppStrings.errorOccurred(locale, '친구 삭제에 실패했습니다.'),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showTabaError(
+        context,
+        message: AppStrings.errorOccurred(locale, e.toString()),
+      );
+    }
   }
 }
 

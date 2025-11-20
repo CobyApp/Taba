@@ -120,25 +120,27 @@ class FriendService {
       return ApiResponse<List<FriendProfileDto>>.fromJson(
         response.data as Map<String, dynamic>,
         (data) {
-          // API 명세서: {success: true, data: {friends: [...]}}
+ㅊ          // API 명세서: {success: true, data: {friends: [...]}}
           // data는 {friends: [...]} 형태
           if (data is Map<String, dynamic> && data.containsKey('friends')) {
             final friendsList = data['friends'] as List<dynamic>?;
             if (friendsList != null) {
               return friendsList
-                  .map((item) {
-                    final userJson = item as Map<String, dynamic>;
-                    // UserDto를 FriendProfileDto로 변환
-                    // API 명세서: 친구 목록에는 lastLetterAt 정보가 없음
-                    return FriendProfileDto.fromJson({
-                      'id': userJson['id'],
-                      'user': userJson, // UserDto 정보 (id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters)
-                      'lastLetterAt': DateTime.now().toIso8601String(), // API 응답에 없으므로 기본값 사용
-                      'friendCount': userJson['friendCount'] ?? 0,
-                      'sentLetters': userJson['sentLetters'] ?? 0,
-                    });
-                  })
-                  .toList();
+                .map((item) {
+                  final userJson = item as Map<String, dynamic>;
+                  // UserDto를 FriendProfileDto로 변환
+                  // API 명세서: 친구 목록에는 lastLetterAt 정보가 없음
+                  // API 명세서: unreadLetterCount는 안 읽은 개인편지(DIRECT) 개수
+                  return FriendProfileDto.fromJson({
+                    'id': userJson['id'],
+                    'user': userJson, // UserDto 정보 (id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters)
+                    'lastLetterAt': DateTime.now().toIso8601String(), // API 응답에 없으므로 기본값 사용
+                    'friendCount': userJson['friendCount'] ?? 0,
+                    'sentLetters': userJson['sentLetters'] ?? 0,
+                    'unreadLetterCount': userJson['unreadLetterCount'] ?? 0, // API 명세서: 안 읽은 개인편지(DIRECT) 개수
+                  });
+                })
+                .toList();
             }
           }
           // 하위 호환성: data가 직접 배열인 경우
@@ -152,6 +154,7 @@ class FriendService {
                     'lastLetterAt': DateTime.now().toIso8601String(),
                     'friendCount': userJson['friendCount'] ?? 0,
                     'sentLetters': userJson['sentLetters'] ?? 0,
+                    'unreadLetterCount': userJson['unreadLetterCount'] ?? 0, // API 명세서: 안 읽은 개인편지(DIRECT) 개수
                   });
                 })
                 .toList();

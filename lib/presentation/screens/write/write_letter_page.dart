@@ -332,7 +332,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         itemBuilder: (context, index) {
           final imagePath = _attachedImages[index];
           return Stack(
-            children: [
+              children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(
@@ -354,13 +354,13 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, size: 12, color: Colors.white),
-                  ),
-                ),
-              ),
+                        ),
+                      ),
+                    ),
             ],
           );
         },
-      ),
+                ),
     );
   }
 
@@ -462,7 +462,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                 return ValueListenableBuilder<bool>(
                   valueListenable: _isSendingNotifier,
                   builder: (context, isSending, _) {
-                    return Padding(
+                return Padding(
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
                     left: AppSpacing.xl,
@@ -577,10 +577,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                                 height: 90,
                                 child: ListView.builder(
                                   scrollDirection: Axis.horizontal,
-                                  itemCount: _friends.length,
-                                  itemBuilder: (context, index) {
-                                    final friend = _friends[index];
-                                    final selected = localFriend?.user.id == friend.user.id;
+                                itemCount: _friends.length,
+                                itemBuilder: (context, index) {
+                                  final friend = _friends[index];
+                                  final selected = localFriend?.user.id == friend.user.id;
                                     return Padding(
                                       padding: EdgeInsets.only(
                                         right: index < _friends.length - 1 ? AppSpacing.md : 0,
@@ -614,9 +614,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               UserAvatar(
-                                                user: friend.user,
+                                      user: friend.user,
                                                 radius: 22,
-                                              ),
+                                    ),
                                               const SizedBox(height: 4),
                                               Flexible(
                                                 child: Text(
@@ -636,9 +636,9 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                                             ],
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  },
+                                    ),
+                                  );
+                                },
                                 ),
                               ),
                           ] else if (localFriend != null) ...[
@@ -704,14 +704,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           icon: Icons.auto_awesome,
                           isLoading: isSending,
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                );
-                  },
-                );
-              },
-            );
+                ),
+              );
+            },
+          );
+        },
+      );
           },
         );
       },
@@ -768,8 +768,8 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                   child: _buildEditor(context),
+                ),
               ),
-            ),
             // 하단에 첨부 사진 미리보기 표시
             if (_attachedImages.isNotEmpty) _buildAttachedImagesPreview(),
           ],

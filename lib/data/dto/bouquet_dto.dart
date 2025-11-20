@@ -45,6 +45,7 @@ class FriendProfileDto {
   final DateTime lastLetterAt;
   final int friendCount;
   final int sentLetters;
+  final int unreadLetterCount; // API 명세서: 안 읽은 개인편지(DIRECT) 개수
 
   FriendProfileDto({
     required this.id,
@@ -52,6 +53,7 @@ class FriendProfileDto {
     required this.lastLetterAt,
     required this.friendCount,
     required this.sentLetters,
+    required this.unreadLetterCount,
   });
 
   factory FriendProfileDto.fromJson(Map<String, dynamic> json) {
@@ -72,6 +74,7 @@ class FriendProfileDto {
           : DateTime.now(),
       friendCount: json['friendCount'] as int? ?? 0,
       sentLetters: json['sentLetters'] as int? ?? 0,
+      unreadLetterCount: json['unreadLetterCount'] as int? ?? 0, // API 명세서: 안 읽은 개인편지(DIRECT) 개수
     );
   }
 
@@ -82,6 +85,7 @@ class FriendProfileDto {
       friendCount: friendCount,
       sentLetters: sentLetters,
       inviteCode: '', // API에서 제공되지 않으면 빈 문자열
+      unreadLetterCount: unreadLetterCount,
     );
   }
 }

@@ -339,14 +339,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     const Icon(Icons.language, size: 20),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(
+                                child: Text(
                                         AppStrings.appLanguage(currentLocale),
                                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
                                         ),
-                                      ),
-                                    ),
+                        ),
+                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
@@ -979,12 +979,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _currentAvatarUrl;
   bool _isRemovingImage = false;
   bool _isLoading = false;
+  bool _hasImageError = false;
 
   @override
   void initState() {
     super.initState();
     _nicknameCtrl.text = widget.currentUser.nickname;
     _currentAvatarUrl = widget.currentUser.avatarUrl;
+    _hasImageError = false;
   }
 
   @override
@@ -1005,6 +1007,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _profileImage = File(pickedFile.path);
           _isRemovingImage = false;
+          _hasImageError = false;
         });
       }
     } catch (e) {
@@ -1026,6 +1029,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _profileImage = File(pickedFile.path);
           _isRemovingImage = false;
+          _hasImageError = false;
         });
       }
     } catch (e) {
@@ -1072,6 +1076,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     setState(() {
                       _profileImage = null;
                       _isRemovingImage = true;
+                      _hasImageError = false;
                     });
                   },
                 ),
@@ -1173,28 +1178,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onTap: _showImagePickerOptions,
               child: Stack(
                 children: [
-                  CircleAvatar(
+                  _ProfileImageAvatar(
                     radius: 60,
-                    backgroundColor: Colors.white.withAlpha(30),
-                    backgroundImage: _isRemovingImage
-                        ? null
-                        : (_profileImage != null
-                            ? FileImage(_profileImage!)
-                            : (_currentAvatarUrl != null && _currentAvatarUrl!.isNotEmpty
-                                ? NetworkImage(_currentAvatarUrl!)
-                                : null) as ImageProvider?),
-                    child: _isRemovingImage || 
-                           (_profileImage == null && 
-                            (_currentAvatarUrl == null || _currentAvatarUrl!.isEmpty))
-                        ? Text(
-                            widget.currentUser.initials,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
+                    profileImage: _isRemovingImage ? null : _profileImage,
+                    avatarUrl: _currentAvatarUrl,
+                    user: widget.currentUser,
+                    hasError: _hasImageError,
+                    onImageError: () {
+                      setState(() {
+                        _hasImageError = true;
+                      });
+                    },
                   ),
                   Positioned(
                     bottom: 0,
@@ -1229,6 +1223,62 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           // 상태 메시지 제거됨
         ],
       ),
+    );
+  }
+}
+
+class _ProfileImageAvatar extends StatelessWidget {
+  const _ProfileImageAvatar({
+    required this.radius,
+    this.profileImage,
+    this.avatarUrl,
+    required this.user,
+    required this.hasError,
+    required this.onImageError,
+  });
+
+  final double radius;
+  final File? profileImage;
+  final String? avatarUrl;
+  final TabaUser user;
+  final bool hasError;
+  final VoidCallback onImageError;
+
+  @override
+  Widget build(BuildContext context) {
+    final shouldShowInitials = profileImage == null && 
+                               (avatarUrl == null || avatarUrl!.isEmpty || hasError);
+    
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: shouldShowInitials 
+          ? user.avatarFallbackColor() 
+          : Colors.transparent,
+      backgroundImage: shouldShowInitials
+          ? null
+          : (profileImage != null
+              ? FileImage(profileImage!)
+              : (avatarUrl != null && avatarUrl!.isNotEmpty
+                  ? NetworkImage(avatarUrl!)
+                  : null) as ImageProvider?),
+      onBackgroundImageError: (profileImage == null && 
+                                avatarUrl != null && 
+                                avatarUrl!.isNotEmpty && 
+                                !hasError)
+          ? (exception, stackTrace) {
+              onImageError();
+            }
+          : null,
+      child: shouldShowInitials
+          ? Text(
+              user.initials,
+              style: TextStyle(
+                fontSize: radius * 0.5,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            )
+          : null,
     );
   }
 }

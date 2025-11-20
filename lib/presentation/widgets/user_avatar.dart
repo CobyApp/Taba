@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/data/models/user.dart';
 
-class UserAvatar extends StatelessWidget {
+class UserAvatar extends StatefulWidget {
   const UserAvatar({
     super.key,
     this.user,
@@ -24,44 +24,64 @@ class UserAvatar extends StatelessWidget {
   final Color? backgroundColor;
   final ImageErrorListener? onBackgroundImageError;
 
+  @override
+  State<UserAvatar> createState() => _UserAvatarState();
+}
+
+class _UserAvatarState extends State<UserAvatar> {
+  bool _hasImageError = false;
+
   String get _effectiveAvatarUrl {
-    if (user != null) return user!.avatarUrl;
-    return avatarUrl ?? '';
+    if (widget.user != null) return widget.user!.avatarUrl;
+    return widget.avatarUrl ?? '';
   }
 
   String get _effectiveInitials {
-    if (user != null) return user!.initials;
-    return initials ?? '?';
+    if (widget.user != null) return widget.user!.initials;
+    return widget.initials ?? '?';
   }
 
   Color get _effectiveFallbackColor {
-    if (user != null) return user!.avatarFallbackColor();
-    return fallbackColor ?? const Color(0xFFFF9AC9);
+    if (widget.user != null) return widget.user!.avatarFallbackColor();
+    return widget.fallbackColor ?? const Color(0xFFFF9AC9);
   }
 
   @override
   Widget build(BuildContext context) {
     final hasAvatar = _effectiveAvatarUrl.isNotEmpty;
+    final shouldShowInitials = !hasAvatar || _hasImageError;
+    final hasValidImage = hasAvatar && !_hasImageError;
     
     return CircleAvatar(
-      radius: radius,
-      backgroundColor: backgroundColor ?? 
-          (hasAvatar ? Colors.transparent : _effectiveFallbackColor),
-      backgroundImage: hasAvatar 
+      radius: widget.radius,
+      backgroundColor: widget.backgroundColor ?? 
+          (shouldShowInitials ? _effectiveFallbackColor : Colors.transparent),
+      backgroundImage: hasValidImage
           ? NetworkImage(_effectiveAvatarUrl)
           : null,
-      onBackgroundImageError: onBackgroundImageError ?? 
-          (hasAvatar ? (_, __) {} : null),
-      child: hasAvatar 
-          ? null 
-          : Text(
+      onBackgroundImageError: hasValidImage
+          ? (exception, stackTrace) {
+              // 이미지 로드 실패 시 에러 상태로 변경하여 initials 표시
+              if (mounted) {
+                setState(() {
+                  _hasImageError = true;
+                });
+              }
+              if (widget.onBackgroundImageError != null) {
+                widget.onBackgroundImageError!(exception, stackTrace);
+              }
+            }
+          : null, // backgroundImage가 null이면 onBackgroundImageError도 null이어야 함
+      child: shouldShowInitials
+          ? Text(
               _effectiveInitials,
               style: TextStyle(
-                fontSize: radius * 0.6,
+                fontSize: widget.radius * 0.6,
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
-            ),
+            )
+          : null,
     );
   }
 }

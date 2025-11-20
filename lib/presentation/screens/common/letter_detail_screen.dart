@@ -154,22 +154,22 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                           const Spacer(),
                           // 내가 보낸 편지가 아닐 때만 신고 버튼 표시
                           if (!_isMyLetter)
-                            TextButton(
-                              onPressed: () => _openReportSheet(context),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                AppStrings.reportButton(locale),
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontSize: 14,
-                                  fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
-                                ),
+                          TextButton(
+                            onPressed: () => _openReportSheet(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              AppStrings.reportButton(locale),
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 14,
+                                fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
                               ),
                             ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -219,49 +219,49 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                           ],
                         )
                       else if (!_isMyLetter)
-                        Row(
-                          children: [
-                            UserAvatar(
-                              user: widget.letter.sender,
-                              radius: 20,
-                              backgroundColor: Colors.white.withAlpha(20),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _displaySender(locale),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                      fontFamily: Theme.of(context).textTheme.titleMedium?.fontFamily,
-                                    ),
+                      Row(
+                        children: [
+                          UserAvatar(
+                            user: widget.letter.sender,
+                            radius: 20,
+                            backgroundColor: Colors.white.withAlpha(20),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _displaySender(locale),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    fontFamily: Theme.of(context).textTheme.titleMedium?.fontFamily,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.schedule, size: 12, color: Colors.white54),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        widget.letter.localizedTimeAgo(locale),
-                                        style: TextStyle(
-                                          color: Colors.white54,
-                                          fontSize: 12,
-                                          fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
-                                        ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.schedule, size: 12, color: Colors.white54),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.letter.localizedTimeAgo(locale),
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -320,28 +320,28 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
     final firstImage = images.first;
     return Container(
       height: 150,
-      decoration: BoxDecoration(
-        color: AppColors.midnight,
+        decoration: BoxDecoration(
+          color: AppColors.midnight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
-      ),
-      child: ClipRRect(
+          border: Border.all(color: Colors.white24),
+        ),
+        child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: firstImage.startsWith('http')
-            ? Image.network(
+                      ? Image.network(
                 firstImage,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white54),
-                ),
-              )
-            : Image.file(
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54),
+                          ),
+                        )
+                      : Image.file(
                 File(firstImage),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.white54),
-                ),
-              ),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const Center(
+                            child: Icon(Icons.broken_image, color: Colors.white54),
+          ),
+        ),
       ),
     );
   }

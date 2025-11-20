@@ -2026,6 +2026,50 @@ class AppStrings {
     }
   }
 
+  static String deleteFriend(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Remove Friend';
+      case 'ja':
+        return '友達を削除';
+      default:
+        return '친구 끊기';
+    }
+  }
+
+  static String deleteFriendConfirm(Locale locale, String friendName) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Are you sure you want to remove $friendName from your friends?';
+      case 'ja':
+        return '$friendNameを友達から削除してもよろしいですか？';
+      default:
+        return '$friendName님과 친구를 끊으시겠습니까?';
+    }
+  }
+
+  static String friendDeleted(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Friend removed';
+      case 'ja':
+        return '友達が削除されました';
+      default:
+        return '친구가 삭제되었습니다';
+    }
+  }
+
+  static String friendDeletedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'The friend has been removed from your friends list.';
+      case 'ja':
+        return '友達が友達リストから削除されました。';
+      default:
+        return '친구가 친구 목록에서 삭제되었습니다.';
+    }
+  }
+
   static String shareBouquet(Locale locale) {
     switch (locale.languageCode) {
       case 'en':

@@ -21,6 +21,7 @@ class BouquetDetailSheet extends StatelessWidget {
     required this.onSaveName,
     required this.onShare,
     required this.onFlowerTap,
+    this.onDeleteFriend,
   });
 
   final FriendBouquet bouquet;
@@ -29,6 +30,7 @@ class BouquetDetailSheet extends StatelessWidget {
   final ValueChanged<String> onSaveName;
   final VoidCallback onShare;
   final ValueChanged<SharedFlower> onFlowerTap;
+  final VoidCallback? onDeleteFriend;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +80,28 @@ class BouquetDetailSheet extends StatelessWidget {
                 icon: Icons.share,
                 variant: TabaButtonVariant.outline,
               ),
+              if (onDeleteFriend != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                TabaButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    final confirmed = await TabaModalSheet.showConfirm(
+                      context: context,
+                      title: AppStrings.deleteFriend(locale),
+                      message: AppStrings.deleteFriendConfirm(locale, bouquet.friend.user.nickname),
+                      confirmText: AppStrings.deleteFriend(locale),
+                      cancelText: AppStrings.cancel(locale),
+                      confirmColor: Colors.red,
+                    );
+                    if (confirmed == true) {
+                      onDeleteFriend!();
+                    }
+                  },
+                  label: AppStrings.deleteFriend(locale),
+                  icon: Icons.person_remove,
+                  variant: TabaButtonVariant.outline,
+                ),
+              ],
             ],
           ),
         );

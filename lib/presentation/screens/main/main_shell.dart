@@ -71,21 +71,12 @@ class _MainShellState extends State<MainShell> {
       final notifications = await _repository.getNotifications();
       final friends = await _repository.getFriends();
       
-      // 친구별로 읽지 않은 편지 수 계산
-      int unreadCount = 0;
-      for (final friend in friends) {
-        try {
-          final friendLetters = await _repository.getFriendLetters(
-            friendId: friend.user.id,
-            page: 0,
-            size: 20,
-          );
-          unreadCount += friendLetters.where((f) => !f.sentByMe && !(f.isRead ?? false)).length;
-        } catch (e) {
-          // 개별 친구의 편지 조회 실패는 무시
-          print('친구 ${friend.user.nickname}의 편지 조회 실패: $e');
-        }
-      }
+      // API에서 받은 unreadLetterCount 합산 (API 명세서: 안 읽은 개인편지(DIRECT) 개수)
+      // 각 친구의 unreadLetterCount를 합산하여 전체 안 읽은 편지 수 계산
+      final unreadCount = friends.fold<int>(
+        0,
+        (sum, friend) => sum + friend.unreadLetterCount,
+      );
 
       if (mounted) {
         setState(() {
@@ -181,46 +172,33 @@ class _MainShellState extends State<MainShell> {
       }
       
       // 친구 목록을 FriendBouquet 형태로 변환
-      final friendBouquets = await Future.wait(
-        friends.map((friend) async {
-          try {
-            final letters = await _repository.getFriendLetters(
-              friendId: friend.user.id,
-              page: 0,
-              size: 1,
-            );
-            final unreadCount = letters.where((f) => !f.sentByMe && !(f.isRead ?? false)).length;
-            
-            return FriendBouquet(
-              friend: friend,
-              bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
-              trustScore: 0, // 계산 로직이 없으므로 기본값
-              bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
-              unreadCount: unreadCount,
-            );
-          } catch (e) {
-            // 에러 발생 시 기본값으로 생성
-            return FriendBouquet(
-              friend: friend,
-              bloomLevel: 0.0,
-              trustScore: 0,
-              bouquetName: friend.user.nickname,
-              unreadCount: 0,
-            );
-          }
-        }),
-      );
+      // API에서 받은 unreadLetterCount 사용 (API 명세서: 안 읽은 개인편지(DIRECT) 개수)
+      final friendBouquets = friends.map((friend) {
+        return FriendBouquet(
+          friend: friend,
+          bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
+          trustScore: 0, // 계산 로직이 없으므로 기본값
+          bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
+          unreadCount: friend.unreadLetterCount, // API에서 받은 안 읽은 개인편지 개수 사용
+        );
+      }).toList();
       
       if (!mounted) return;
       
       final navigator = Navigator.of(context);
-      navigator.push(
-        MaterialPageRoute<void>(
+      final result = await navigator.push<bool>(
+        MaterialPageRoute<bool>(
           builder: (_) => BouquetScreen(
             friendBouquets: friendBouquets,
           ),
         ),
       );
+      
+      // 친구 삭제 등으로 인해 목록이 변경된 경우 새로고침
+      if (result == true && mounted) {
+        // 친구 목록이 변경되었으므로 다시 로드할 필요는 없음
+        // (BouquetScreen에서 이미 삭제되었고, 다음에 열 때 자동으로 새 목록이 로드됨)
+      }
     } catch (e) {
       if (!mounted) return;
       final locale = AppLocaleController.localeNotifier.value;
