@@ -110,6 +110,14 @@ jobs:
               mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
               cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
               echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
+              
+              # Verify profile installation
+              echo "Installed profile: $PROFILE_UUID.mobileprovision"
+              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+              
+              # List all installed profiles
+              echo "All installed profiles:"
+              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep mobileprovision || echo "No profiles found"
             fi
 
             # Set keychain to allow codesign
@@ -123,9 +131,28 @@ jobs:
           # Update ExportOptions with provisioning profile UUID if available
           if [ -f /tmp/profile_uuid.txt ]; then
             PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+            echo "Using provisioning profile UUID: $PROFILE_UUID"
+            
+            # Verify profile exists
+            if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
+              echo "✅ Profile file exists"
+            else
+              echo "❌ Profile file NOT found: $PROFILE_UUID.mobileprovision"
+              exit 1
+            fi
+            
+            # Update ExportOptions
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
+            
+            # Set PROVISIONING_PROFILE_SPECIFIER in Xcode project for Release build
+            sed -i '' "s/CODE_SIGN_STYLE = Manual;/CODE_SIGN_STYLE = Manual;\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = $PROFILE_UUID;/g" ios/Runner.xcodeproj/project.pbxproj || true
+            
+            echo "Updated ExportOptions:"
+            cat ios/ExportOptions-dev.plist
+          else
+            echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi
           
           flutter build ipa --release \
