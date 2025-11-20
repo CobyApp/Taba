@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/friend.dart';
+import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
@@ -57,6 +58,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   List<FriendProfile> _friends = [];
   FriendProfile? _selectedFriend;
   bool _isLoadingFriends = false;
+  TabaUser? _replyToSender; // 답장할 편지의 발신자 정보
   final List<_TemplateOption> _templateOptions = const [
     _TemplateOption(
       id: 'neon_grid',
@@ -163,6 +165,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         _sendToFriend = true;
       });
     }
+    
+    // replyToLetterId가 있으면 편지 정보를 로드해서 발신자 정보 저장
+    if (widget.replyToLetterId != null) {
+      _loadReplyLetterInfo();
+    }
   }
 
   void _onLocaleChanged() {
@@ -201,6 +208,24 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       case 'en':
       default:
         return 'Indie Flower';
+    }
+  }
+
+  Future<void> _loadReplyLetterInfo() async {
+    if (widget.replyToLetterId == null) return;
+    
+    try {
+      final letter = await _repository.getLetter(widget.replyToLetterId!);
+      if (mounted && letter != null) {
+        setState(() {
+          _replyToSender = letter.sender;
+          // 답장인 경우 항상 친구에게 보내기로 설정
+          _sendToFriend = true;
+        });
+      }
+    } catch (e) {
+      print('답장 편지 정보 로드 실패: $e');
+      // 에러가 발생해도 계속 진행
     }
   }
 
@@ -300,29 +325,66 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
   Future<File?> _compressImage(File imageFile) async {
     try {
+      // 파일 존재 확인
+      if (!imageFile.existsSync()) {
+        print('이미지 파일이 존재하지 않습니다: ${imageFile.path}');
+        return null;
+      }
+
+      // 파일 크기 확인 (이미 작은 파일은 압축하지 않음)
+      final fileSize = await imageFile.length();
+      if (fileSize < 500 * 1024) { // 500KB 미만이면 압축하지 않고 원본 사용
+        print('이미지 파일이 작아서 압축하지 않습니다: ${fileSize / 1024}KB');
+        return imageFile;
+      }
+
       // 임시 디렉토리 가져오기
       final tempDir = await getTemporaryDirectory();
       final targetPath = path.join(
         tempDir.path,
-        '${DateTime.now().millisecondsSinceEpoch}_${path.basename(imageFile.path)}',
+        'compressed_${DateTime.now().millisecondsSinceEpoch}_${path.basenameWithoutExtension(imageFile.path)}.jpg',
       );
 
       // 이미지 압축
-      // 최대 너비/높이: 1920px, 품질: 85%
+      // 최대 너비/높이: 1920px, 품질: 80% (더 안정적인 압축)
       final compressedFile = await FlutterImageCompress.compressAndGetFile(
         imageFile.absolute.path,
         targetPath,
         minWidth: 1920,
         minHeight: 1920,
-        quality: 85,
+        quality: 80,
         format: CompressFormat.jpeg,
+        keepExif: false, // EXIF 데이터 제거로 파일 크기 감소
       );
 
-      return compressedFile != null ? File(compressedFile.path) : null;
-    } catch (e) {
+      if (compressedFile != null) {
+        final resultFile = File(compressedFile.path);
+        // 압축된 파일이 존재하고 크기가 0이 아닌지 확인
+        if (resultFile.existsSync()) {
+          final compressedSize = await resultFile.length();
+          if (compressedSize > 0) {
+            print('이미지 압축 성공: ${fileSize / 1024}KB -> ${compressedSize / 1024}KB');
+            return resultFile;
+          } else {
+            print('압축된 파일이 비어있습니다: ${compressedFile.path}');
+            // 빈 파일 삭제
+            try {
+              await resultFile.delete();
+            } catch (_) {}
+            return null;
+          }
+        } else {
+          print('압축된 파일이 생성되지 않았습니다: ${compressedFile.path}');
+          return null;
+        }
+      }
+      
+      return null;
+    } catch (e, stackTrace) {
       print('이미지 압축 실패: $e');
-      // 압축 실패 시 원본 파일 반환
-      return imageFile;
+      print('스택 트레이스: $stackTrace');
+      // 압축 실패 시 null 반환 (호출자가 원본 사용)
+      return null;
     }
   }
 
@@ -347,13 +409,49 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         // 각 이미지를 압축
         for (final file in pickedFiles) {
           final originalFile = File(file.path);
+          
+          // 원본 파일 존재 확인
+          if (!originalFile.existsSync()) {
+            print('원본 이미지 파일이 존재하지 않습니다: ${originalFile.path}');
+            continue;
+          }
+          
+          // 파일 크기 확인
+          try {
+            final fileSize = await originalFile.length();
+            if (fileSize == 0) {
+              print('이미지 파일이 비어있습니다: ${originalFile.path}');
+              continue;
+            }
+          } catch (e) {
+            print('파일 크기 확인 실패: $e');
+            continue;
+          }
+          
           final compressedFile = await _compressImage(originalFile);
           
-          if (compressedFile != null) {
-            compressedPaths.add(compressedFile.path);
-            compressedFiles.add(compressedFile);
+          // 압축 성공 시 압축된 파일 사용, 실패 시 원본 사용
+          if (compressedFile != null && compressedFile.existsSync()) {
+            try {
+              final compressedSize = await compressedFile.length();
+              if (compressedSize > 0) {
+                compressedPaths.add(compressedFile.path);
+                compressedFiles.add(compressedFile);
+                print('압축된 이미지 추가: ${compressedFile.path}');
+              } else {
+                // 압축된 파일이 비어있으면 원본 사용
+                print('압축된 파일이 비어있어 원본 사용: ${originalFile.path}');
+                compressedPaths.add(file.path);
+                compressedFiles.add(originalFile);
+              }
+            } catch (e) {
+              print('압축 파일 확인 실패, 원본 사용: $e');
+              compressedPaths.add(file.path);
+              compressedFiles.add(originalFile);
+            }
           } else {
-            // 압축 실패 시 원본 사용
+            // 압축 실패 시 원본 사용 (원본이 존재하는 경우만)
+            print('압축 실패, 원본 사용: ${originalFile.path}');
             compressedPaths.add(file.path);
             compressedFiles.add(originalFile);
           }
@@ -391,16 +489,72 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final imagePath = _attachedImages[index];
+          final imageFile = File(imagePath);
+          final fileExists = imageFile.existsSync();
+          
           return Stack(
-              children: [
+            children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  File(imagePath),
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                ),
+                child: fileExists
+                    ? Image.file(
+                        imageFile,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        cacheWidth: 120, // 메모리 최적화: 작은 크기로 캐시
+                        cacheHeight: 120,
+                        errorBuilder: (context, error, stackTrace) {
+                          // 이미지 로딩 실패 시 대체 위젯
+                          print('이미지 로딩 실패: $imagePath, 에러: $error');
+                          return Container(
+                            width: 60,
+                            height: 60,
+                            color: Colors.grey[800],
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                              size: 24,
+                            ),
+                          );
+                        },
+                        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                          if (wasSynchronouslyLoaded) {
+                            return child;
+                          }
+                          return AnimatedOpacity(
+                            opacity: frame == null ? 0 : 1,
+                            duration: const Duration(milliseconds: 200),
+                            child: frame == null
+                                ? Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.grey[900],
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : child,
+                          );
+                        },
+                      )
+                    : Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.grey[800],
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 24,
+                        ),
+                      ),
               ),
               Positioned(
                 top: 2,
@@ -414,13 +568,13 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, size: 12, color: Colors.white),
-                        ),
-                      ),
-                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
-                ),
+      ),
     );
   }
 
@@ -491,14 +645,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   void _openSendSheet() {
     // Local state for the sheet
     // 답장인 경우 항상 친구에게 보내기로 고정
-    bool initialSendToFriend = widget.initialRecipient != null ? true : _sendToFriend;
+    bool initialSendToFriend = (widget.initialRecipient != null || widget.replyToLetterId != null) ? true : _sendToFriend;
     
     TabaModalSheet.show<void>(
       context: context,
       fixedSize: true, // 내용에 맞게 높이 자동 조정
       builder: (context) {
         // StatefulBuilder를 위한 상태 변수 (클로저 밖에서 선언하여 상태 유지)
-        bool localSendToFriend = widget.initialRecipient != null ? true : _sendToFriend;
+        bool localSendToFriend = (widget.initialRecipient != null || widget.replyToLetterId != null) ? true : _sendToFriend;
         FriendProfile? localFriend = widget.initialRecipient != null 
             ? _selectedFriend 
             : _selectedFriend;
@@ -537,7 +691,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                           ],
                         ),
                         // 답장인 경우 visibility 선택 옵션 숨기기
-                        if (widget.initialRecipient == null) ...[
+                        if (widget.initialRecipient == null && widget.replyToLetterId == null) ...[
                           const SizedBox(height: AppSpacing.xl),
                           Row(
                             children: [
@@ -564,29 +718,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                                 },
                               ),
                             ],
-                          ),
-                        ] else ...[
-                          // 답장인 경우 자동으로 친구에게 보내기로 설정
-                          const SizedBox(height: AppSpacing.xl),
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: BoxDecoration(
-                              color: AppColors.neonPink.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.neonPink.withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.reply, color: AppColors.neonPink, size: 20),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Text(
-                                    AppStrings.replyAutoMessage(locale),
-                                    style: TextStyle(color: AppColors.neonPink, fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ],
                         if (localSendToFriend) ...[
@@ -685,47 +816,93 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                                 },
                                 ),
                               ),
-                          ] else if (localFriend != null) ...[
-                            // 답장인 경우 선택된 친구 정보만 표시
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              decoration: BoxDecoration(
-                                color: AppColors.midnightGlass,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white24),
-                              ),
-                              child: Row(
-                                children: [
-                                  UserAvatar(
-                                    user: localFriend!.user,
-                                    radius: 20,
-                                  ),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          localFriend!.user.nickname,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          AppStrings.replyRecipient(locale),
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                          ],
+                          // 답장인 경우 선택된 친구 정보 표시 (공개편지 답장과 친구 편지 답장 모두)
+                          if ((widget.initialRecipient != null || widget.replyToLetterId != null)) ...[
+                            // initialRecipient가 있으면 친구 목록에서 찾은 친구 정보 표시
+                            if (widget.initialRecipient != null && localFriend != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: AppColors.midnightGlass,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Row(
+                                  children: [
+                                    UserAvatar(
+                                      user: localFriend!.user,
+                                      radius: 20,
                                     ),
-                                  ),
-                                  Icon(Icons.check_circle, color: AppColors.neonPink),
-                                ],
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            localFriend!.user.nickname,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            AppStrings.replyRecipient(locale),
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(Icons.check_circle, color: AppColors.neonPink),
+                                  ],
+                                ),
                               ),
-                            ),
+                            ]
+                            // replyToLetterId만 있고 initialRecipient가 없으면 편지 발신자 정보 표시
+                            else if (widget.replyToLetterId != null && _replyToSender != null) ...[
+                              Container(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: AppColors.midnightGlass,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Row(
+                                  children: [
+                                    UserAvatar(
+                                      user: _replyToSender!,
+                                      radius: 20,
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _replyToSender!.nickname,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            AppStrings.replyRecipient(locale),
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(Icons.check_circle, color: AppColors.neonPink),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ],
                         const SizedBox(height: AppSpacing.xl * 1.5),

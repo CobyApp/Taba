@@ -113,14 +113,9 @@ class ChatBubble extends StatelessWidget {
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
             children: [
-              if (!isMine) ...[
-                // 친구의 프로필사진은 표시하지 않음
-                Expanded(child: bubble),
-              ] else ...[
-                const Spacer(),
-                Expanded(child: bubble),
-              ],
+              Expanded(child: bubble),
             ],
           ),
           const SizedBox(height: 4),

@@ -292,6 +292,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                             icon: Icons.photo_library,
                             variant: TabaButtonVariant.outline,
                           ),
+                          const SizedBox(height: AppSpacing.xl), // 버튼 아래 패딩 추가
                         ],
                       ],
                     ),
@@ -790,13 +791,39 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
         },
         itemBuilder: (context, index) {
           final imagePath = widget.images[index];
-          // AppBar 높이를 고려하여 이미지를 약간 위로 올림
+          // 아이폰과 갤럭시의 앱바와 특성을 고려하여 이미지를 화면 중앙에 배치
+          final mediaQuery = MediaQuery.of(context);
+          final screenHeight = mediaQuery.size.height;
+          final statusBarHeight = mediaQuery.padding.top;
           final appBarHeight = AppBar().preferredSize.height;
-          final statusBarHeight = MediaQuery.of(context).padding.top;
-          final offsetY = -(appBarHeight + statusBarHeight) / 2;
+          final bottomPadding = mediaQuery.padding.bottom;
+          
+          // body 영역의 실제 높이 (AppBar 아래 영역)
+          final bodyHeight = screenHeight - statusBarHeight - appBarHeight;
+          
+          // 화면 전체의 시각적 중앙에 이미지가 보이도록 조정
+          // body 영역의 중앙 위치 = statusBarHeight + appBarHeight + bodyHeight / 2
+          // 화면 전체의 중앙 = screenHeight / 2
+          // offset = body 중앙 - 화면 중앙 = (statusBarHeight + appBarHeight) / 2
+          // 하지만 시각적으로는 AppBar를 고려하여 약간 위로 조정
+          final bodyCenterY = statusBarHeight + appBarHeight + bodyHeight / 2;
+          final screenCenterY = screenHeight / 2;
+          // 기본 offset 계산
+          var offsetY = bodyCenterY - screenCenterY;
+          
+          // 디바이스별 미세 조정 (갤럭시와 아이폰 모두 더 위로)
+          // Platform.isAndroid를 사용하지 않고 bottomPadding으로 판단
+          // 갤럭시는 보통 bottomPadding이 작고, 아이폰은 크거나 0
+          if (bottomPadding < 20) {
+            // 갤럭시 계열: 더 위로 조정
+            offsetY -= screenHeight * 0.12; // 화면 높이의 12%만큼 더 위로
+          } else {
+            // 아이폰 계열: 더 위로 조정
+            offsetY -= screenHeight * 0.10; // 화면 높이의 10%만큼 위로
+          }
           
           return SizedBox.expand(
-            // 화면 전체를 사용하고 이미지를 가운데에 배치 (약간 위로)
+            // 화면 전체를 사용하고 이미지를 body 영역의 중앙에 배치
             child: Transform.translate(
               offset: Offset(0, offsetY),
               child: InteractiveViewer(

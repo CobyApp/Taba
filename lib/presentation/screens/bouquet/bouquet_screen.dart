@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/bouquet.dart';
+import 'package:taba_app/data/models/friend.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
@@ -212,19 +213,53 @@ class _BouquetScreenState extends State<BouquetScreen> {
 
 
   int _unreadFor(FriendBouquet bouquet) {
+    // API에서 받은 unreadLetterCount를 직접 사용
+    // 편지를 읽을 때는 로컬에서 차감하지만, 기본값은 API에서 받은 값 사용
+    final baseUnreadCount = bouquet.friend.unreadLetterCount;
+    
+    // 로드된 편지 중에서 이미 읽은 편지 개수를 차감
     final flowers = _loadedFlowers[bouquet.friend.user.id] ?? [];
-    return flowers
+    final readCount = flowers
         .where(
           (flower) =>
-              !flower.sentByMe && (flower.isRead == false) && !_readFlowerIds.contains(flower.id),
+              !flower.sentByMe && 
+              ((flower.isRead == true) || _readFlowerIds.contains(flower.id)),
         )
         .length;
+    
+    // API에서 받은 값에서 이미 읽은 편지 개수를 차감
+    // 단, 음수가 되지 않도록 최소값은 0
+    return (baseUnreadCount - readCount).clamp(0, baseUnreadCount);
   }
 
   void _openFlower(SharedFlower flower) async {
     if (!flower.sentByMe && (flower.isRead == false) && !_readFlowerIds.contains(flower.id)) {
       setState(() {
         _readFlowerIds.add(flower.id);
+        
+        // 해당 친구의 unreadLetterCount 업데이트
+        final friendId = _selectedBouquet.friend.user.id;
+        final friendIndex = _friendBouquets.indexWhere((b) => b.friend.user.id == friendId);
+        if (friendIndex != -1) {
+          final bouquet = _friendBouquets[friendIndex];
+          final updatedFriend = FriendProfile(
+            user: bouquet.friend.user,
+            lastLetterAt: bouquet.friend.lastLetterAt,
+            friendCount: bouquet.friend.friendCount,
+            sentLetters: bouquet.friend.sentLetters,
+            inviteCode: bouquet.friend.inviteCode,
+            unreadLetterCount: (bouquet.friend.unreadLetterCount - 1).clamp(0, bouquet.friend.unreadLetterCount),
+            group: bouquet.friend.group,
+          );
+          _friendBouquets[friendIndex] = FriendBouquet(
+            friend: updatedFriend,
+            bloomLevel: bouquet.bloomLevel,
+            trustScore: bouquet.trustScore,
+            bouquetName: bouquet.bouquetName,
+            unreadCount: updatedFriend.unreadLetterCount,
+            themeColor: bouquet.themeColor,
+          );
+        }
       });
     }
 
@@ -380,11 +415,17 @@ class _BouquetScreenState extends State<BouquetScreen> {
                       child: const TabaLoadingIndicator(),
                     )
                   : _selectedFlowers.isEmpty && !isLoading
-                      ? SliverToBoxAdapter(
-                          child: EmptyState(
-                            icon: Icons.mail_outline,
-                            title: AppStrings.noLettersYet(locale),
-                            subtitle: AppStrings.writeLetterToStart(locale),
+                      ? SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: MediaQuery.of(context).size.height * 0.15, // 화면 높이의 15%만큼 위에서 여백 추가
+                            ),
+                            child: EmptyState(
+                              icon: Icons.mail_outline,
+                              title: AppStrings.noLettersYet(locale),
+                              subtitle: AppStrings.writeLetterToStart(locale),
+                            ),
                           ),
                     )
                   : ChatMessagesList(

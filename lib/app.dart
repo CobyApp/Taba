@@ -115,6 +115,17 @@ class _TabaAppState extends State<TabaApp> {
             GlobalCupertinoLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
           ],
+      builder: (context, child) {
+        // 화면 어디든 터치하면 키보드 닫기
+        return GestureDetector(
+          onTap: () {
+            // 현재 포커스된 위젯이 있으면 포커스 해제 (키보드 닫기)
+            FocusScope.of(context).unfocus();
+          },
+          behavior: HitTestBehavior.opaque,
+          child: child,
+        );
+      },
       home: AnimatedSwitcher(
         duration: const Duration(milliseconds: 500),
         child: child,
