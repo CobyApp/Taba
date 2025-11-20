@@ -192,16 +192,21 @@ jobs:
           echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
           chmod 600 ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
           
-          # Upload using fastlane or xcrun altool
+          # Find IPA file
+          IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
+          if [ -z "$IPA_FILE" ]; then
+            echo "❌ IPA file not found in build/ios/ipa/"
+            ls -la build/ios/ipa/ || echo "Directory does not exist"
+            exit 1
+          fi
+          
+          echo "Found IPA file: $IPA_FILE"
+          
+          # Upload using xcrun altool
           xcrun altool --upload-app \
             --type ios \
-            --file build/ios/ipa/*.ipa \
+            --file "$IPA_FILE" \
             --apiKey $APP_STORE_CONNECT_API_KEY_ID \
             --apiIssuer $APP_STORE_CONNECT_ISSUER_ID \
-            --verbose || \
-          fastlane deliver \
-            --ipa build/ios/ipa/*.ipa \
-            --api_key_path ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8 \
-            --skip_screenshots \
-            --skip_metadata
+            --verbose
 
