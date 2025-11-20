@@ -96,8 +96,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         // 앱 로고 (일관된 스타일)
                         const AppLogo(
-                          fontSize: 24,
-                          letterSpacing: 3,
+                          fontSize: 20,
+                          letterSpacing: 2,
                         ),
                         const SizedBox(height: 12),
                         Text(

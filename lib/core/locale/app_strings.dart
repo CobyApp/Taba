@@ -2238,6 +2238,117 @@ class AppStrings {
     }
   }
 
+  static String tutorialNext(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Next';
+      case 'ja':
+        return '次へ';
+      default:
+        return '다음';
+    }
+  }
+
+  static String tutorialStart(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Get Started';
+      case 'ja':
+        return '始める';
+      default:
+        return '시작하기';
+    }
+  }
+
+  // 튜토리얼 페이지별 텍스트
+  static String tutorialPage1Title(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Welcome to Taba';
+      case 'ja':
+        return 'Tabaへようこそ';
+      default:
+        return 'Taba에 오신 것을 환영해요';
+    }
+  }
+
+  static String tutorialPage1Subtitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Catch floating seeds and bloom flowers';
+      case 'ja':
+        return '浮かぶ種を捕まえて花を咲かせましょう';
+      default:
+        return '떠다니는 씨앗을 잡아 꽃을 피워보세요';
+    }
+  }
+
+  static String tutorialPage2Title(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Catch Seeds';
+      case 'ja':
+        return '種を捕まえる';
+      default:
+        return '씨앗 잡기';
+    }
+  }
+
+  static String tutorialPage2Subtitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Tap the sparkling seeds in the sky to open letters';
+      case 'ja':
+        return '空に輝く種をタップして手紙を開きましょう';
+      default:
+        return '하늘에서 반짝이는 씨앗을 탭해 편지를 열어봐요';
+    }
+  }
+
+  static String tutorialPage3Title(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Bloom Flowers';
+      case 'ja':
+        return '花を咲かせる';
+      default:
+        return '꽃 피우기';
+    }
+  }
+
+  static String tutorialPage3Subtitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Bloom seeds to exchange hearts with flowers';
+      case 'ja':
+        return '種を咲かせて花と共に心を交換しましょう';
+      default:
+        return '씨앗을 피워 꽃과 함께 마음을 주고받아요';
+    }
+  }
+
+  static String tutorialPage4Title(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Your Bouquet';
+      case 'ja':
+        return 'あなたの花束';
+      default:
+        return '나만의 꽃다발';
+    }
+  }
+
+  static String tutorialPage4Subtitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Collect your favorite letters to create your own bouquet';
+      case 'ja':
+        return 'お気に入りの手紙を集めて自分だけの花束を作りましょう';
+      default:
+        return '좋아하는 편지를 모아 나만의 꽃다발을 만들어요';
+    }
+  }
+
   // 설정 화면 추가
   static String settingsLoadFailed(Locale locale) {
     switch (locale.languageCode) {

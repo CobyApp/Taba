@@ -3,6 +3,8 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:taba_app/presentation/widgets/taba_button.dart';
+import 'package:taba_app/presentation/widgets/taba_card.dart';
 
 class TutorialScreen extends StatefulWidget {
   const TutorialScreen({
@@ -22,35 +24,33 @@ class _TutorialScreenState extends State<TutorialScreen> {
   final _controller = PageController();
   int _index = 0;
 
-  final List<_TutorialPage> _pages = const [
-    _TutorialPage(
-      title: 'Welcome to Taba',
-      subtitle: '떠다니는 씨앗을 잡아 꽃을 피워보세요.',
-      emoji: '🌱',
-      gradient: AppColors.gradientHeroPink,
-    ),
-    _TutorialPage(
-      title: 'Catch seeds',
-      subtitle: '하늘에서 반짝이는 씨앗을 탭해 편지를 열어봐요.',
-      emoji: '✨',
-      gradient: AppColors.gradientHeroBlue,
-    ),
-    _TutorialPage(
-      title: 'Bloom flowers',
-      subtitle: '씨앗을 피워 꽃과 함께 마음을 주고받아요.',
-      emoji: '🌸',
-      gradient: AppColors.gradientSky,
-    ),
-    _TutorialPage(
-      title: 'Your bouquet',
-      subtitle: '좋아하는 편지를 모아 나만의 꽃다발을 만들어요.',
-      emoji: '💐',
-      gradient: AppColors.gradientDusk,
-    ),
-  ];
+  List<_TutorialPage> _getPages(Locale locale) {
+    return [
+      _TutorialPage(
+        title: AppStrings.tutorialPage1Title(locale),
+        subtitle: AppStrings.tutorialPage1Subtitle(locale),
+        imageAsset: 'assets/images/flower.png',
+      ),
+      _TutorialPage(
+        title: AppStrings.tutorialPage2Title(locale),
+        subtitle: AppStrings.tutorialPage2Subtitle(locale),
+        imageAsset: 'assets/images/flower.png',
+      ),
+      _TutorialPage(
+        title: AppStrings.tutorialPage3Title(locale),
+        subtitle: AppStrings.tutorialPage3Subtitle(locale),
+        imageAsset: 'assets/images/flower.png',
+      ),
+      _TutorialPage(
+        title: AppStrings.tutorialPage4Title(locale),
+        subtitle: AppStrings.tutorialPage4Subtitle(locale),
+        imageAsset: 'assets/images/flower.png',
+      ),
+    ];
+  }
 
   void _next() {
-    if (_index == _pages.length - 1) {
+    if (_index == _getPages(AppLocaleController.localeNotifier.value).length - 1) {
       widget.onFinish();
       return;
     }
@@ -61,139 +61,169 @@ class _TutorialScreenState extends State<TutorialScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: AppColors.gradientGalaxy,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  left: AppSpacing.xl,
-                  right: AppSpacing.xl,
-                  top: MediaQuery.of(context).padding.top + AppSpacing.md,
-                  bottom: AppSpacing.sm,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: widget.onSkip,
-                      child: ValueListenableBuilder<Locale>(
-                        valueListenable: AppLocaleController.localeNotifier,
-                        builder: (context, locale, _) {
-                          return Text(
-                            AppStrings.skipTutorial(locale),
-                            style: const TextStyle(color: Colors.white70),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  onPageChanged: (value) => setState(() => _index = value),
-                  itemCount: _pages.length,
-                  itemBuilder: (context, index) {
-                    final page = _pages[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: page.gradient,
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(120),
-                              blurRadius: 40,
-                              offset: const Offset(0, 20),
-                            ),
-                          ],
+      backgroundColor: const Color(0xFF0A0024), // 어두운 배경
+      body: SafeArea(
+        top: false,
+        child: ValueListenableBuilder<Locale>(
+          valueListenable: AppLocaleController.localeNotifier,
+          builder: (context, locale, _) {
+            final pages = _getPages(locale);
+            
+            return Column(
+              children: [
+                // 상단 스킵 버튼
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: AppSpacing.xl,
+                    right: AppSpacing.xl,
+                    top: MediaQuery.of(context).padding.top + AppSpacing.md,
+                    bottom: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: widget.onSkip,
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(28),
+                        child: Text(
+                          AppStrings.skipTutorial(locale),
+                          style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 페이지 뷰
+                Expanded(
+                  child: PageView.builder(
+                    controller: _controller,
+                    onPageChanged: (value) => setState(() => _index = value),
+                    itemCount: pages.length,
+                    itemBuilder: (context, index) {
+                      final page = pages[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: TabaCard(
+                          padding: const EdgeInsets.all(AppSpacing.xl * 1.5),
                           child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                                    const Spacer(),
-                                    Text(page.emoji, style: const TextStyle(fontSize: 96)),
-                                    const SizedBox(height: 16),
-                              Text(
-                                page.title,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.headlineSmall,
-                              ),
-                                    const SizedBox(height: 10),
-                              Text(
-                                page.subtitle,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-                              ),
-                              const Spacer(),
+                              // 꽃 이미지
+                              Container(
+                                width: 180,
+                                height: 180,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(100),
+                                      blurRadius: 20,
+                                      spreadRadius: 4,
+                                    ),
                                   ],
                                 ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    page.imageAsset,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: const Color(0xFF1A0016),
+                                        child: const Icon(
+                                          Icons.local_florist,
+                                          color: Colors.white70,
+                                          size: 90,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
+                              const SizedBox(height: AppSpacing.xl * 1.5),
+                              // 제목
+                              Text(
+                                page.title,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 28,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              // 부제목
+                              Text(
+                                page.subtitle,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  height: 1.5,
                                 ),
                               ),
                             ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Row(
-                  children: [
-                    Row(
-                      children: List.generate(_pages.length, (i) {
-                        final active = i == _index;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: active ? 18 : 6,
-                      height: 6,
-                          margin: const EdgeInsets.symmetric(horizontal: 3),
-                          decoration: BoxDecoration(
-                            color: active ? Colors.white : Colors.white38,
-                            borderRadius: BorderRadius.circular(999),
                           ),
-                        );
-                      }),
-                    ),
-                    const Spacer(),
-                    IntrinsicWidth(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton(
-                          onPressed: _next,
-                          child: Text(_index == _pages.length - 1 ? '시작하기' : '다음'),
                         ),
-                      ),
-                    ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
+                // 하단 인디케이터 및 버튼
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.md,
+                    AppSpacing.xl,
+                    AppSpacing.xl,
+                  ),
+                  child: Column(
+                    children: [
+                      // 페이지 인디케이터
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(pages.length, (i) {
+                          final active = i == _index;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: active ? 24 : 8,
+                            height: 8,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: active ? AppColors.neonPink : Colors.white.withAlpha(60),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      // 다음/시작하기 버튼
+                      TabaButton(
+                        onPressed: _next,
+                        label: _index == pages.length - 1
+                            ? AppStrings.tutorialStart(locale)
+                            : AppStrings.tutorialNext(locale),
+                        icon: _index == pages.length - 1 ? Icons.auto_awesome : Icons.arrow_forward,
+                        isFullWidth: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -204,12 +234,10 @@ class _TutorialPage {
   const _TutorialPage({
     required this.title,
     required this.subtitle,
-    required this.emoji,
-    required this.gradient,
+    required this.imageAsset,
   });
 
   final String title;
   final String subtitle;
-  final String emoji;
-  final List<Color> gradient;
+  final String imageAsset;
 }
