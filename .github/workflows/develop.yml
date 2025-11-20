@@ -69,7 +69,6 @@ jobs:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
-        continue-on-error: true
         run: |
           # Certificate와 비밀번호가 모두 제공된 경우에만 설정 시도
           if [ -n "$APPLE_CERTIFICATE_BASE64" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
@@ -81,16 +80,24 @@ jobs:
 
             # Import certificate
             echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || {
-              echo "Certificate import failed. Will use automatic signing."
-              exit 0
-            }
+            if ! security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign; then
+              echo "Certificate import failed. Will continue with provisioning profile setup."
+            fi
 
             # Import provisioning profile (if provided)
             if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
               echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-              cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+              # Extract UUID from provisioning profile
+              PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i profile.mobileprovision))
+              if [ -n "$PROFILE_UUID" ]; then
+                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+                echo "Provisioning profile installed as: $PROFILE_UUID.mobileprovision"
+              else
+                mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+                echo "Provisioning profile installed (UUID extraction failed)"
+              fi
             fi
 
             # Set keychain to allow codesign
