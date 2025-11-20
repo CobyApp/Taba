@@ -117,5 +117,5 @@ flutter_launcher_icons:
   image_path: "assets/images/app_icon.png"
   min_sdk_android: 21 # Android min sdk min:16, default 21
   adaptive_icon_background: "#0A0024" # 네온 그리드 템플릿 배경색 (어두운 보라색)
-ㅎ  adaptive_icon_foreground: "assets/images/app_icon.png" # 포그라운드 이미지 (투명 배경 권장)
+  adaptive_icon_foreground: "assets/images/app_icon.png" # 포그라운드 이미지 (투명 배경 권장)
   remove_alpha_ios: true
