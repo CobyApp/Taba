@@ -229,9 +229,17 @@ API 액세스 페이지에 접근하기 전에 다음을 확인하세요:
 - [ ] 앱 관리자 권한이 부여되었는가?
 - [ ] GitHub Secrets에 JSON 파일 전체 내용을 추가했는가?
 
-## 🆘 문제 해결
+## 🔄 대안 방법: Google Cloud Console에서 직접 생성
 
-**⚠️ URL 접근이 안 되는 경우**: [문제 해결 가이드](./GOOGLE_PLAY_TROUBLESHOOTING.md) 참고
+Google Play Console의 API 액세스 서비스가 중단되었거나 접근할 수 없는 경우:
+
+1. [Google Cloud Console](https://console.cloud.google.com)에 로그인
+2. **IAM 및 관리자** → **서비스 계정** → **서비스 계정 만들기**
+3. 서비스 계정 생성 후 **키** 탭에서 **JSON 키 생성**
+4. 다운로드한 JSON 파일의 `client_email`을 사용하여 Google Play Console에 연결
+5. Google Play Console → **API 액세스** → 서비스 계정 연결 → 권한 부여
+
+## 🆘 문제 해결
 
 ### "API 액세스" 메뉴를 찾을 수 없어요 / URL 접근이 안 돼요
 
@@ -297,6 +305,18 @@ API 액세스 페이지에 접근하기 전에 다음을 확인하세요:
 
 - 서비스 계정에 **앱 관리자** 권한이 부여되었는지 확인
 - Google Play Console → API 액세스 → 서비스 계정 → 권한 확인
+
+### 앱이 등록되지 않았어요
+
+API 액세스 페이지에 접근하려면 최소 1개 이상의 앱이 등록되어 있어야 합니다:
+
+1. Google Play Console → **앱 만들기**
+2. 앱 이름, 기본 언어, 앱/게임 선택
+3. **무료** 선택
+4. 앱 만들기 완료
+5. 앱 등록 후 API 액세스 페이지 접근 시도
+
+**참고**: 앱을 실제로 배포할 필요는 없습니다. 등록만 하면 됩니다.
 
 ## 📚 참고 자료
 

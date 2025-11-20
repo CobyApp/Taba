@@ -9,8 +9,6 @@
 - `ios/ExportOptions-dev.plist` - iOS Dev 빌드 설정
 - `ios/ExportOptions-prod.plist` - iOS Prod 빌드 설정
 - `docs/CI_CD_SETUP.md` - 상세 설정 가이드
-- `docs/CI_CD_CHECKLIST.md` - 설정 체크리스트
-- `docs/QUICK_START.md` - 빠른 시작 가이드
 
 ## 🎯 브랜치 전략
 
@@ -65,11 +63,36 @@
 - [ ] `develop` 브랜치에 push하여 빌드 테스트
 - [ ] `release` 브랜치에 push하여 배포 테스트
 
+## ✅ 설정 체크리스트
+
+### Android 설정
+
+- [ ] Keystore 파일 생성 (`android/app/keystore.jks`)
+- [ ] Keystore를 base64로 인코딩
+- [ ] Google Play Console에서 서비스 계정 생성
+- [ ] 서비스 계정 JSON 다운로드
+- [ ] 서비스 계정에 앱 관리자 권한 부여
+- [ ] GitHub Secrets에 Android 관련 5개 값 추가
+
+### iOS 설정
+
+- [ ] App Store Connect에서 API Key 생성
+- [ ] API Key 다운로드 (.p8 파일)
+- [ ] Apple Developer에서 Distribution Certificate 생성
+- [ ] App Store Distribution Provisioning Profile 생성
+- [ ] Certificate와 Profile을 base64로 인코딩
+- [ ] GitHub Secrets에 iOS 관련 6개 값 추가
+
+### 브랜치 및 테스트
+
+- [ ] `develop` 브랜치 생성 및 push
+- [ ] `release` 브랜치 생성 및 push
+- [ ] `develop` 브랜치에 push하여 빌드 테스트
+- [ ] `release` 브랜치에 push하여 배포 테스트
+
 ## 📚 상세 가이드
 
-- **빠른 시작**: [QUICK_START.md](./QUICK_START.md)
 - **상세 설정**: [CI_CD_SETUP.md](./CI_CD_SETUP.md)
-- **체크리스트**: [CI_CD_CHECKLIST.md](./CI_CD_CHECKLIST.md)
 - **Keystore 생성**: [KEYSTORE_SETUP.md](./KEYSTORE_SETUP.md)
 - **Google Play 설정**: [GOOGLE_PLAY_SETUP.md](./GOOGLE_PLAY_SETUP.md)
 - **App Store Connect 설정**: [APP_STORE_CONNECT_GUIDE.md](./APP_STORE_CONNECT_GUIDE.md)
@@ -81,8 +104,8 @@
 2. 모든 민감한 정보는 GitHub Secrets에만 저장하세요.
 3. `.gitignore`에 이미 필요한 파일들이 추가되어 있습니다.
 
-## 🚀 시작하기
+## 🚀 빠른 시작
 
-1. [QUICK_START.md](./QUICK_START.md)를 따라 빠르게 설정하거나
-2. [CI_CD_SETUP.md](./CI_CD_SETUP.md)를 참고하여 상세하게 설정하세요.
+1. [CI_CD_SETUP.md](./CI_CD_SETUP.md)를 참고하여 상세하게 설정하세요.
+2. 위의 체크리스트를 따라 단계별로 진행하세요.
 

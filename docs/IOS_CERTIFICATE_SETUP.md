@@ -103,6 +103,8 @@ CI/CD에 사용하려면 인증서를 `.p12` 형식으로 내보내야 합니다
    - **비밀번호 확인** 입력
    - **확인** 클릭
    - ⚠️ **이 비밀번호를 기억하세요!** GitHub Secret에 사용합니다
+   - ⚠️ **중요**: 이 비밀번호는 GitHub Secret `APPLE_CERTIFICATE_PASSWORD`에 정확히 입력해야 합니다
+   - 대소문자, 특수문자 모두 정확히 입력해야 합니다
 
 7. `.p12` 파일이 생성됨 ✅
 
@@ -224,6 +226,29 @@ base64 -i profile.mobileprovision
 - [ ] Base64 인코딩 완료
 - [ ] GitHub Secrets에 3가지 정보 추가 완료
 
+## 🔑 비밀번호 오류 해결
+
+Certificate import 시 "MAC verification failed during PKCS12 import (wrong password?)" 오류가 발생하면:
+
+1. **비밀번호 확인**: .p12 파일 내보낼 때 설정한 비밀번호를 정확히 기억하고 있는지 확인
+2. **GitHub Secret 확인**: `APPLE_CERTIFICATE_PASSWORD`가 .p12 내보낼 때 설정한 비밀번호와 정확히 일치하는지 확인
+3. **대소문자 확인**: 비밀번호의 대소문자가 정확한지 확인 (예: `MyPassword` ≠ `mypassword`)
+4. **특수문자 확인**: 특수문자가 정확한지 확인 (예: `!` ≠ `1`)
+5. **새로 내보내기**: 비밀번호를 잊어버렸다면 새로운 비밀번호로 다시 내보내기
+
+### 비밀번호 테스트 (로컬)
+
+```bash
+# .p12 파일이 있는 위치로 이동
+cd ~/Desktop
+
+# 비밀번호로 인증서 확인
+security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "YOUR_PASSWORD"
+
+# 성공하면 비밀번호가 올바른 것입니다
+# 실패하면 "MAC verification failed" 오류 발생
+```
+
 ## 🆘 문제 해결
 
 ### CSR 파일을 만들 수 없어요
@@ -253,6 +278,6 @@ base64 -i profile.mobileprovision
 ## 💡 팁
 
 - **Xcode 사용 권장**: Xcode를 사용하면 대부분의 과정이 자동화됩니다
-- **비밀번호 관리**: .p12 비밀번호를 안전하게 보관하세요
+- **비밀번호 관리**: .p12 비밀번호를 안전하게 보관하세요 (1Password, LastPass 등 사용)
 - **백업**: 인증서와 프로파일을 안전한 곳에 백업하세요
 
