@@ -105,12 +105,16 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                   AppSpacing.md,
                 ),
                 child: TabaButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
+                  onPressed: () async {
+                    await Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => WriteLetterPage(
                           replyToLetterId: widget.letter.id,
                           initialRecipient: widget.letter.sender.id,
+                          onSuccess: () {
+                            // 답장 성공 시 이전 화면으로 돌아가면서 새로고침 필요 표시
+                            Navigator.of(context).pop(true);
+                          },
                         ),
                       ),
                     );
@@ -269,7 +273,18 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                       AppSpacing.xl,
                       AppSpacing.md,
                     ),
-                    child: _buildImageGallery(context, widget.letter.attachedImages),
+                    child: Column(
+                      children: [
+                        TabaButton(
+                          onPressed: () => _openImageViewer(context, widget.letter.attachedImages),
+                          label: AppStrings.viewAttachedPhotos(locale),
+                          icon: Icons.photo_library,
+                          variant: TabaButtonVariant.outline,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildImageGallery(context, widget.letter.attachedImages),
+                      ],
+                    ),
                   ),
                 // Letter content
                 Expanded(
@@ -301,61 +316,32 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   Widget _buildImageGallery(BuildContext context, List<String> images) {
     if (images.isEmpty) return const SizedBox.shrink();
     
-    return GestureDetector(
-      onTap: () => _openImageViewer(context, images),
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: AppColors.midnight,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: PageView.builder(
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              final imagePath = images[index];
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  // 이미지가 파일 경로인지 URL인지 확인
-                  imagePath.startsWith('http')
-                      ? Image.network(
-                          imagePath,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Icon(Icons.broken_image, color: Colors.white54),
-                          ),
-                        )
-                      : Image.file(
-                          File(imagePath),
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Center(
-                            child: Icon(Icons.broken_image, color: Colors.white54),
-                          ),
-                        ),
-                  if (images.length > 1)
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '${index + 1} / ${images.length}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ),
+    // 첫 번째 이미지만 미리보기로 표시
+    final firstImage = images.first;
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: AppColors.midnight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: firstImage.startsWith('http')
+            ? Image.network(
+                firstImage,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(Icons.broken_image, color: Colors.white54),
+                ),
+              )
+            : Image.file(
+                File(firstImage),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(Icons.broken_image, color: Colors.white54),
+                ),
+              ),
       ),
     );
   }

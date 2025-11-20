@@ -2115,6 +2115,17 @@ class AppStrings {
     }
   }
 
+  static String viewAttachedPhotos(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'View Attached Photos';
+      case 'ja':
+        return '添付写真を見る';
+      default:
+        return '첨부한 사진 보기';
+    }
+  }
+
   static String errorTitle(Locale locale) {
     switch (locale.languageCode) {
       case 'en':

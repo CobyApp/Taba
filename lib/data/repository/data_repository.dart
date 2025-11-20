@@ -15,7 +15,6 @@ import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
 import 'package:taba_app/data/services/fcm_service.dart';
-import 'package:taba_app/core/storage/reply_storage.dart';
 import 'dart:io';
 
 class DataRepository {
@@ -206,15 +205,6 @@ class DataRepository {
         print('답장 전송 실패: ${response.error?.message}');
       }
       
-      // 답장 성공 시 원본 편지 ID 저장 (공개편지에 답장한 경우를 위해)
-      if (response.isSuccess && response.data != null) {
-        final replyLetterId = response.data!.id;
-        await ReplyStorage.saveReplyOriginal(
-          replyLetterId: replyLetterId,
-          originalLetterId: letterId,
-        );
-      }
-      
       return response.isSuccess;
     } catch (e) {
       print('답장 전송 예외: $e');
@@ -222,67 +212,12 @@ class DataRepository {
     }
   }
 
-  /// 답장한 편지의 원본 공개편지를 찾아서 목록에 추가
-  /// 공개편지는 답장한 시점(sentAt)에 읽은 것으로 간주하고, 읽음 표시를 함
-  Future<List<SharedFlower>> _addOriginalPublicLetters(
-    List<SharedFlower> flowers,
-    String friendId,
-  ) async {
-    try {
-      // 이미 목록에 있는 편지 ID들
-      final existingLetterIds = flowers.map((f) => f.letter.id).toSet();
-      
-      // 내가 보낸 답장들 중에서 원본 공개편지 찾기
-      final myReplies = flowers.where((f) => f.sentByMe).toList();
-      final originalPublicLetters = <SharedFlower>[];
-      
-      for (final reply in myReplies) {
-        // 답장한 편지의 원본 편지 ID 조회
-        final originalLetterId = await ReplyStorage.getOriginalLetterId(reply.id);
-        if (originalLetterId == null) continue;
-        
-        // 이미 목록에 있으면 스킵
-        if (existingLetterIds.contains(originalLetterId)) continue;
-        
-        // 원본 편지 조회
-        final originalLetter = await getLetter(originalLetterId);
-        if (originalLetter == null) continue;
-        
-        // 원본 편지가 공개편지이고, 친구가 보낸 편지인지 확인
-        if (originalLetter.visibility == VisibilityScope.public &&
-            originalLetter.sender.id == friendId) {
-          // 원본 공개편지를 SharedFlower로 변환
-          // sentAt은 답장한 시점으로 설정 (내가 읽은 시점)
-          // isRead는 true로 설정 (답장을 했다는 것은 읽었다는 의미)
-          final originalFlower = SharedFlower(
-            id: originalLetter.id,
-            letter: originalLetter,
-            sentAt: reply.sentAt, // 답장한 시점 = 읽은 시점
-            sentByMe: false, // 친구가 보낸 편지
-            isRead: true, // 답장을 했다는 것은 읽었다는 의미
-          );
-          originalPublicLetters.add(originalFlower);
-          existingLetterIds.add(originalLetterId);
-        }
-      }
-      
-      // 원본 공개편지들과 기존 편지들을 합쳐서 시간순으로 정렬 (최신순)
-      final allFlowers = [...originalPublicLetters, ...flowers];
-      allFlowers.sort((a, b) => b.sentAt.compareTo(a.sentAt));
-      
-      return allFlowers;
-    } catch (e) {
-      print('원본 공개편지 추가 중 에러: $e');
-      // 에러가 발생해도 기존 목록은 반환
-      return flowers;
-    }
-  }
 
   Future<List<SharedFlower>> getFriendLetters({
     required String friendId,
     int page = 0,
     int size = 20,
-    String sort = 'sentAt,desc', // 기본값: 최신순
+    String sort = 'sentAt,asc', // API 명세서: 오름차순 (오래된 편지부터 최신 편지 순서)
   }) async {
     try {
       print('getFriendLetters 호출: friendId=$friendId, page=$page, size=$size, sort=$sort');
@@ -309,10 +244,8 @@ class DataRepository {
           }).toList();
           print('getFriendLetters 변환 완료: ${flowers.length}개');
           
-          // 답장한 편지의 원본 공개편지 추가
-          final flowersWithOriginal = await _addOriginalPublicLetters(flowers, friendId);
-          
-          return flowersWithOriginal;
+          // 서버에서 공개편지 추가 로직 처리
+          return flowers;
         } catch (e, stackTrace) {
           print('getFriendLetters 변환 에러: $e');
           print('Stack trace: $stackTrace');
@@ -351,7 +284,7 @@ class DataRepository {
     required String friendId,
     int page = 0,
     int size = 20,
-    String sort = 'sentAt,desc',
+    String sort = 'sentAt,asc', // API 명세서: 오름차순 (오래된 편지부터 최신 편지 순서)
   }) async {
     try {
       final response = await _bouquetService.getFriendLetters(
@@ -364,15 +297,11 @@ class DataRepository {
       if (response.isSuccess && response.data != null) {
         final flowers = response.data!.content.map((dto) => dto.toModel()).toList();
         
-        // 답장한 편지의 원본 공개편지 추가
-        final flowersWithOriginal = await _addOriginalPublicLetters(flowers, friendId);
-        
+        // 서버에서 공개편지 추가 로직 처리
         // PageResponse의 last 필드를 사용하여 더 불러올 페이지가 있는지 확인
-        // 단, _addOriginalPublicLetters로 추가된 편지가 있으면 hasMore를 true로 유지할 수 있지만,
-        // API 응답의 last 필드를 우선 사용
         final hasMore = !response.data!.last;
         
-        return (flowers: flowersWithOriginal, hasMore: hasMore);
+        return (flowers: flowers, hasMore: hasMore);
       }
       
       return (flowers: <SharedFlower>[], hasMore: false);

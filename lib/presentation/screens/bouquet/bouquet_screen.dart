@@ -136,9 +136,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
             sortedFlowers = [...(_loadedFlowers[friendId] ?? []), ...newFlowers];
           }
           
-          // 정렬: 첫 공개편지가 맨 위에 오도록
-          sortedFlowers = _sortFlowersWithPublicFirst(sortedFlowers);
-          
+          // 서버에서 정렬된 순서 그대로 사용
           _loadedFlowers[friendId] = sortedFlowers;
           
           // 페이지네이션 정보 업데이트
@@ -168,41 +166,6 @@ class _BouquetScreenState extends State<BouquetScreen> {
     }
   }
 
-  /// 편지 목록을 정렬: 공개편지가 있으면 첫 공개편지부터 시간순으로 정렬, 없으면 그냥 시간순
-  List<SharedFlower> _sortFlowersWithPublicFirst(List<SharedFlower> flowers) {
-    if (flowers.isEmpty) return flowers;
-    
-    // 공개편지(PUBLIC) 찾기
-    final publicFlowers = flowers.where((f) => f.letter.visibility == VisibilityScope.public).toList();
-    
-    if (publicFlowers.isEmpty) {
-      // 공개편지가 없으면 시간순으로 정렬 (최신순)
-      return flowers..sort((a, b) => b.sentAt.compareTo(a.sentAt));
-    }
-    
-    // 첫 공개편지 찾기 (가장 오래된 공개편지)
-    publicFlowers.sort((a, b) => a.sentAt.compareTo(b.sentAt));
-    final firstPublicFlower = publicFlowers.first;
-    final firstPublicFlowerSentAt = firstPublicFlower.sentAt;
-    
-    // 첫 공개편지 이후의 모든 편지들 (공개편지 포함)
-    final allFlowers = List<SharedFlower>.from(flowers);
-    
-    // 모든 편지를 시간순으로 정렬 (최신순)
-    allFlowers.sort((a, b) => b.sentAt.compareTo(a.sentAt));
-    
-    // 첫 공개편지가 가장 오래된 편지인 경우, 그대로 반환
-    // 첫 공개편지가 중간에 있는 경우, 첫 공개편지부터 시작하도록 재정렬
-    final firstPublicIndex = allFlowers.indexWhere((f) => f.id == firstPublicFlower.id);
-    if (firstPublicIndex > 0) {
-      // 첫 공개편지가 중간에 있으면, 첫 공개편지부터 시작하도록 재정렬
-      final beforeFirstPublic = allFlowers.sublist(0, firstPublicIndex);
-      final fromFirstPublic = allFlowers.sublist(firstPublicIndex);
-      return [...fromFirstPublic, ...beforeFirstPublic];
-    }
-    
-    return allFlowers;
-  }
 
   int _unreadFor(FriendBouquet bouquet) {
     final flowers = _loadedFlowers[bouquet.friend.user.id] ?? [];
@@ -259,14 +222,19 @@ class _BouquetScreenState extends State<BouquetScreen> {
       }
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute<bool>(
         builder: (_) => LetterDetailScreen(
           letter: letterToShow,
           friendName: flower.sentByMe ? null : _selectedBouquet.friend.user.nickname,
         ),
       ),
     );
+    
+    // 답장 성공 시 목록 새로고침
+    if (result == true && mounted) {
+      _loadFriendLetters(_selectedBouquet.friend.user.id, reset: true);
+    }
   }
 
   @override
@@ -400,6 +368,10 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
       MaterialPageRoute<void>(
         builder: (_) => WriteLetterPage(
           initialRecipient: selectedFriendId,
+          onSuccess: () {
+            // 편지 작성 성공 시 해당 친구의 편지 목록 새로고침
+            _loadFriendLetters(selectedFriendId, reset: true);
+          },
         ),
       ),
     );

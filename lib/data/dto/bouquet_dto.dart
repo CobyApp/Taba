@@ -139,7 +139,13 @@ class SharedFlowerDto {
       // sentAt 파싱 (ISO 8601 형식, API 명세서에 따르면 항상 포함됨)
       DateTime sentAt;
       try {
-        sentAt = DateTime.parse(json['sentAt'] as String);
+        final sentAtValue = json['sentAt'];
+        if (sentAtValue == null) {
+          print('SharedFlowerDto sentAt이 null입니다. 기본값 사용');
+          sentAt = DateTime.now();
+        } else {
+          sentAt = DateTime.parse(sentAtValue as String);
+        }
       } catch (e) {
         print('SharedFlowerDto sentAt 파싱 에러: $e, 값: ${json['sentAt']}');
         sentAt = DateTime.now(); // 안전장치
@@ -173,7 +179,7 @@ class SharedFlowerDto {
           'nickname': '알 수 없음',
           'avatarUrl': null,
         },
-        'sentAt': json['sentAt'] as String,
+        'sentAt': json['sentAt'] != null ? (json['sentAt'] as String) : DateTime.now().toIso8601String(),
         'views': 0,
         'visibility': 'DIRECT', // 친구별 편지는 항상 DIRECT (API 명세서 참고)
       };

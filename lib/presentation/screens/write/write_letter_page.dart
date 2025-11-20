@@ -124,6 +124,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   final List<File> _attachedImageFiles = []; // 첨부된 사진 파일 리스트
   final ImagePicker _imagePicker = ImagePicker();
   bool _isSending = false;
+  final ValueNotifier<bool> _isSendingNotifier = ValueNotifier<bool>(false);
 
   @override
   void initState() {
@@ -132,6 +133,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     final locale = AppLocaleController.localeNotifier.value;
     _fontFamily = _getDefaultFontForLocale(locale.languageCode);
     _loadFriends();
+    
+    // 제목과 내용 변경 시 버튼 활성화 상태 업데이트
+    _titleController.addListener(() {
+      setState(() {}); // 버튼 활성화 상태 업데이트
+    });
+    _bodyController.addListener(() {
+      setState(() {}); // 버튼 활성화 상태 업데이트
+    });
     
     // 제목에서 엔터를 치면 본문으로 포커스 이동
     _titleFocusNode.addListener(() {
@@ -285,14 +294,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   }
 
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _bodyController.dispose();
-    _titleFocusNode.dispose();
-    _bodyFocusNode.dispose();
-    super.dispose();
-  }
 
   Future<void> _pickImages() async {
     try {
@@ -322,8 +323,8 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
   Widget _buildAttachedImagesPreview() {
     return Container(
-      height: 120,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.sm),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _attachedImages.length,
@@ -331,35 +332,35 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         itemBuilder: (context, index) {
           final imagePath = _attachedImages[index];
           return Stack(
-              children: [
+            children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.file(
                   File(imagePath),
-                  width: 100,
-                  height: 100,
+                  width: 60,
+                  height: 60,
                   fit: BoxFit.cover,
                 ),
               ),
               Positioned(
-                top: 4,
-                right: 4,
+                top: 2,
+                right: 2,
                 child: GestureDetector(
                   onTap: () => _removeImage(index),
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
                       color: Colors.black54,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, size: 16, color: Colors.white),
-                        ),
-                      ),
-                    ),
+                    child: const Icon(Icons.close, size: 12, color: Colors.white),
+                  ),
+                ),
+              ),
             ],
           );
         },
-                ),
+      ),
     );
   }
 
@@ -457,8 +458,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
               builder: (context, setLocal) {
                 // StatefulBuilder는 클로저 밖의 변수를 상태로 유지하지 않으므로,
                 // setLocal 내에서 변수를 업데이트하고 위젯을 재빌드합니다.
-                
-                return Padding(
+                // 부모 위젯의 _isSending 상태를 감지하기 위해 ValueListenableBuilder 사용
+                return ValueListenableBuilder<bool>(
+                  valueListenable: _isSendingNotifier,
+                  builder: (context, isSending, _) {
+                    return Padding(
                   padding: EdgeInsets.only(
                     bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
                     left: AppSpacing.xl,
@@ -682,22 +686,29 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                         ],
                         const SizedBox(height: AppSpacing.lg),
                         TabaButton(
-                          onPressed: _isSending ? null : () async {
+                          onPressed: isSending ? null : () async {
                             // Commit local state to parent, then send
                             setState(() {
                               _sendToFriend = localSendToFriend;
                               _selectedFriend = localFriend;
                             });
                             
+                            // 로딩 시작
+                            _isSending = true;
+                            _isSendingNotifier.value = true;
+                            
+                            // _sendLetter의 finally 블록에서 로딩 상태 해제
                             await _sendLetter();
                           },
-                          label: _isSending ? AppStrings.sending(locale) : AppStrings.plantSeed(locale),
+                          label: isSending ? AppStrings.sending(locale) : AppStrings.plantSeed(locale),
                           icon: Icons.auto_awesome,
-                          isLoading: _isSending,
+                          isLoading: isSending,
                         ),
                       ],
                     ),
                   ),
+                );
+                  },
                 );
               },
             );
@@ -753,13 +764,14 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                 );
               },
             ),
-            if (_attachedImages.isNotEmpty) _buildAttachedImagesPreview(),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                   child: _buildEditor(context),
               ),
             ),
+            // 하단에 첨부 사진 미리보기 표시
+            if (_attachedImages.isNotEmpty) _buildAttachedImagesPreview(),
           ],
         ),
       ),
@@ -774,8 +786,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           child: ValueListenableBuilder<Locale>(
             valueListenable: AppLocaleController.localeNotifier,
             builder: (context, locale, _) {
+              // 제목과 내용이 모두 작성되어야 버튼 활성화
+              final canSend = _titleController.text.trim().isNotEmpty && 
+                             _bodyController.text.trim().isNotEmpty;
               return TabaButton(
-                onPressed: _openSendSheet,
+                onPressed: canSend ? _openSendSheet : null,
                 label: AppStrings.send(locale),
                 icon: Icons.send_rounded,
               );
@@ -877,6 +892,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     
     if (title.isEmpty) {
       if (mounted) {
+        setState(() => _isSending = false); // 로딩 상태 해제
         showTabaError(context, message: AppStrings.titleRequired(locale));
       }
       return;
@@ -884,12 +900,13 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
     if (content.isEmpty) {
       if (mounted) {
+        setState(() => _isSending = false); // 로딩 상태 해제
         showTabaError(context, message: AppStrings.contentRequired(locale));
       }
       return;
     }
 
-    setState(() => _isSending = true);
+    // _isSending은 버튼 클릭 핸들러에서 이미 설정됨
 
     try {
       // 이미지 업로드
@@ -981,9 +998,20 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isSending = false);
+        _isSending = false;
+        _isSendingNotifier.value = false;
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    _titleFocusNode.dispose();
+    _bodyFocusNode.dispose();
+    _isSendingNotifier.dispose();
+    super.dispose();
   }
 }
 

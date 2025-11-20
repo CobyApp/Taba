@@ -10,16 +10,16 @@ class BouquetService {
     required String friendId,
     int page = 0,
     int size = 20,
-    String sort = 'sentAt,desc', // 기본값: 최신순
+    String sort = 'sentAt,asc', // API 명세서: 오름차순 (오래된 편지부터 최신 편지 순서)
   }) async {
     try {
-      // API 명세서: GET /friends/{friendId}/letters?page=0&size=20&sort=sentAt,desc
+      // API 명세서: GET /friends/{friendId}/letters?page=0&size=20&sort=sentAt,asc
       // Query Parameters:
       // - page: 페이지 번호 (기본값: 0)
       // - size: 페이지 크기 (기본값: 20)
-      // - sort: 정렬 기준 (기본값: sentAt,desc)
+      // - sort: 정렬 기준 (기본값: sentAt,asc - 오름차순, 오래된 편지부터 최신 편지 순서)
       //   - 정렬 필드: sentAt (현재는 sentAt만 지원)
-      //   - 정렬 방향: asc, desc
+      //   - 정렬 방향: asc (오름차순), desc (내림차순)
       final response = await _apiClient.dio.get(
         '/friends/$friendId/letters',
         queryParameters: {
