@@ -41,7 +41,7 @@ class ChatBubble extends StatelessWidget {
     );
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final bubbleMaxWidth = screenWidth * 0.98;
+    final bubbleMaxWidth = screenWidth * 0.85; // 말풍선을 더 넓게 (기존 0.98에서 0.85로 조정)
 
     final bubble = InkWell(
       borderRadius: radius,
@@ -115,11 +115,7 @@ class ChatBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (!isMine) ...[
-                UserAvatar(
-                  user: friendUser,
-                  radius: 14,
-                ),
-                const SizedBox(width: AppSpacing.sm),
+                // 친구의 프로필사진은 표시하지 않음
                 Flexible(child: bubble),
                 const Spacer(),
               ] else ...[
@@ -133,7 +129,7 @@ class ChatBubble extends StatelessWidget {
             alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: Padding(
               padding: EdgeInsets.only(
-                left: isMine ? 0 : 36,
+                left: isMine ? 0 : 0, // 친구 프로필사진 제거로 인해 패딩 제거
                 right: isMine ? 0 : 0,
               ),
               child: Text(

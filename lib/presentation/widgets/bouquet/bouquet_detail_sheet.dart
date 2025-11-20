@@ -38,6 +38,8 @@ class BouquetDetailSheet extends StatelessWidget {
       valueListenable: AppLocaleController.localeNotifier,
       builder: (context, locale, _) {
         return TabaModalSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

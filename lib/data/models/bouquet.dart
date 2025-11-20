@@ -11,6 +11,7 @@ class SharedFlower {
     required this.sentAt,
     required this.sentByMe,
     this.isRead,
+    this.scheduledAt, // 예약 전송 시간 (null이면 즉시 전송)
   });
 
   final String id; // 편지 ID (Letter 테이블의 ID)
@@ -18,6 +19,7 @@ class SharedFlower {
   final DateTime sentAt; // 전송 시간
   final bool sentByMe; // 현재 사용자가 보낸 편지인지 여부
   final bool? isRead; // 내가 받은 편지인 경우 읽음 상태 (내가 보낸 편지는 null)
+  final DateTime? scheduledAt; // 예약 전송 시간 (null이면 즉시 전송)
 
   String get directionLabel => sentByMe ? '내가 보냄' : '친구가 보냄';
   // flower 필드 제거됨

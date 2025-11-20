@@ -73,8 +73,9 @@ class NotificationService {
 
   Future<ApiResponse<NotificationDto>> markAsRead(String notificationId) async {
     try {
+      // API 명세서: PATCH /notifications/{notificationId}/read
       final response =
-          await _apiClient.dio.put('/notifications/$notificationId/read');
+          await _apiClient.dio.patch('/notifications/$notificationId/read');
 
       if (response.data is! Map<String, dynamic>) {
         return ApiResponse<NotificationDto>(

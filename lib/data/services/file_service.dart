@@ -16,8 +16,9 @@ class FileService {
         ),
       });
 
+      // API 명세서: POST /files
       final response = await _apiClient.dio.post(
-        '/files/upload',
+        '/files',
         data: formData,
       );
 
@@ -31,11 +32,16 @@ class FileService {
         );
       }
 
-      // API 명세서에 따르면 응답: {success: true, data: {url: "...", fileName: "..."}}
+      // API 명세서: {success: true, data: {fileId: "uuid", url: "..."}}
       // url만 사용하므로 String으로 반환
       return ApiResponse<String>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => (data as Map<String, dynamic>)['url'] as String,
+        (data) {
+          if (data is Map<String, dynamic>) {
+            return data['url'] as String;
+          }
+          throw Exception('Invalid response format: data is not a Map');
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '이미지 업로드에 실패했습니다.';

@@ -17,6 +17,7 @@ import 'package:taba_app/presentation/widgets/taba_text_field.dart';
 import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/presentation/widgets/nav_header.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/storage/language_filter_storage.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -24,11 +25,13 @@ class SettingsScreen extends StatefulWidget {
     required this.currentUser,
     this.onLogout,
     this.onProfileUpdated,
+    this.onLanguageFilterChanged,
   });
 
   final TabaUser currentUser;
   final VoidCallback? onLogout;
   final VoidCallback? onProfileUpdated;
+  final Function(List<String>)? onLanguageFilterChanged; // 언어 필터 변경 콜백
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -43,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoadingCode = false;
   Timer? _timer;
   late TabaUser _currentUser; // 프로필 수정 후 업데이트하기 위해 state로 관리
+  List<String> _selectedLetterLanguages = ['ko', 'en', 'ja']; // 선택된 편지 언어 필터 (기본값: 모든 언어)
 
   @override
   void initState() {
@@ -50,7 +54,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _currentUser = widget.currentUser; // 초기 사용자 정보 저장
     _loadSettings();
     _loadInviteCode();
+    _loadLanguageFilters();
     _startTimer();
+  }
+  
+  Future<void> _loadLanguageFilters() async {
+    final savedLanguages = await LanguageFilterStorage.getLanguages();
+    if (savedLanguages != null) {
+      setState(() {
+        _selectedLetterLanguages = savedLanguages;
+      });
+      // 콜백 호출하여 메인 화면에도 반영
+      widget.onLanguageFilterChanged?.call(_selectedLetterLanguages);
+    } else {
+      // 저장된 값이 없으면 기본값 (모든 언어)로 설정
+      setState(() {
+        _selectedLetterLanguages = ['ko', 'en', 'ja'];
+      });
+      // 기본값도 저장
+      await LanguageFilterStorage.saveLanguages(_selectedLetterLanguages);
+      widget.onLanguageFilterChanged?.call(_selectedLetterLanguages);
+    }
   }
 
   @override
@@ -143,6 +167,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: _ProfileCard(user: _currentUser),
                       ),
                       const SizedBox(height: 32),
+                      _SectionHeader(title: '공개 편지'),
+                      TabaCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.filter_list, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '언어 필터',
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '원하는 언어의 편지만 볼 수 있어요',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildLanguageChip('ko', '한국어', locale),
+                                _buildLanguageChip('en', 'English', locale),
+                                _buildLanguageChip('ja', '日本語', locale),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                       _SectionHeader(title: AppStrings.friendInviteSection(locale)),
                       TabaCard(
                         padding: const EdgeInsets.all(AppSpacing.md),
@@ -175,14 +241,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Row(
                               children: [
                                 if (_inviteCode != null)
-                                  Expanded(
-                                    child: TabaButton(
+                                Expanded(
+                                  child: TabaButton(
                                       onPressed: () => _copyInvite(_inviteCode!),
-                                      label: AppStrings.copyButton(locale),
-                                      icon: Icons.copy,
-                                      variant: TabaButtonVariant.outline,
-                                    ),
+                                    label: AppStrings.copyButton(locale),
+                                    icon: Icons.copy,
+                                    variant: TabaButtonVariant.outline,
                                   ),
+                                ),
                                 if (_inviteCode != null) const SizedBox(width: 8),
                                 Expanded(
                                   child: TabaButton(
@@ -258,28 +324,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         trailing: const Icon(Icons.chevron_right, color: Colors.redAccent),
                         onTap: () => _handleDeleteAccount(context),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 32),
                       _SectionHeader(title: AppStrings.languageSection(locale)),
-                      DropdownButtonFormField<Locale>(
-                        value: AppLocaleController.localeNotifier.value,
-                        items: AppLocaleController.supportedLocales
-                            .map(
-                              (l) => DropdownMenuItem(
-                                value: l,
-                                child: Text(
-                                  {'en': 'English', 'ko': '한국어', 'ja': '日本語'}[l.languageCode] ?? l.languageCode,
+                      ValueListenableBuilder<Locale>(
+                        valueListenable: AppLocaleController.localeNotifier,
+                        builder: (context, currentLocale, _) {
+                          return TabaCard(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.language, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        AppStrings.appLanguage(currentLocale),
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            AppLocaleController.setLocale(value);
-                          }
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _buildAppLanguageChip('ko', '한국어', currentLocale),
+                                    _buildAppLanguageChip('en', 'English', currentLocale),
+                                    _buildAppLanguageChip('ja', '日本語', currentLocale),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
                         },
-                        decoration: InputDecoration(
-                          labelText: AppStrings.appLanguage(locale),
-                        ),
                       ),
                     ],
                   ),
@@ -319,24 +402,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
           TabaTextField(
-            controller: codeController,
-            labelText: AppStrings.friendCode(locale),
-            hintText: '예: A1B2C3',
-            autofocus: true,
-            textCapitalization: TextCapitalization.characters,
-            maxLength: 6,
-          ),
+          controller: codeController,
+          labelText: AppStrings.friendCode(locale),
+          hintText: '예: A1B2C3',
+          autofocus: true,
+          textCapitalization: TextCapitalization.characters,
+          maxLength: 6,
+        ),
           const SizedBox(height: 24),
           Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
             child: TabaButton(
-              onPressed: () {
-                final code = codeController.text.trim();
-                if (code.isNotEmpty) {
-                  Navigator.of(context).pop();
-                  _addFriendByCode(code);
-                }
-              },
+            onPressed: () {
+              final code = codeController.text.trim();
+              if (code.isNotEmpty) {
+                Navigator.of(context).pop();
+                _addFriendByCode(code);
+              }
+            },
               label: AppStrings.add(locale),
               icon: Icons.person_add,
             ),
@@ -349,7 +432,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _addFriendByCode(String inviteCode) async {
     final locale = AppLocaleController.localeNotifier.value;
     if (inviteCode.isEmpty) {
-      showTabaError(context, message: AppStrings.enterFriendCode(locale));
+        showTabaError(context, message: AppStrings.enterFriendCode(locale));
       return;
     }
 
@@ -410,69 +493,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Column(
-              mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                  children: [
                 ModalSheetHeader(
                   title: AppStrings.changePassword(locale),
                   onClose: () => Navigator.of(context).pop(),
                 ),
                 const SizedBox(height: 24),
-                TabaTextField(
-                  controller: currentPasswordController,
-                  labelText: AppStrings.currentPassword(locale),
-                  obscureText: obscureCurrentPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                    TabaTextField(
+                      controller: currentPasswordController,
+                      labelText: AppStrings.currentPassword(locale),
+                      obscureText: obscureCurrentPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
                       color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscureCurrentPassword = !obscureCurrentPassword;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setDialogState(() {
-                        obscureCurrentPassword = !obscureCurrentPassword;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TabaTextField(
-                  controller: newPasswordController,
-                  labelText: AppStrings.newPassword(locale),
-                  obscureText: obscureNewPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                    const SizedBox(height: 12),
+                    TabaTextField(
+                      controller: newPasswordController,
+                      labelText: AppStrings.newPassword(locale),
+                      obscureText: obscureNewPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureNewPassword ? Icons.visibility : Icons.visibility_off,
                       color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscureNewPassword = !obscureNewPassword;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setDialogState(() {
-                        obscureNewPassword = !obscureNewPassword;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TabaTextField(
-                  controller: confirmPasswordController,
-                  labelText: AppStrings.confirmPassword(locale),
-                  obscureText: obscureConfirmPassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                    const SizedBox(height: 12),
+                    TabaTextField(
+                      controller: confirmPasswordController,
+                      labelText: AppStrings.confirmPassword(locale),
+                      obscureText: obscureConfirmPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
                       color: Colors.white70,
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscureConfirmPassword = !obscureConfirmPassword;
+                          });
+                        },
+                      ),
                     ),
-                    onPressed: () {
-                      setDialogState(() {
-                        obscureConfirmPassword = !obscureConfirmPassword;
-                      });
-                    },
-                  ),
-                ),
                 const SizedBox(height: 24),
                 Padding(
                   padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
                   child: TabaButton(
-                    onPressed: isSubmitting ? null : () async {
+                  onPressed: isSubmitting ? null : () async {
                     final currentPassword = currentPasswordController.text.trim();
                     final newPassword = newPasswordController.text.trim();
                     final confirmPassword = confirmPasswordController.text.trim();
@@ -605,6 +688,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Widget _buildLanguageChip(String code, String label, Locale locale) {
+    final isSelected = _selectedLetterLanguages.contains(code);
+    return GestureDetector(
+      onTap: () async {
+        setState(() {
+          if (isSelected) {
+            _selectedLetterLanguages.remove(code);
+          } else {
+            _selectedLetterLanguages.add(code);
+          }
+        });
+        // 로컬 저장소에 저장
+        await LanguageFilterStorage.saveLanguages(_selectedLetterLanguages);
+        // 언어 필터 변경 시 콜백 호출
+        widget.onLanguageFilterChanged?.call(_selectedLetterLanguages);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.neonPink.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.neonPink 
+                : Colors.white.withOpacity(0.2),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Icon(
+                Icons.check_circle,
+                size: 18,
+                color: AppColors.neonPink,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppLanguageChip(String code, String label, Locale currentLocale) {
+    final isSelected = currentLocale.languageCode == code;
+    return GestureDetector(
+      onTap: () {
+        // 해당 언어의 Locale 찾기
+        final targetLocale = AppLocaleController.supportedLocales.firstWhere(
+          (l) => l.languageCode == code,
+          orElse: () => AppLocaleController.supportedLocales.first,
+        );
+        AppLocaleController.setLocale(targetLocale);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.neonPink.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.neonPink 
+                : Colors.white.withOpacity(0.2),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              Icon(
+                Icons.check_circle,
+                size: 18,
+                color: AppColors.neonPink,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Duration? _remainingValidity() {
     if (_inviteCode == null || _codeExpiresAt == null) return null;
     final now = DateTime.now();
@@ -730,13 +920,13 @@ class _ProfileCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              user.nickname,
+                  user.nickname,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
-          ),
+                ),
           const Icon(
             Icons.chevron_right,
             color: Colors.white70,
@@ -849,6 +1039,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _showImagePickerOptions() {
     TabaModalSheet.show(
       context: context,
+      fixedSize: true,
       child: ValueListenableBuilder<Locale>(
         valueListenable: AppLocaleController.localeNotifier,
         builder: (context, locale, _) {

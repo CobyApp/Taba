@@ -73,7 +73,12 @@ class TabaModalSheet extends StatelessWidget {
         return SingleChildScrollView(
           controller: scrollController,
           child: Padding(
-            padding: AppSpacing.screenPadding,
+            padding: EdgeInsets.only(
+              left: AppSpacing.screenPadding.left,
+              top: AppSpacing.screenPadding.top,
+              right: AppSpacing.screenPadding.right,
+              bottom: AppSpacing.screenPadding.bottom + AppSpacing.xl, // 하단 패딩 추가
+            ),
             child: child,
           ),
         );
@@ -113,7 +118,12 @@ class TabaModalSheet extends StatelessWidget {
               child: SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
                 child: Padding(
-                  padding: AppSpacing.screenPadding,
+                  padding: EdgeInsets.only(
+                    left: AppSpacing.screenPadding.left,
+                    top: AppSpacing.screenPadding.top,
+                    right: AppSpacing.screenPadding.right,
+                    bottom: AppSpacing.screenPadding.bottom + AppSpacing.xl, // 하단 패딩 추가
+                  ),
                   child: content,
                 ),
               ),
@@ -163,7 +173,12 @@ class TabaModalSheet extends StatelessWidget {
           ),
           child: IntrinsicHeight(
             child: Padding(
-              padding: AppSpacing.screenPadding,
+              padding: EdgeInsets.only(
+                left: AppSpacing.screenPadding.left,
+                top: AppSpacing.screenPadding.top,
+                right: AppSpacing.screenPadding.right,
+                bottom: AppSpacing.screenPadding.bottom + AppSpacing.xl + MediaQuery.of(context).viewInsets.bottom, // 하단 패딩 추가
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,45 +207,42 @@ class TabaModalSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Padding(
-                    padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              side: BorderSide(color: Colors.white.withAlpha(60)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              cancelText,
-                              style: const TextStyle(color: Colors.white),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: Colors.white.withAlpha(60)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: confirmColor ?? AppColors.neonPink,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              confirmText,
-                              style: const TextStyle(color: Colors.white),
-                            ),
+                          child: Text(
+                            cancelText,
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: confirmColor ?? AppColors.neonPink,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            confirmText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

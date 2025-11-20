@@ -36,8 +36,19 @@ class LetterDto {
     // - 공개 편지 목록에는 content가 없고 preview만 있음
     // - 편지 상세 조회에는 content와 preview 모두 있음
     // - sender는 {id, nickname}만 포함될 수 있음
+    // - 편지 조회 응답에는 imageUrl (단수)가 있을 수 있고, attachedImages (복수)도 있을 수 있음
     final preview = json['preview'] as String? ?? '';
     final content = json['content'] as String? ?? preview; // content가 없으면 preview 사용
+    
+    // attachedImages 처리: API 응답에 attachedImages가 있으면 사용, 없으면 imageUrl을 배열로 변환
+    // API 명세서: 편지 조회 응답에는 imageUrl (단수)가 있을 수 있고, attachedImages (복수)도 있을 수 있음
+    List<String>? attachedImages;
+    if (json['attachedImages'] != null) {
+      attachedImages = List<String>.from(json['attachedImages'] as List);
+    } else if (json['imageUrl'] != null) {
+      // imageUrl이 있으면 배열로 변환 (하위 호환성)
+      attachedImages = [json['imageUrl'] as String];
+    }
     
     return LetterDto(
       id: json['id'] as String,
@@ -58,9 +69,7 @@ class LetterDto {
       template: json['template'] != null
           ? LetterTemplateDto.fromJson(json['template'] as Map<String, dynamic>)
           : null,
-      attachedImages: json['attachedImages'] != null
-          ? List<String>.from(json['attachedImages'] as List)
-          : null,
+      attachedImages: attachedImages,
       position: json['position'] != null
           ? Map<String, double>.from(
               (json['position'] as Map).map(

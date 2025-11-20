@@ -93,6 +93,7 @@ class SharedFlowerDto {
   final bool sentByMe;
   final bool? isRead;
   final String? fontFamily; // 최상위 레벨의 fontFamily
+  final DateTime? scheduledAt; // 예약 전송 시간
 
   SharedFlowerDto({
     required this.id,
@@ -101,6 +102,7 @@ class SharedFlowerDto {
     required this.sentByMe,
     this.isRead,
     this.fontFamily,
+    this.scheduledAt,
   });
 
   factory SharedFlowerDto.fromJson(Map<String, dynamic> json) {
@@ -143,10 +145,22 @@ class SharedFlowerDto {
         sentAt = DateTime.now(); // 안전장치
       }
       
+      // scheduledAt 파싱 (예약 전송 시간, 선택사항)
+      DateTime? scheduledAt;
+      if (json['scheduledAt'] != null) {
+        try {
+          scheduledAt = DateTime.parse(json['scheduledAt'] as String);
+        } catch (e) {
+          print('SharedFlowerDto scheduledAt 파싱 에러: $e, 값: ${json['scheduledAt']}');
+          scheduledAt = null;
+        }
+      }
+      
       // LetterDto를 생성하기 위해 필수 필드 구성
       // API 응답에는 일부 필드만 있으므로 기본값으로 채움
       // sender 정보는 letter 객체에 없음 (API 명세서에 명시되지 않음)
-      final letterDto = LetterDto.fromJson({
+      // 템플릿 정보는 letter 객체에 포함될 수 있음
+      final letterJsonForDto = {
         'id': letterId,
         'title': letterTitle,
         'content': letterPreview, // content가 없으면 preview 사용
@@ -162,7 +176,14 @@ class SharedFlowerDto {
         'sentAt': json['sentAt'] as String,
         'views': 0,
         'visibility': 'DIRECT', // 친구별 편지는 항상 DIRECT (API 명세서 참고)
-      });
+      };
+      
+      // 템플릿 정보가 letter 객체에 있으면 포함
+      if (letterJson['template'] != null) {
+        letterJsonForDto['template'] = letterJson['template'];
+      }
+      
+      final letterDto = LetterDto.fromJson(letterJsonForDto);
       
       return SharedFlowerDto(
         id: json['id'] as String? ?? letterId, // id가 없으면 letterId 사용
@@ -172,6 +193,7 @@ class SharedFlowerDto {
         // API 명세서: 내가 받은 편지인 경우 읽음 상태 (boolean), 내가 보낸 편지는 null
         isRead: json['isRead'] as bool?,
         fontFamily: fontFamily,
+        scheduledAt: scheduledAt,
       );
     } catch (e, stackTrace) {
       print('SharedFlowerDto.fromJson 에러: $e');
@@ -188,6 +210,7 @@ class SharedFlowerDto {
       sentAt: sentAt,
       sentByMe: sentByMe,
       isRead: isRead,
+      scheduledAt: scheduledAt,
     );
   }
 }

@@ -13,14 +13,16 @@ class LetterService {
     required String visibility,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
-    DateTime? scheduledAt,
+    DateTime? scheduledAt, // 예약 발송 기능 제거 (항상 null 전달)
     String? recipientId,
+    String? language, // ko, en, ja 중 하나
   }) async {
     try {
       // API 명세서에 따른 요청 데이터 준비
       // - recipientId: DIRECT 편지인 경우 필수
       // - scheduledAt: 예약 발송 시간 (선택사항)
       // - attachedImages: 이미지 URL 배열 (선택사항)
+      // - language: 편지 언어 (선택사항). ko, en, ja 중 하나
       final requestData = <String, dynamic>{
         'title': title,
         'content': content,
@@ -30,6 +32,7 @@ class LetterService {
         'attachedImages': attachedImages ?? [],
         if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
         if (recipientId != null) 'recipientId': recipientId, // DIRECT 편지인 경우 필수
+        if (language != null) 'language': language, // ko, en, ja 중 하나
       };
 
       final response = await _apiClient.dio.post(
@@ -49,7 +52,14 @@ class LetterService {
 
       return ApiResponse<LetterDto>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => LetterDto.fromJson(data as Map<String, dynamic>),
+        (data) {
+          // API 명세서: {success: true, data: {letter: {...}}}
+          if (data is Map<String, dynamic> && data.containsKey('letter')) {
+            return LetterDto.fromJson(data['letter'] as Map<String, dynamic>);
+          }
+          // 하위 호환성: data가 직접 letter 객체인 경우
+          return LetterDto.fromJson(data as Map<String, dynamic>);
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '편지 전송에 실패했습니다.';
@@ -120,15 +130,21 @@ class LetterService {
   Future<ApiResponse<PageResponse<LetterDto>>> getPublicLetters({
     int page = 0,
     int size = 20,
+    List<String>? languages, // 언어 필터링 (복수 선택 가능)
   }) async {
     try {
-      // API 명세서에 따르면 page와 size만 지원 (sort 파라미터 없음)
+      // API 명세서: GET /letters/public?languages=ko&languages=en&page=0&size=20
+      // languages: 여러 언어를 선택하려면 같은 파라미터를 여러 번 사용
+      // Dio는 List<String>을 자동으로 ?languages=ko&languages=en 형태로 변환
+      final queryParams = <String, dynamic>{
+        'page': page,
+        'size': size,
+        if (languages != null && languages.isNotEmpty) 'languages': languages,
+      };
+      
       final response = await _apiClient.dio.get(
         '/letters/public',
-        queryParameters: {
-          'page': page,
-          'size': size,
-        },
+        queryParameters: queryParams,
       );
 
       if (response.data is! Map<String, dynamic>) {
@@ -196,7 +212,14 @@ class LetterService {
 
       return ApiResponse<LetterDto>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => LetterDto.fromJson(data as Map<String, dynamic>),
+        (data) {
+          // API 명세서: {success: true, data: {letter: {...}}}
+          if (data is Map<String, dynamic> && data.containsKey('letter')) {
+            return LetterDto.fromJson(data['letter'] as Map<String, dynamic>);
+          }
+          // 하위 호환성: data가 직접 letter 객체인 경우
+          return LetterDto.fromJson(data as Map<String, dynamic>);
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '편지를 불러오는데 실패했습니다.';
@@ -346,6 +369,7 @@ class LetterService {
     required String preview,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
+    String? language, // ko, en, ja 중 하나
   }) async {
     try {
       final requestData = <String, dynamic>{
@@ -355,6 +379,7 @@ class LetterService {
         // visibility는 포함하지 않음 (서버에서 자동으로 DIRECT로 설정)
         if (template != null) 'template': template,
         'attachedImages': attachedImages ?? [],
+        if (language != null) 'language': language, // ko, en, ja 중 하나
       };
 
       final response = await _apiClient.dio.post(
@@ -374,7 +399,14 @@ class LetterService {
 
       return ApiResponse<LetterDto>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => LetterDto.fromJson(data as Map<String, dynamic>),
+        (data) {
+          // API 명세서: {success: true, data: {letter: {...}}}
+          if (data is Map<String, dynamic> && data.containsKey('letter')) {
+            return LetterDto.fromJson(data['letter'] as Map<String, dynamic>);
+          }
+          // 하위 호환성: data가 직접 letter 객체인 경우
+          return LetterDto.fromJson(data as Map<String, dynamic>);
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '답장 전송에 실패했습니다.';

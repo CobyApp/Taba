@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/letter.dart';
+import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
@@ -29,6 +30,39 @@ class LetterDetailScreen extends StatefulWidget {
 }
 
 class _LetterDetailScreenState extends State<LetterDetailScreen> {
+  final _repository = DataRepository.instance;
+  TabaUser? _currentUser;
+  bool _isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final user = await _repository.getCurrentUser();
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+          _isLoadingUser = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingUser = false;
+        });
+      }
+    }
+  }
+
+  bool get _isMyLetter {
+    if (_currentUser == null) return false;
+    return widget.letter.sender.id == _currentUser!.id;
+  }
+
   String _displaySender(Locale locale) {
     if (widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
       return widget.friendName!;
@@ -60,8 +94,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       bottomNavigationBar: ValueListenableBuilder<Locale>(
         valueListenable: AppLocaleController.localeNotifier,
         builder: (context, locale, _) {
-          // 친구에게 보낸 편지인 경우에만 답장 버튼 표시
-          if (widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
+          // 사용자 정보 로딩이 완료되고, 내가 쓴 편지가 아니고, 친구에게 보낸 편지인 경우에만 답장 버튼 표시
+          if (!_isLoadingUser && !_isMyLetter && widget.friendName != null && widget.friendName!.trim().isNotEmpty) {
             return SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -114,68 +148,116 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                           const Spacer(),
-                          TextButton(
-                            onPressed: () => _openReportSheet(context),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: Text(
-                              AppStrings.reportButton(locale),
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 14,
-                                fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
+                          // 내가 보낸 편지가 아닐 때만 신고 버튼 표시
+                          if (!_isMyLetter)
+                            TextButton(
+                              onPressed: () => _openReportSheet(context),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                AppStrings.reportButton(locale),
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 14,
+                                  fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          UserAvatar(
-                            user: widget.letter.sender,
-                            radius: 20,
-                            backgroundColor: Colors.white.withAlpha(20),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _displaySender(locale),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                    fontFamily: Theme.of(context).textTheme.titleMedium?.fontFamily,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.schedule, size: 12, color: Colors.white54),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.letter.localizedTimeAgo(locale),
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                        fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                      // 내가 보낸 편지인 경우 내 프로필 표시, 아니면 발신자 프로필 표시
+                      if (_isMyLetter && _currentUser != null)
+                        Row(
+                          children: [
+                            UserAvatar(
+                              user: _currentUser!,
+                              radius: 20,
+                              backgroundColor: Colors.white.withAlpha(20),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _currentUser!.nickname,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      fontFamily: Theme.of(context).textTheme.titleMedium?.fontFamily,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.schedule, size: 12, color: Colors.white54),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        widget.letter.localizedTimeAgo(locale),
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                          fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (!_isMyLetter)
+                        Row(
+                          children: [
+                            UserAvatar(
+                              user: widget.letter.sender,
+                              radius: 20,
+                              backgroundColor: Colors.white.withAlpha(20),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _displaySender(locale),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      fontFamily: Theme.of(context).textTheme.titleMedium?.fontFamily,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.schedule, size: 12, color: Colors.white54),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        widget.letter.localizedTimeAgo(locale),
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 12,
+                                          fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -289,6 +371,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   void _openReportSheet(BuildContext context) {
     TabaModalSheet.show<void>(
       context: context,
+      fixedSize: true,
       child: _ReportSheet(letterId: widget.letter.id),
     );
   }

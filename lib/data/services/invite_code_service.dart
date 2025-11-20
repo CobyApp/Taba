@@ -8,8 +8,8 @@ class InviteCodeService {
 
   Future<ApiResponse<InviteCodeDto>> generateCode() async {
     try {
-      // API 명세서: POST /invite-codes
-      final response = await _apiClient.dio.post('/invite-codes');
+      // API 명세서: POST /invite-codes/generate
+      final response = await _apiClient.dio.post('/invite-codes/generate');
 
       if (response.data is! Map<String, dynamic>) {
         return ApiResponse<InviteCodeDto>(
@@ -22,7 +22,7 @@ class InviteCodeService {
       }
 
       print('초대 코드 생성 응답: ${response.statusCode}, ${response.data}');
-      
+
       return ApiResponse<InviteCodeDto>.fromJson(
         response.data as Map<String, dynamic>,
         (data) {
@@ -75,8 +75,8 @@ class InviteCodeService {
 
   Future<ApiResponse<InviteCodeDto?>> getCurrentCode() async {
     try {
-      // API 명세서: GET /invite-codes/me
-      final response = await _apiClient.dio.get('/invite-codes/me');
+      // API 명세서: GET /invite-codes/current
+      final response = await _apiClient.dio.get('/invite-codes/current');
 
       if (response.data is! Map<String, dynamic>) {
         return ApiResponse<InviteCodeDto?>(

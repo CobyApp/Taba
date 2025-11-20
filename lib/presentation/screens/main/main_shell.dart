@@ -11,6 +11,7 @@ import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/widgets/loading_indicator.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/storage/language_filter_storage.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key, this.onLogout});
@@ -27,11 +28,29 @@ class _MainShellState extends State<MainShell> {
   List<NotificationItem> _notifications = [];
   int _unreadBouquetCount = 0;
   bool _isLoading = true;
+  List<String> _selectedLanguages = []; // 선택된 언어 필터 (ko, en, ja)
 
   @override
   void initState() {
     super.initState();
+    _loadLanguageFilters();
     _loadData();
+  }
+  
+  Future<void> _loadLanguageFilters() async {
+    final savedLanguages = await LanguageFilterStorage.getLanguages();
+    if (savedLanguages != null) {
+      setState(() {
+        _selectedLanguages = savedLanguages;
+      });
+    } else {
+      // 저장된 값이 없으면 기본값 (모든 언어)로 설정
+      setState(() {
+        _selectedLanguages = ['ko', 'en', 'ja'];
+      });
+      // 기본값도 저장
+      await LanguageFilterStorage.saveLanguages(_selectedLanguages);
+    }
   }
 
   Future<void> _loadData() async {
@@ -46,7 +65,9 @@ class _MainShellState extends State<MainShell> {
 
     setState(() => _isLoading = true);
     try {
-      final letters = await _repository.getPublicLetters();
+      final letters = await _repository.getPublicLetters(
+        languages: _selectedLanguages.length == 3 ? null : _selectedLanguages,
+      );
       final notifications = await _repository.getNotifications();
       final friends = await _repository.getFriends();
       
@@ -109,7 +130,11 @@ class _MainShellState extends State<MainShell> {
       onRefresh: _loadData,
       onLoadMore: (page) async {
         try {
-          final letters = await _repository.getPublicLetters(page: page, size: 10);
+          final letters = await _repository.getPublicLetters(
+            page: page, 
+            size: 10,
+            languages: _selectedLanguages.length == 3 ? null : _selectedLanguages,
+          );
           return letters;
         } catch (e) {
           print('다음 페이지 로드 실패: $e');
@@ -118,7 +143,11 @@ class _MainShellState extends State<MainShell> {
       },
       onLoadMoreWithPagination: (page) async {
         try {
-          return await _repository.getPublicLettersWithPagination(page: page, size: 10);
+          return await _repository.getPublicLettersWithPagination(
+            page: page, 
+            size: 10,
+            languages: _selectedLanguages.length == 3 ? null : _selectedLanguages,
+          );
         } catch (e) {
           print('다음 페이지 로드 실패: $e');
           return (letters: <Letter>[], hasMore: false);
@@ -226,6 +255,15 @@ class _MainShellState extends State<MainShell> {
               // 프로필이 업데이트되면 데이터 새로고침
               if (mounted) {
                 _loadData();
+              }
+            },
+            onLanguageFilterChanged: (languages) {
+              // 언어 필터 변경 시 상태 업데이트
+              if (mounted) {
+                setState(() {
+                  _selectedLanguages = languages;
+                });
+                _loadData(); // 필터 변경 시 데이터 새로고침
               }
             },
           ),

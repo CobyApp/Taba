@@ -1647,6 +1647,53 @@ class AppStrings {
   }
 
   // 편지 쓰기 화면
+  static String noLettersYet(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'No letters yet';
+      case 'ja':
+        return 'まだ手紙がありません';
+      default:
+        return '아직 편지가 없어요';
+    }
+  }
+
+  static String writeLetterToStart(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Write a letter to start the conversation';
+      case 'ja':
+        return '手紙を書いて会話を始めましょう';
+      default:
+        return '편지를 써서 대화를 시작해보세요';
+    }
+  }
+
+  static String scheduledLetterMessage(Locale locale, DateTime scheduledAt) {
+    final now = DateTime.now();
+    final diff = scheduledAt.difference(now);
+    
+    String timeStr;
+    if (diff.inDays > 0) {
+      timeStr = '${diff.inDays}일 후';
+    } else if (diff.inHours > 0) {
+      timeStr = '${diff.inHours}시간 후';
+    } else if (diff.inMinutes > 0) {
+      timeStr = '${diff.inMinutes}분 후';
+    } else {
+      timeStr = '곧';
+    }
+    
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Scheduled to send in $timeStr';
+      case 'ja':
+        return '$timeStr に送信予定';
+      default:
+        return '$timeStr 예약 전송';
+    }
+  }
+
   static String writeLetterButton(Locale locale) {
     switch (locale.languageCode) {
       case 'en':

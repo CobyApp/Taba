@@ -214,18 +214,56 @@ class _BouquetScreenState extends State<BouquetScreen> {
         .length;
   }
 
-  void _openFlower(SharedFlower flower) {
+  void _openFlower(SharedFlower flower) async {
     if (!flower.sentByMe && (flower.isRead == false) && !_readFlowerIds.contains(flower.id)) {
       setState(() {
         _readFlowerIds.add(flower.id);
       });
     }
 
+    // 편지 상세 정보를 다시 조회하여 템플릿 정보를 포함한 전체 정보 가져오기
+    Letter? fullLetter;
+    try {
+      fullLetter = await _repository.getLetter(flower.letter.id);
+    } catch (e) {
+      print('편지 상세 조회 실패: $e');
+      // 조회 실패 시 기존 편지 정보 사용
+      fullLetter = flower.letter;
+    }
+
+    // 편지 상세 조회에 실패한 경우 기존 편지 정보 사용
+    Letter letterToShow = fullLetter ?? flower.letter;
+
+    // 내가 보낸 편지인 경우, 편지의 sender 정보를 현재 사용자로 설정
+    if (flower.sentByMe) {
+      try {
+        final currentUser = await _repository.getCurrentUser();
+        if (currentUser != null) {
+          // Letter 객체의 sender를 현재 사용자로 업데이트 (템플릿 정보는 유지)
+          letterToShow = Letter(
+            id: letterToShow.id,
+            title: letterToShow.title,
+            content: letterToShow.content,
+            preview: letterToShow.preview,
+            sender: currentUser, // 현재 사용자로 설정
+            visibility: letterToShow.visibility,
+            sentAt: letterToShow.sentAt,
+            views: letterToShow.views,
+            attachedImages: letterToShow.attachedImages,
+            template: letterToShow.template, // 템플릿 정보 유지
+          );
+        }
+      } catch (e) {
+        print('현재 사용자 정보 로드 실패: $e');
+        // 에러가 발생해도 편지 상세 화면은 열림
+      }
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => LetterDetailScreen(
-          letter: flower.letter,
-          friendName: _selectedBouquet.friend.user.nickname,
+          letter: letterToShow,
+          friendName: flower.sentByMe ? null : _selectedBouquet.friend.user.nickname,
         ),
       ),
     );
@@ -297,12 +335,20 @@ class _BouquetScreenState extends State<BouquetScreen> {
                   ? SliverToBoxAdapter(
                       child: const TabaLoadingIndicator(),
                     )
-                  : ChatMessagesList(
-                      flowers: _selectedFlowers,
-                      readFlowerIds: _readFlowerIds,
-                      onOpen: _openFlower,
-                      friendUser: selected.friend.user,
-                    ),
+                  : _selectedFlowers.isEmpty && !isLoading
+                      ? SliverToBoxAdapter(
+                          child: EmptyState(
+                            icon: Icons.mail_outline,
+                            title: AppStrings.noLettersYet(locale),
+                            subtitle: AppStrings.writeLetterToStart(locale),
+                          ),
+                        )
+                      : ChatMessagesList(
+                          flowers: _selectedFlowers,
+                          readFlowerIds: _readFlowerIds,
+                          onOpen: _openFlower,
+                          friendUser: selected.friend.user,
+                        ),
             ),
                   // 무한 스크롤 로딩 인디케이터
                   if (isLoading && _selectedFlowers.isNotEmpty)
@@ -349,9 +395,12 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
   // void _saveBouquetName(FriendBouquet bouquet, String name) { ... }
 
   void _composeLetterToSelectedFriend() {
+    final selectedFriendId = _selectedBouquet.friend.user.id;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => const WriteLetterPage(),
+        builder: (_) => WriteLetterPage(
+          initialRecipient: selectedFriendId,
+        ),
       ),
     );
   }

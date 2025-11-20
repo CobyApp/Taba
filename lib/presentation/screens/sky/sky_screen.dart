@@ -25,6 +25,7 @@ class SkyScreen extends StatefulWidget {
     this.onRefresh,
     this.onLoadMore,
     this.onLoadMoreWithPagination,
+    this.onLanguageFilterChanged,
     this.floatingActionButton,
   });
 
@@ -36,6 +37,7 @@ class SkyScreen extends StatefulWidget {
   final VoidCallback? onRefresh;
   final Future<List<Letter>> Function(int page)? onLoadMore;
   final Future<({List<Letter> letters, bool hasMore})> Function(int page)? onLoadMoreWithPagination;
+  final Function(List<String>)? onLanguageFilterChanged;
   final Widget? floatingActionButton;
 
   @override
@@ -491,7 +493,7 @@ class _SkyCanvasState extends State<_SkyCanvas> {
     // 각 편지에 대해 겹치지 않는 위치 찾기
     for (final letter in allLetters) {
       final hash = letter.id.hashCode;
-      final random = math.Random(hash);
+    final random = math.Random(hash);
     
       Offset? bestPosition;
       double bestDistance = 0;

@@ -95,10 +95,11 @@ class DataRepository {
   }
 
   // Letters
-  Future<List<Letter>> getPublicLetters({int page = 0, int size = 20}) async {
+  Future<List<Letter>> getPublicLetters({int page = 0, int size = 20, List<String>? languages}) async {
     final response = await _letterService.getPublicLetters(
       page: page,
       size: size,
+      languages: languages,
     );
     if (response.isSuccess && response.data != null) {
       return response.data!.content.map((dto) => dto.toModel()).toList();
@@ -107,10 +108,11 @@ class DataRepository {
   }
 
   /// 공개 편지 목록 조회 (페이징 정보 포함)
-  Future<({List<Letter> letters, bool hasMore})> getPublicLettersWithPagination({int page = 0, int size = 20}) async {
+  Future<({List<Letter> letters, bool hasMore})> getPublicLettersWithPagination({int page = 0, int size = 20, List<String>? languages}) async {
     final response = await _letterService.getPublicLetters(
       page: page,
       size: size,
+      languages: languages,
     );
     if (response.isSuccess && response.data != null) {
       return (
@@ -136,8 +138,8 @@ class DataRepository {
     required String visibility,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
-    DateTime? scheduledAt,
     String? recipientId,
+    String? language,
   }) async {
     try {
       final response = await _letterService.createLetter(
@@ -147,8 +149,9 @@ class DataRepository {
         visibility: visibility,
         template: template,
         attachedImages: attachedImages,
-        scheduledAt: scheduledAt,
+        scheduledAt: null, // 예약 발송 기능 제거
         recipientId: recipientId,
+        language: language,
       );
       
       if (!response.isSuccess && response.error != null) {
@@ -186,6 +189,7 @@ class DataRepository {
     required String preview,
     Map<String, dynamic>? template,
     List<String>? attachedImages,
+    String? language,
   }) async {
     try {
       final response = await _letterService.replyLetter(
@@ -195,6 +199,7 @@ class DataRepository {
         preview: preview,
         template: template,
         attachedImages: attachedImages,
+        language: language,
       );
       
       if (!response.isSuccess && response.error != null) {
@@ -451,10 +456,10 @@ class DataRepository {
   // Invite Codes
   Future<InviteCodeDto?> generateInviteCode() async {
     try {
-      final response = await _inviteCodeService.generateCode();
-      if (response.isSuccess && response.data != null) {
-        return response.data!;
-      }
+    final response = await _inviteCodeService.generateCode();
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
       // 에러가 있으면 로그 출력 (디버깅용)
       if (response.error != null) {
         print('초대 코드 생성 실패: ${response.error?.code} - ${response.error?.message}');
@@ -463,7 +468,7 @@ class DataRepository {
     } catch (e, stackTrace) {
       print('초대 코드 생성 예외: $e');
       print('Stack trace: $stackTrace');
-      return null;
+    return null;
     }
   }
 

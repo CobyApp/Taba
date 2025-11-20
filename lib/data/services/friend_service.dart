@@ -120,20 +120,36 @@ class FriendService {
       return ApiResponse<List<FriendProfileDto>>.fromJson(
         response.data as Map<String, dynamic>,
         (data) {
-          // API 명세서에 따르면 /friends 엔드포인트는 UserDto 배열만 반환
-          // {success: true, data: [{id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters}]}
-          // FriendProfileDto는 UserDto + lastLetterAt을 포함하므로 변환 필요
-          // lastLetterAt은 API 응답에 없으므로 기본값(현재 시간) 사용
+          // API 명세서: {success: true, data: {friends: [...]}}
+          // data는 {friends: [...]} 형태
+          if (data is Map<String, dynamic> && data.containsKey('friends')) {
+            final friendsList = data['friends'] as List<dynamic>?;
+            if (friendsList != null) {
+              return friendsList
+                  .map((item) {
+                    final userJson = item as Map<String, dynamic>;
+                    // UserDto를 FriendProfileDto로 변환
+                    // API 명세서: 친구 목록에는 lastLetterAt 정보가 없음
+                    return FriendProfileDto.fromJson({
+                      'id': userJson['id'],
+                      'user': userJson, // UserDto 정보 (id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters)
+                      'lastLetterAt': DateTime.now().toIso8601String(), // API 응답에 없으므로 기본값 사용
+                      'friendCount': userJson['friendCount'] ?? 0,
+                      'sentLetters': userJson['sentLetters'] ?? 0,
+                    });
+                  })
+                  .toList();
+            }
+          }
+          // 하위 호환성: data가 직접 배열인 경우
           if (data is List) {
             return data
                 .map((item) {
                   final userJson = item as Map<String, dynamic>;
-                  // UserDto를 FriendProfileDto로 변환
-                  // API 명세서: 친구 목록에는 lastLetterAt 정보가 없음
                   return FriendProfileDto.fromJson({
                     'id': userJson['id'],
-                    'user': userJson, // UserDto 정보 (id, email, nickname, avatarUrl, joinedAt, friendCount, sentLetters)
-                    'lastLetterAt': DateTime.now().toIso8601String(), // API 응답에 없으므로 기본값 사용
+                    'user': userJson,
+                    'lastLetterAt': DateTime.now().toIso8601String(),
                     'friendCount': userJson['friendCount'] ?? 0,
                     'sentLetters': userJson['sentLetters'] ?? 0,
                   });
