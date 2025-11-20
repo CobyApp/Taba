@@ -9,6 +9,7 @@
 - [ ] Google Play Console 계정 생성 및 앱 등록
 - [ ] Keystore 파일 생성 (`android/app/keystore.jks`)
 - [ ] Google Play 서비스 계정 생성 및 JSON 키 다운로드
+  - [상세 가이드](./GOOGLE_PLAY_SETUP.md) 참고
 - [ ] 서비스 계정에 앱 관리자 권한 부여
 
 ### iOS

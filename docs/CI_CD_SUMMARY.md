@@ -70,6 +70,10 @@
 - **빠른 시작**: [QUICK_START.md](./QUICK_START.md)
 - **상세 설정**: [CI_CD_SETUP.md](./CI_CD_SETUP.md)
 - **체크리스트**: [CI_CD_CHECKLIST.md](./CI_CD_CHECKLIST.md)
+- **Keystore 생성**: [KEYSTORE_SETUP.md](./KEYSTORE_SETUP.md)
+- **Google Play 설정**: [GOOGLE_PLAY_SETUP.md](./GOOGLE_PLAY_SETUP.md)
+- **App Store Connect 설정**: [APP_STORE_CONNECT_GUIDE.md](./APP_STORE_CONNECT_GUIDE.md)
+- **iOS 인증서 설정**: [IOS_CERTIFICATE_SETUP.md](./IOS_CERTIFICATE_SETUP.md)
 
 ## ⚠️ 중요 사항
 

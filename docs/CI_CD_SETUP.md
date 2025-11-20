@@ -50,29 +50,95 @@ android {
 
 #### 1.3 Google Play Console 설정
 
-1. Google Play Console에 로그인
-2. **설정** → **API 액세스**로 이동
-3. **서비스 계정** 생성 또는 기존 계정 사용
-4. 서비스 계정에 **앱 관리자** 권한 부여
-5. JSON 키 파일 다운로드
+**⚠️ 중요**: Google Play Console의 API 액세스 서비스가 중단된 경우:
+- [대안 방법: Google Cloud Console에서 직접 생성](./GOOGLE_PLAY_ALTERNATIVE.md) 참고
+
+**⚠️ 사전 확인**: 앱이 등록되지 않았다면 먼저 앱을 등록해야 합니다!
+- [앱 등록 가이드](./GOOGLE_PLAY_APP_REGISTRATION.md) 참고
+- 앱 등록은 간단하며, 실제 배포할 필요는 없습니다
+
+**⚠️ 빠른 접근**: 
+1. **직접 URL 입력** (개발자 ID 포함):
+   ```
+   https://play.google.com/console/u/0/developers/8677267942546809805/api-access
+   ```
+   - 현재 URL의 개발자 ID를 사용하여 접근
+2. **또는 현재 URL 수정**: 
+   - 현재 URL에서 `/users-and-permissions/...` 부분을 `/api-access`로 변경
+
+**단계별 방법**:
+
+1. [Google Play Console](https://play.google.com/console)에 로그인
+2. **방법 1 (직접 URL)**: 브라우저 주소창에 위 URL 입력
+3. **방법 2 (메뉴에서)**:
+   - 왼쪽 사이드바에서 **설정** (Settings) 클릭
+   - 설정 페이지 **상단 탭 메뉴**에서 **API 액세스** 찾기
+   - 또는 **사용자 및 권한** 메뉴에서 찾기
+4. **서비스 계정 만들기** 또는 **CREATE SERVICE ACCOUNT** 버튼 클릭
+   - ⚠️ **중요**: 이 버튼을 클릭하면 자동으로 Google Cloud Console로 이동합니다
+   - Google Cloud Platform에 별도로 접속할 필요 없습니다!
+5. Google Cloud Console에서:
+   - 프로젝트 선택 (자동으로 연결된 프로젝트 사용 또는 기존 프로젝트 선택)
+   - 서비스 계정 이름 입력 (예: "Taba CI/CD")
+   - 서비스 계정 생성
+   - **키** 탭에서 **새 키 만들기** → **JSON** 형식 선택 → 다운로드
+6. Google Play Console로 돌아가서 **권한 부여** 클릭
+7. 앱 선택 후 **앱 관리자** 권한 부여
+
+**참고**: [FAQ](./GOOGLE_PLAY_FAQ.md) - Google Cloud Platform 관련 질문
+
+**상세 가이드**: 
+- [Google Play Console 서비스 계정 설정 가이드](./GOOGLE_PLAY_SETUP.md)
+- [대안 방법: Google Cloud Console에서 직접 생성](./GOOGLE_PLAY_ALTERNATIVE.md) - API 액세스 서비스 중단 시
+- [문제 해결 가이드](./GOOGLE_PLAY_TROUBLESHOOTING.md) - API 액세스 페이지 접근이 안 되는 경우
 
 ### 2. iOS 설정
 
 #### 2.1 App Store Connect API Key 생성
 
 1. [App Store Connect](https://appstoreconnect.apple.com)에 로그인
-2. **사용자 및 액세스** → **키** 탭으로 이동
-3. **+** 버튼 클릭하여 새 API 키 생성
-4. **App Manager** 또는 **Admin** 권한 부여
-5. 키 다운로드 (`.p8` 파일) - **한 번만 다운로드 가능**
+2. **우측 상단의 사용자 아이콘(프로필 아이콘)** 클릭
+3. 드롭다운 메뉴에서 **사용자 및 액세스** 선택
+   - 또는 상단 메뉴에서 **사용자 및 액세스** 직접 클릭
+4. 왼쪽 사이드바에서 **키** 메뉴 클릭
+   - 메뉴 경로: **사용자 및 액세스** → **키**
+   - ⚠️ **참고**: Admin 또는 App Manager 권한이 있어야 키 메뉴가 보입니다
+5. 우측 상단의 **+** 버튼 또는 **생성** 버튼 클릭
+6. 키 이름 입력 (예: "CI/CD Key" 또는 "GitHub Actions")
+7. **액세스** 드롭다운에서 **App Manager** 또는 **Admin** 선택
+8. **생성** 버튼 클릭
+9. **키 ID**와 **Issuer ID**를 복사하여 안전하게 보관
+   - 키 ID: 10자리 영문+숫자 (예: `ABC123DEF4`)
+   - Issuer ID: 페이지 상단에 표시되는 UUID 형식 (예: `12345678-1234-1234-1234-123456789012`)
+10. **다운로드** 버튼 클릭하여 `.p8` 파일 다운로드
+    - ⚠️ **경고**: 이 파일은 **한 번만 다운로드 가능**합니다! 안전하게 보관하세요.
+
+**상세 가이드**: [App Store Connect API Key 생성 가이드](./APP_STORE_CONNECT_GUIDE.md) 참고
 
 #### 2.2 인증서 및 프로비저닝 프로파일
 
-1. [Apple Developer Portal](https://developer.apple.com)에 로그인
-2. **Certificates, Identifiers & Profiles**로 이동
-3. **Distribution Certificate** 생성 (또는 기존 사용)
-4. **App Store Distribution Provisioning Profile** 생성
-5. 인증서와 프로파일을 다운로드
+1. [Apple Developer Portal](https://developer.apple.com/account)에 로그인
+2. 왼쪽 사이드바에서 **Certificates, Identifiers & Profiles** 클릭
+   - 또는 직접 URL: https://developer.apple.com/account/resources/certificates/list
+3. **Certificates (인증서)** 섹션:
+   - **+** 버튼 클릭
+   - **Apple Distribution** 선택 → **Continue**
+   - **CSR 파일 생성** (두 가지 방법):
+     - **방법 1**: Keychain Access → 인증서 지원 → 인증 기관에 인증서 요청
+     - **방법 2**: Xcode → Settings → Accounts → Manage Certificates (더 쉬움)
+   - CSR 파일 업로드 (방법 1 사용 시) 또는 Xcode 자동 생성 (방법 2)
+   - 인증서 다운로드 후 더블클릭하여 Keychain에 추가
+   - Keychain Access에서 인증서를 `.p12` 형식으로 내보내기 (비밀번호 설정)
+
+**상세 가이드**: [iOS 인증서 및 프로비저닝 프로파일 생성 가이드](./IOS_CERTIFICATE_SETUP.md) 참고
+4. **Profiles (프로비저닝 프로파일)** 섹션:
+   - **+** 버튼 클릭
+   - **App Store** 선택 → **Continue**
+   - 앱 선택 (App ID)
+   - 위에서 생성한 Distribution Certificate 선택
+   - 프로파일 이름 입력 (예: "Taba App Store Distribution")
+   - **Generate** 클릭
+   - 프로파일 다운로드 (`.mobileprovision` 파일)
 
 #### 2.3 ExportOptions 파일 생성
 
