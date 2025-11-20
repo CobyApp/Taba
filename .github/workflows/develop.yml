@@ -76,25 +76,42 @@ jobs:
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
 
-          # Import certificate
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          # Import certificate (if provided)
+          if [ -n "$APPLE_CERTIFICATE_BASE64" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ]; then
+            echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || echo "Certificate import failed, continuing..."
+          fi
 
-          # Import provisioning profile
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          # Import provisioning profile (if provided)
+          if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          fi
 
           # Set keychain to allow codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
 
       - name: Build iOS IPA (Dev)
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
         run: |
-          flutter build ipa --release \
-            --build-name=1.0.0-dev \
-            --build-number=${{ github.run_number }} \
-            --dart-define=API_ENV=dev \
-            --export-options-plist=ios/ExportOptions-dev.plist
+          # Certificate가 없으면 자동 서명 사용
+          if [ -z "$APPLE_CERTIFICATE_BASE64" ]; then
+            echo "No certificate provided, using automatic signing"
+            flutter build ipa --release \
+              --build-name=1.0.0-dev \
+              --build-number=${{ github.run_number }} \
+              --dart-define=API_ENV=dev \
+              --export-options-plist=ios/ExportOptions-dev.plist \
+              --no-codesign || true
+          else
+            flutter build ipa --release \
+              --build-name=1.0.0-dev \
+              --build-number=${{ github.run_number }} \
+              --dart-define=API_ENV=dev \
+              --export-options-plist=ios/ExportOptions-dev.plist
+          fi
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
