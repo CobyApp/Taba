@@ -96,18 +96,42 @@ jobs:
 
           # Import certificate
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || true
 
-          # Import provisioning profile
-          echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          # Import provisioning profile (if provided)
+          if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
+            echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
+            
+            # Extract UUID from provisioning profile
+            TEMP_PLIST=$(mktemp)
+            security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
+            rm -f "$TEMP_PLIST"
+            
+            if [ -z "$PROFILE_UUID" ]; then
+              echo "❌ Failed to extract UUID from provisioning profile"
+              exit 1
+            fi
+            
+            # Install provisioning profile
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+            echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
+          fi
 
           # Set keychain to allow codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
 
       - name: Build iOS IPA (Production)
         run: |
+          # Update ExportOptions with provisioning profile UUID if available
+          if [ -f /tmp/profile_uuid.txt ]; then
+            PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-prod.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-prod.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-prod.plist 2>/dev/null || true
+          fi
+          
           flutter build ipa --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \

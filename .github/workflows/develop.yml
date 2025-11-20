@@ -80,69 +80,27 @@ jobs:
 
             # Import certificate
             echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-            if ! security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign; then
-              echo "Certificate import failed. Will continue with provisioning profile setup."
-            fi
+            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || true
 
             # Import provisioning profile (if provided)
             if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
               echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
               
-              # Extract UUID and other info from provisioning profile
-              PROFILE_UUID=""
-              PROFILE_NAME=""
-              
-              # Decode provisioning profile to plist
+              # Extract UUID from provisioning profile
               TEMP_PLIST=$(mktemp)
-              if security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null; then
-                # Extract UUID using PlistBuddy
-                PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
-                PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null)
-                PROFILE_TYPE=$(/usr/libexec/PlistBuddy -c "Print ProvisionedDevices" "$TEMP_PLIST" 2>/dev/null | head -1 || echo "App Store")
-                
-                echo "Provisioning Profile Name: $PROFILE_NAME"
-                echo "Provisioning Profile UUID: $PROFILE_UUID"
-                
-                # Check profile type
-                if /usr/libexec/PlistBuddy -c "Print ProvisionedDevices" "$TEMP_PLIST" 2>/dev/null | grep -q "array"; then
-                  echo "⚠️ Profile Type: Ad Hoc or Development (has ProvisionedDevices)"
-                else
-                  echo "✅ Profile Type: App Store Distribution (no ProvisionedDevices)"
-                fi
-                
-                # Extract Bundle ID to verify
-                APP_ID=$(/usr/libexec/PlistBuddy -c "Print Entitlements:application-identifier" "$TEMP_PLIST" 2>/dev/null | sed 's/.*\.//')
-                echo "App Bundle ID from profile: $APP_ID"
-                
-                # Verify profile is for App Store
-                PROVISIONED_DEVICES=$(/usr/libexec/PlistBuddy -c "Print ProvisionedDevices" "$TEMP_PLIST" 2>/dev/null || echo "")
-                if [ -n "$PROVISIONED_DEVICES" ] && [ "$PROVISIONED_DEVICES" != "" ]; then
-                  echo "❌ WARNING: This profile has ProvisionedDevices, which means it's NOT an App Store Distribution profile!"
-                  echo "Archive builds require App Store Distribution profiles without ProvisionedDevices."
-                fi
+              security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+              PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
+              rm -f "$TEMP_PLIST"
+              
+              if [ -z "$PROFILE_UUID" ]; then
+                echo "❌ Failed to extract UUID from provisioning profile"
+                exit 1
               fi
               
               # Install provisioning profile
               mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-              if [ -n "$PROFILE_UUID" ]; then
-                cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-                echo "✅ Provisioning profile installed as: $PROFILE_UUID.mobileprovision"
-                
-                # Save UUID to file for later use
-                echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
-              else
-                echo "❌ Failed to extract UUID from provisioning profile"
-                echo "Profile content preview:"
-                head -20 "$TEMP_PLIST" || true
-                rm -f "$TEMP_PLIST"
-                exit 1
-              fi
-              
-              rm -f "$TEMP_PLIST"
-              
-              # Verify profile installation
-              echo "Installed profiles:"
-              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep -i mobileprovision || echo "No profiles found"
+              cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+              echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
             fi
 
             # Set keychain to allow codesign
@@ -153,41 +111,19 @@ jobs:
 
       - name: Build iOS IPA (Dev)
         run: |
-          # Verify profile is installed
-          echo "Checking installed provisioning profiles:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || echo "No profiles directory found"
-          
           # Update ExportOptions with provisioning profile UUID if available
           if [ -f /tmp/profile_uuid.txt ]; then
             PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
-            echo "Using provisioning profile UUID: $PROFILE_UUID"
-            
-            # Verify profile file exists
-            if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
-              echo "✅ Profile file exists: $PROFILE_UUID.mobileprovision"
-            else
-              echo "❌ Profile file NOT found: $PROFILE_UUID.mobileprovision"
-              echo "Available profiles:"
-              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || true
-            fi
-            
-            # Create updated ExportOptions with UUID
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
-            
-            echo "Updated ExportOptions:"
-            cat ios/ExportOptions-dev.plist
           fi
           
-          # Build with verbose logging
-          # Note: flutter build ipa automatically uses Release configuration
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
-            --export-options-plist=ios/ExportOptions-dev.plist \
-            --verbose
+            --export-options-plist=ios/ExportOptions-dev.plist
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
