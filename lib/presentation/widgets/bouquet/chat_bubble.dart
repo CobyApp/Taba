@@ -41,7 +41,7 @@ class ChatBubble extends StatelessWidget {
     );
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final bubbleMaxWidth = screenWidth * 0.85; // 말풍선을 더 넓게 (기존 0.98에서 0.85로 조정)
+    final bubbleMaxWidth = screenWidth * 0.92; // 말풍선을 더 넓게
 
     final bubble = InkWell(
       borderRadius: radius,
@@ -116,11 +116,10 @@ class ChatBubble extends StatelessWidget {
             children: [
               if (!isMine) ...[
                 // 친구의 프로필사진은 표시하지 않음
-                Flexible(child: bubble),
-                const Spacer(),
+                Expanded(child: bubble),
               ] else ...[
                 const Spacer(),
-                Flexible(child: bubble),
+                Expanded(child: bubble),
               ],
             ],
           ),

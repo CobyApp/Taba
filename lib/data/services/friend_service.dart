@@ -120,7 +120,7 @@ class FriendService {
       return ApiResponse<List<FriendProfileDto>>.fromJson(
         response.data as Map<String, dynamic>,
         (data) {
-ㅊ          // API 명세서: {success: true, data: {friends: [...]}}
+          // API 명세서: {success: true, data: {friends: [...]}}
           // data는 {friends: [...]} 형태
           if (data is Map<String, dynamic> && data.containsKey('friends')) {
             final friendsList = data['friends'] as List<dynamic>?;
