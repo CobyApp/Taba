@@ -89,7 +89,15 @@ jobs:
 
             # Import certificate
             echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || true
+            
+            # Import to build keychain
+            security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
+            
+            # Also import to login keychain for xcodebuild to find it
+            security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
+            
+            # Set login keychain as default for codesign
+            security default-keychain -s ~/Library/Keychains/login.keychain-db || true
 
             # Import provisioning profile (if provided)
             if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
@@ -122,10 +130,16 @@ jobs:
 
             # Set keychain to allow codesign
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
             
-            # List imported certificates
-            echo "Imported certificates:"
+            # List imported certificates in both keychains
+            echo "Imported certificates in build.keychain:"
             security find-identity -v -p codesigning -k build.keychain || true
+            echo "Imported certificates in login.keychain:"
+            security find-identity -v -p codesigning -k ~/Library/Keychains/login.keychain-db || true
+            
+            # Ensure keychain is unlocked
+            security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
           else
             echo "No certificate provided. Will use automatic signing."
           fi
