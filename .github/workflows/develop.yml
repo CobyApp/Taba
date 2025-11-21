@@ -144,14 +144,32 @@ jobs:
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
             
+            # Grant access to xcodebuild
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
+            
+            # Verify certificate import was successful
+            CERT_COUNT=$(security find-identity -v -p codesigning build.keychain | grep -c "Distribution" || echo "0")
+            if [ "$CERT_COUNT" -eq "0" ]; then
+              CERT_COUNT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep -c "Distribution" || echo "0")
+            fi
+            
+            if [ "$CERT_COUNT" -eq "0" ]; then
+              echo "❌ ERROR: No Distribution certificate found after import"
+              echo "Certificate import may have failed. Check the password and certificate format."
+              exit 1
+            fi
+            
             # List imported certificates in both keychains
             echo "Imported certificates in build.keychain:"
             security find-identity -v -p codesigning -k build.keychain || true
             echo "Imported certificates in login.keychain:"
             security find-identity -v -p codesigning -k ~/Library/Keychains/login.keychain-db || true
             
-            # Ensure keychain is unlocked
+            # Ensure keychain is unlocked and set as default
+            security unlock-keychain -p "" build.keychain || true
             security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
+            security default-keychain -s build.keychain || true
           else
             echo "No certificate provided. Will use automatic signing."
           fi
@@ -243,6 +261,30 @@ jobs:
             echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi
           
+          # Verify certificate is accessible before building
+          echo "=== Verifying Certificate Access ==="
+          DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          if [ -z "$DIST_CERT" ]; then
+            echo "❌ No Distribution certificate found in keychain"
+            echo "Available identities:"
+            security find-identity -v -p codesigning || true
+            exit 1
+          fi
+          echo "✅ Found Distribution certificate: $DIST_CERT"
+          
+          # Verify provisioning profile matches certificate
+          if [ -f /tmp/profile_uuid.txt ]; then
+            PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
+            TEMP_PLIST=$(mktemp)
+            security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
+            PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$TEMP_PLIST" 2>/dev/null || echo "")
+            rm -f "$TEMP_PLIST"
+            
+            if [ "$PROFILE_TEAM_ID" != "3Y8YH8GWMM" ]; then
+              echo "⚠️ Warning: Profile Team ID ($PROFILE_TEAM_ID) doesn't match expected (3Y8YH8GWMM)"
+            fi
+          fi
+          
           # Try building IPA with verbose output
           flutter build ipa --release \
             --build-name=1.0.0-dev \
@@ -255,11 +297,11 @@ jobs:
               # If flutter build fails, try xcodebuild directly
               if [ -f build/ios/archive/Runner.xcarchive ]; then
                 echo "Archive exists, trying to export manually..."
+                # Remove provisioning flags for manual signing
                 xcodebuild -exportArchive \
                   -archivePath build/ios/archive/Runner.xcarchive \
                   -exportPath build/ios/ipa \
-                  -exportOptionsPlist ios/ExportOptions-dev.plist \
-                  -allowProvisioningUpdates 2>&1 || true
+                  -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 || true
                 
                 # Check if IPA was created
                 if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa')" ]; then
