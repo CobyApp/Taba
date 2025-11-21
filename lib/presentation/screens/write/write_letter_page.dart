@@ -676,11 +676,6 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       'Pacifico',
       'Lobster',
       'Chewy',
-      'Fredoka One',
-      'Baloo 2',
-      'Bangers',
-      'Bubblegum Sans',
-      'Cookie',
       'Nunito',
       'Quicksand',
       'Comfortaa',
@@ -688,6 +683,11 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       'Raleway',
       'Open Sans',
       'Roboto',
+      'Montserrat',
+      'Lato',
+      'Source Sans 3',
+      'Inter',
+      'Work Sans',
     ];
     // 한국어 폰트 20개 (10대 20대 여성 선호 귀여운 폰트, 크기 균일)
     final krFonts = <String>[
@@ -736,18 +736,31 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       'Zen Old Mincho',
     ];
 
-    TabaModalSheet.show<void>(
+    showModalBottomSheet<void>(
       context: context,
-      fixedSize: true,
-      child: _FontPickerSheet(
-        enFonts: enFonts,
-        krFonts: krFonts,
-        jpFonts: jpFonts,
-        onFontSelected: (font) {
-          _applyFont(font);
-          Navigator.of(context).pop();
-        },
+      backgroundColor: AppColors.midnightSoft,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (context) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final sheetHeight = screenHeight * 0.7; // 화면의 70% 고정 높이
+        
+        return SizedBox(
+          height: sheetHeight,
+          child: _FontPickerSheet(
+            enFonts: enFonts,
+            krFonts: krFonts,
+            jpFonts: jpFonts,
+            onFontSelected: (font) {
+              _applyFont(font);
+              Navigator.of(context).pop();
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1484,72 +1497,88 @@ class _FontPickerSheetState extends State<_FontPickerSheet> {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 언어 선택 태그 버튼
-            Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('EN'),
-                  selected: _selectedLang == 'en',
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedLang = 'en';
-                        _currentFonts = widget.enFonts;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('한국어'),
-                  selected: _selectedLang == 'ko',
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedLang = 'ko';
-                        _currentFonts = widget.krFonts;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
-                ChoiceChip(
-                  label: const Text('日本語'),
-                  selected: _selectedLang == 'ja',
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() {
-                        _selectedLang = 'ja';
-                        _currentFonts = widget.jpFonts;
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // 선택된 언어의 폰트 목록
-            ..._currentFonts.map((font) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  title: Text(
-                    font,
-                    style: GoogleFonts.getFont(font, color: Colors.white),
+            // 언어 선택 태그 버튼 (고정)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('EN'),
+                    selected: _selectedLang == 'en',
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedLang = 'en';
+                          _currentFonts = widget.enFonts;
+                        });
+                      }
+                    },
                   ),
-                  onTap: () {
-                    widget.onFontSelected(font);
-                    Navigator.of(context).pop();
-                  },
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('한국어'),
+                    selected: _selectedLang == 'ko',
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedLang = 'ko';
+                          _currentFonts = widget.krFonts;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text('日本語'),
+                    selected: _selectedLang == 'ja',
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedLang = 'ja';
+                          _currentFonts = widget.jpFonts;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // 선택된 언어의 폰트 목록 (스크롤 가능)
+            Expanded(
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: _currentFonts.length,
+                separatorBuilder: (context, index) => const Divider(
+                  color: Colors.white24,
+                  height: 1,
                 ),
-                if (font != _currentFonts.last)
-                  const Divider(color: Colors.white24, height: 1),
-              ],
-            )),
+                itemBuilder: (context, index) {
+                  final font = _currentFonts[index];
+                  // 폰트 로딩 시도, 실패하면 기본 스타일 사용
+                  TextStyle fontStyle;
+                  try {
+                    fontStyle = GoogleFonts.getFont(font, color: Colors.white);
+                  } catch (e) {
+                    // 폰트를 찾을 수 없으면 기본 스타일 사용
+                    fontStyle = const TextStyle(color: Colors.white);
+                  }
+                  
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    title: Text(
+                      font,
+                      style: fontStyle,
+                    ),
+                    onTap: () {
+                      widget.onFontSelected(font);
+                      Navigator.of(context).pop();
+                    },
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

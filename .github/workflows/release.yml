@@ -10,6 +10,7 @@ jobs:
   build-android-prod:
     name: Build Android Production
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,12 +31,22 @@ jobs:
         run: flutter pub get
 
       - name: Pre-download Gradle
+        timeout-minutes: 5
         run: |
           cd android
-          ./gradlew --version || true
-          # Retry if download fails
+          # Retry if download fails (max 3 times)
           for i in {1..3}; do
-            ./gradlew --version && break || sleep 5
+            if ./gradlew --version; then
+              echo "Gradle downloaded successfully"
+              break
+            else
+              if [ $i -eq 3 ]; then
+                echo "Gradle download failed after 3 attempts"
+                exit 1
+              fi
+              echo "Retry $i/3 in 5 seconds..."
+              sleep 5
+            fi
           done
 
       - name: Setup Android Keystore
@@ -73,6 +84,7 @@ jobs:
   build-ios-prod:
     name: Build iOS Production
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
