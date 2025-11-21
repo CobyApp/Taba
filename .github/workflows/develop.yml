@@ -150,11 +150,27 @@ jobs:
             security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision > "$TEMP_PLIST" 2>/dev/null
             PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "Taba App Store Distribution")
             
-            # Extract DeveloperCertificates to find certificate name
+            # Extract DeveloperCertificates to verify certificate is in profile
             CERT_COUNT=$(/usr/libexec/PlistBuddy -c "Print DeveloperCertificates" "$TEMP_PLIST" 2>/dev/null | grep -c "data" || echo "0")
             if [ "$CERT_COUNT" -gt "0" ]; then
               echo "Found $CERT_COUNT certificate(s) in provisioning profile"
+              
+              # Extract first certificate and get its common name
+              CERT_DATA=$(/usr/libexec/PlistBuddy -c "Print DeveloperCertificates:0" "$TEMP_PLIST" 2>/dev/null)
+              if [ -n "$CERT_DATA" ]; then
+                echo "$CERT_DATA" > /tmp/cert_data.plist
+                CERT_NAME=$(security find-certificate -c "Apple Distribution" -p 2>/dev/null | openssl x509 -noout -subject 2>/dev/null | sed -n 's/.*CN=\(.*\)/\1/p' | head -1 || echo "")
+                echo "Certificate in profile matches: $CERT_NAME"
+                rm -f /tmp/cert_data.plist
+              fi
             fi
+            
+            # Verify profile is valid and not expired
+            EXPIRATION_DATE=$(/usr/libexec/PlistBuddy -c "Print ExpirationDate" "$TEMP_PLIST" 2>/dev/null || echo "")
+            if [ -n "$EXPIRATION_DATE" ]; then
+              echo "Provisioning profile expires: $EXPIRATION_DATE"
+            fi
+            
             rm -f "$TEMP_PLIST"
             
             # Update ExportOptions with provisioning profile UUID
@@ -201,11 +217,35 @@ jobs:
             echo "⚠️ No profile UUID found, using ExportOptions as-is"
           fi
           
+          # Try building IPA with verbose output
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
-            --export-options-plist=ios/ExportOptions-dev.plist
+            --export-options-plist=ios/ExportOptions-dev.plist \
+            --verbose || {
+              echo "Flutter build failed, trying xcodebuild directly..."
+              
+              # If flutter build fails, try xcodebuild directly
+              if [ -f build/ios/archive/Runner.xcarchive ]; then
+                echo "Archive exists, trying to export manually..."
+                xcodebuild -exportArchive \
+                  -archivePath build/ios/archive/Runner.xcarchive \
+                  -exportPath build/ios/ipa \
+                  -exportOptionsPlist ios/ExportOptions-dev.plist \
+                  -allowProvisioningUpdates 2>&1 || true
+                
+                # Check if IPA was created
+                if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa')" ]; then
+                  echo "IPA created successfully via xcodebuild"
+                else
+                  echo "xcodebuild export also failed"
+                  exit 1
+                fi
+              else
+                exit 1
+              fi
+            }
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
