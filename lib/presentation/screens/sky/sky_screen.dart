@@ -609,7 +609,7 @@ class _SeedOrb extends StatelessWidget {
   Widget build(BuildContext context) {
     final locale = AppLocaleController.localeNotifier.value;
     return Semantics(
-      label: '씨앗',
+      label: AppStrings.seed(locale),
       child: Container(
         width: 56,
         height: 56,

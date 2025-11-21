@@ -397,7 +397,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           // 이미지 압축 중 표시 (선택사항)
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('이미지를 압축하는 중...'),
+              content: Text(AppStrings.compressingImage(locale)),
               duration: const Duration(seconds: 1),
             ),
           );
@@ -1144,7 +1144,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
               final locale = AppLocaleController.localeNotifier.value;
               showTabaError(
                 context,
-                message: '일부 이미지 업로드에 실패했습니다. (${uploadedImageUrls.length}/${_attachedImageFiles.length})',
+                message: AppStrings.someImagesUploadFailed(locale, uploadedImageUrls.length, _attachedImageFiles.length),
         );
             }
             return;
@@ -1154,7 +1154,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
             final locale = AppLocaleController.localeNotifier.value;
             showTabaError(
               context,
-              message: '이미지 업로드에 실패했습니다: ${e.toString()}',
+              message: '${AppStrings.imageUploadFailed(locale)}: ${e.toString()}',
             );
           }
           return;
@@ -1276,56 +1276,61 @@ class _TemplateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 190,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              final template = templates[index];
-              final isSelected = template.id == selected.id;
-              return GestureDetector(
-                onTap: () => onSelect(template),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 150,
-                  decoration: BoxDecoration(
-                    color: template.background,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isSelected
-                          ? Colors.white
-                          : Colors.white.withOpacity(.5),
-                      width: isSelected ? 2.5 : 1,
-                    ),
-                    boxShadow: [
-                      if (isSelected)
-                        BoxShadow(
-                          color: template.background.withOpacity(.35),
-                          blurRadius: 18,
-                          offset: const Offset(0, 10),
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppLocaleController.localeNotifier,
+      builder: (context, locale, _) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 190,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  final template = templates[index];
+                  final isSelected = template.id == selected.id;
+                  return GestureDetector(
+                    onTap: () => onSelect(template),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 150,
+                      decoration: BoxDecoration(
+                        color: template.background,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.white.withOpacity(.5),
+                          width: isSelected ? 2.5 : 1,
                         ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.description_rounded, size: 48),
-                      const SizedBox(height: 12),
-                      Text(template.name),
-                    ],
-                  ),
-                ),
-              );
-            },
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
-            itemCount: templates.length,
-          ),
-        ),
-      ],
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: template.background.withOpacity(.35),
+                              blurRadius: 18,
+                              offset: const Offset(0, 10),
+                            ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.description_rounded, size: 48),
+                          const SizedBox(height: 12),
+                          Text(AppStrings.templateName(locale, template.id)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(width: 16),
+                itemCount: templates.length,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

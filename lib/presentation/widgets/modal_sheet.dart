@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 /// 공통 모달 시트 헤더
 class ModalSheetHeader extends StatelessWidget {
@@ -153,11 +155,14 @@ class TabaModalSheet extends StatelessWidget {
     required BuildContext context,
     required String title,
     required String message,
-    String confirmText = '확인',
-    String cancelText = '취소',
+    String? confirmText,
+    String? cancelText,
     Color? confirmColor,
     IconData? icon,
   }) {
+    final locale = AppLocaleController.localeNotifier.value;
+    final finalConfirmText = confirmText ?? AppStrings.confirm(locale);
+    final finalCancelText = cancelText ?? AppStrings.cancel(locale);
     return showModalBottomSheet<bool>(
       context: context,
       backgroundColor: AppColors.midnightSoft,
@@ -220,7 +225,7 @@ class TabaModalSheet extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            cancelText,
+                            finalCancelText,
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),
@@ -237,7 +242,7 @@ class TabaModalSheet extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            confirmText,
+                            finalConfirmText,
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),

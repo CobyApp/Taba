@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 /// 앱 로고/타이틀을 표시하는 공통 위젯
 /// 스플래시, 로그인, 메인 화면에서 일관된 스타일로 사용
@@ -36,6 +37,7 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocaleController.localeNotifier.value;
     // 로고 타이틀은 본문 폰트와 다르게 사용 (Press Start 2P - 레트로 스타일)
     final logoStyle = GoogleFonts.pressStart2p().copyWith(
       fontSize: fontSize ?? 36,
@@ -66,7 +68,7 @@ class AppLogo extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            subtitle ?? '편지로 소통하는 공간',
+            subtitle ?? AppStrings.letterCommunicationSpace(locale),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: (color ?? Colors.white).withAlpha(200),
                   fontSize: 14,

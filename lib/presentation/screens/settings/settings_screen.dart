@@ -413,7 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TabaTextField(
           controller: codeController,
           labelText: AppStrings.friendCode(locale),
-          hintText: '예: A1B2C3',
+          hintText: AppStrings.inviteCodeExample(locale),
           autofocus: true,
           textCapitalization: TextCapitalization.characters,
           maxLength: 6,
@@ -701,7 +701,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         showTabaError(
           context,
           title: AppStrings.inviteCodeGenerationFailed(locale),
-          message: '초대 코드 생성에 실패했습니다. 다시 시도해주세요.',
+          message: AppStrings.inviteCodeGenerationFailed(locale),
         );
       }
     } catch (e, stackTrace) {
@@ -712,7 +712,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       showTabaError(
         context,
         title: AppStrings.inviteCodeGenerationFailed(locale),
-        message: '초대 코드 생성 중 오류가 발생했습니다: ${e.toString()}',
+        message: '${AppStrings.inviteCodeGenerationError(locale)}: ${e.toString()}',
       );
     } finally {
       if (mounted) {
@@ -1045,7 +1045,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showTabaError(context, message: '사진 선택 중 오류가 발생했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: '${AppStrings.photoSelectionError(locale)}: $e');
       }
     }
   }
@@ -1202,59 +1203,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // 프로필 이미지
-          Center(
-            child: GestureDetector(
-              onTap: _showImagePickerOptions,
-              child: Stack(
-                children: [
-                  _ProfileImageAvatar(
-                    radius: 60,
-                    profileImage: _isRemovingImage ? null : _profileImage,
-                    avatarUrl: _currentAvatarUrl,
-                    user: widget.currentUser,
-                    hasError: _hasImageError,
-                    onImageError: () {
-                      setState(() {
-                        _hasImageError = true;
-                      });
-                    },
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                            color: AppColors.neonPink,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 2,
+      body: ValueListenableBuilder<Locale>(
+        valueListenable: AppLocaleController.localeNotifier,
+        builder: (context, locale, _) {
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // 프로필 이미지
+              Center(
+                child: GestureDetector(
+                  onTap: _showImagePickerOptions,
+                  child: Stack(
+                    children: [
+                      _ProfileImageAvatar(
+                        radius: 60,
+                        profileImage: _isRemovingImage ? null : _profileImage,
+                        avatarUrl: _currentAvatarUrl,
+                        user: widget.currentUser,
+                        hasError: _hasImageError,
+                        onImageError: () {
+                          setState(() {
+                            _hasImageError = true;
+                          });
+                        },
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                                color: AppColors.neonPink,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 20,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          // 닉네임
-          TabaTextField(
-            controller: _nicknameCtrl,
-            labelText: '닉네임',
-          ),
-          // 상태 메시지 제거됨
-        ],
+              const SizedBox(height: 24),
+              // 닉네임
+              TabaTextField(
+                controller: _nicknameCtrl,
+                labelText: AppStrings.nickname(locale),
+              ),
+              // 상태 메시지 제거됨
+            ],
+          );
+        },
       ),
     );
   }

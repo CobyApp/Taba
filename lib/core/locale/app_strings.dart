@@ -158,6 +158,17 @@ class AppStrings {
     }
   }
 
+  static String newNotification(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'New Notification';
+      case 'ja':
+        return '新しい通知';
+      default:
+        return '새 알림';
+    }
+  }
+
   static String friendInviteSection(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
@@ -2248,6 +2259,226 @@ class AppStrings {
     }
   }
 
+  static String loadDataFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to load data';
+      case 'ja':
+        return 'データの読み込みに失敗しました';
+      default:
+        return '데이터를 불러오는데 실패했습니다';
+    }
+  }
+
+  static String photoSelectionError(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'An error occurred while selecting photo';
+      case 'ja':
+        return '写真の選択中にエラーが発生しました';
+      default:
+        return '사진 선택 중 오류가 발생했습니다';
+    }
+  }
+
+  static String reportSubmitted(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Report submitted. We will review and take action.';
+      case 'ja':
+        return '報告が受理されました。確認後、対応いたします。';
+      default:
+        return '신고가 접수되었습니다. 검토 후 조치하겠습니다.';
+    }
+  }
+
+  static String reportFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to submit report. Please try again.';
+      case 'ja':
+        return '報告の送信に失敗しました。もう一度お試しください。';
+      default:
+        return '신고 접수에 실패했습니다. 다시 시도해주세요.';
+    }
+  }
+
+  static String letterListLoadFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to load letter list';
+      case 'ja':
+        return '手紙リストの読み込みに失敗しました';
+      default:
+        return '편지 목록을 불러오는데 실패했습니다';
+    }
+  }
+
+  static String emailRequired(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Please enter your email';
+      case 'ja':
+        return 'メールアドレスを入力してください';
+      default:
+        return '이메일을 입력해주세요';
+    }
+  }
+
+  static String passwordResetEmailSent(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Password reset email has been sent.';
+      case 'ja':
+        return 'パスワードリセットメールを送信しました。';
+      default:
+        return '비밀번호 재설정 메일을 보냈어요.';
+    }
+  }
+
+  static String emailSendFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to send email. Please try again.';
+      case 'ja':
+        return 'メールの送信に失敗しました。もう一度お試しください。';
+      default:
+        return '이메일 전송에 실패했습니다. 다시 시도해주세요.';
+    }
+  }
+
+  static String compressingImage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Compressing image...';
+      case 'ja':
+        return '画像を圧縮中...';
+      default:
+        return '이미지를 압축하는 중...';
+    }
+  }
+
+  static String downloadingImage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Downloading image...';
+      case 'ja':
+        return '画像をダウンロード中...';
+      default:
+        return '이미지를 다운로드하는 중...';
+    }
+  }
+
+  static String shareFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to share';
+      case 'ja':
+        return '共有に失敗しました';
+      default:
+        return '공유에 실패했습니다';
+    }
+  }
+
+  static String share(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Share';
+      case 'ja':
+        return '共有';
+      default:
+        return '공유하기';
+    }
+  }
+
+  static String confirm(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Confirm';
+      case 'ja':
+        return '確認';
+      default:
+        return '확인';
+    }
+  }
+
+  static String someImagesUploadFailed(Locale locale, int uploaded, int total) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Some images failed to upload. ($uploaded/$total)';
+      case 'ja':
+        return '一部の画像のアップロードに失敗しました。 ($uploaded/$total)';
+      default:
+        return '일부 이미지 업로드에 실패했습니다. ($uploaded/$total)';
+    }
+  }
+
+  static String imageUploadFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to upload images';
+      case 'ja':
+        return '画像のアップロ드に失敗しました';
+      default:
+        return '이미지 업로드에 실패했습니다';
+    }
+  }
+
+  static String korean(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Korean';
+      case 'ja':
+        return '韓国語';
+      default:
+        return '한국어';
+    }
+  }
+
+  static String inviteCodeExample(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'e.g., A1B2C3';
+      case 'ja':
+        return '例: A1B2C3';
+      default:
+        return '예: A1B2C3';
+    }
+  }
+
+  static String inviteCodeGenerationError(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'An error occurred while generating invite code';
+      case 'ja':
+        return '招待コード生成中にエラーが発生しました';
+      default:
+        return '초대 코드 생성 중 오류가 발생했습니다';
+    }
+  }
+
+  static String seed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Seed';
+      case 'ja':
+        return '種';
+      default:
+        return '씨앗';
+    }
+  }
+
+  static String letterCommunicationSpace(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'A space to communicate through letters';
+      case 'ja':
+        return '手紙でコミュニケーションする空間';
+      default:
+        return '편지로 소통하는 공간';
+    }
+  }
+
   // 튜토리얼
   static String skipTutorial(Locale locale) {
     switch (locale.languageCode) {
@@ -2805,6 +3036,104 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
         return '* シーズン/プレミアムテンプレートは近日公開予定です。';
       default:
         return '* 시즌 / 프리미엄 템플릿은 곧 추가될 예정이에요.';
+    }
+  }
+
+  // 템플릿 이름
+  static String templateName(Locale locale, String templateId) {
+    switch (templateId) {
+      case 'neon_grid':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Neon Grid';
+          case 'ja':
+            return 'ネオングリッド';
+          default:
+            return '네온 그리드';
+        }
+      case 'retro_paper':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Retro Paper';
+          case 'ja':
+            return 'レトロペーパー';
+          default:
+            return '레트로 페이퍼';
+        }
+      case 'mint_terminal':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Mint Terminal';
+          case 'ja':
+            return 'ミントターミナル';
+          default:
+            return '민트 터미널';
+        }
+      case 'holo_purple':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Holo Purple';
+          case 'ja':
+            return 'ホロパープル';
+          default:
+            return '홀로 퍼플';
+        }
+      case 'pixel_blue':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Pixel Blue';
+          case 'ja':
+            return 'ピクセルブルー';
+          default:
+            return '픽셀 블루';
+        }
+      case 'sunset_grid':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Sunset Grid';
+          case 'ja':
+            return 'サンセットグリッド';
+          default:
+            return '선셋 그리드';
+        }
+      case 'cyber_green':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Cyber Green';
+          case 'ja':
+            return 'サイバーグリーン';
+          default:
+            return '사이버 그린';
+        }
+      case 'matrix_dark':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Matrix Dark';
+          case 'ja':
+            return 'マトリックスダーク';
+          default:
+            return '매트릭스 다크';
+        }
+      case 'neon_pink':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Neon Pink';
+          case 'ja':
+            return 'ネオンピンク';
+          default:
+            return '네온 핑크';
+        }
+      case 'retro_yellow':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Retro Yellow';
+          case 'ja':
+            return 'レトロイエロー';
+          default:
+            return '레트로 옐로우';
+        }
+      default:
+        return templateId;
     }
   }
 

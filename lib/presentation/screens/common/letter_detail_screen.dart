@@ -558,16 +558,18 @@ class _ReportSheetState extends State<_ReportSheet> {
       
       if (!mounted) return;
       
+      final locale = AppLocaleController.localeNotifier.value;
       if (success) {
         Navigator.of(context).pop();
-        showTabaSuccess(context, message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
+        showTabaSuccess(context, message: AppStrings.reportSubmitted(locale));
       } else {
-        showTabaError(context, message: '신고 접수에 실패했습니다. 다시 시도해주세요.');
+        showTabaError(context, message: AppStrings.reportFailed(locale));
         setState(() => _submitting = false);
       }
     } catch (e) {
       if (!mounted) return;
-      showTabaError(context, message: '오류가 발생했습니다: $e');
+      final locale = AppLocaleController.localeNotifier.value;
+      showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
       setState(() => _submitting = false);
     }
   }
@@ -609,10 +611,11 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
         
         // 로딩 표시
         if (mounted) {
+          final locale = AppLocaleController.localeNotifier.value;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('이미지를 다운로드하는 중...'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(AppStrings.downloadingImage(locale)),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
@@ -729,10 +732,11 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
           // 계산 실패 시 null로 두고 공유 시도 (Android에서는 문제 없음)
         }
         
+        final locale = AppLocaleController.localeNotifier.value;
         await Share.shareXFiles(
           [file],
-          text: '이미지 공유',
-          subject: '이미지',
+          text: AppStrings.share(locale),
+          subject: AppStrings.share(locale),
           sharePositionOrigin: sharePositionOrigin,
         );
       }
@@ -740,13 +744,14 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
       print('공유 에러: $e');
       print('스택 트레이스: $stackTrace');
       if (mounted) {
+        final locale = AppLocaleController.localeNotifier.value;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('공유에 실패했습니다: ${e.toString()}'),
+            content: Text('${AppStrings.shareFailed(locale)}: ${e.toString()}'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
-              label: '확인',
+              label: AppStrings.confirm(locale),
               textColor: Colors.white,
               onPressed: () {},
             ),

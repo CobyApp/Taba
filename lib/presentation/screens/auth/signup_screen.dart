@@ -57,7 +57,8 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showTabaError(context, message: '사진 선택 중 오류가 발생했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: '${AppStrings.photoSelectionError(locale)}: $e');
       }
     }
   }

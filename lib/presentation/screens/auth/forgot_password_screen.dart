@@ -33,7 +33,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     
     if (_emailCtrl.text.isEmpty) {
       if (mounted) {
-        showTabaError(context, message: '이메일을 입력해주세요');
+        showTabaError(context, message: AppStrings.emailRequired(locale));
       }
       return;
     }
@@ -46,10 +46,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (mounted) {
         if (success) {
-          showTabaSuccess(context, message: '비밀번호 재설정 메일을 보냈어요.');
+          showTabaSuccess(context, message: AppStrings.passwordResetEmailSent(locale));
           Navigator.of(context).pop();
         } else {
-          showTabaError(context, message: '이메일 전송에 실패했습니다. 다시 시도해주세요.');
+          showTabaError(context, message: AppStrings.emailSendFailed(locale));
         }
       }
     } catch (e) {

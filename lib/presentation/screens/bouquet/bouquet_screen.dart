@@ -206,7 +206,8 @@ class _BouquetScreenState extends State<BouquetScreen> {
           _loadingFlowers[friendId] = false;
           _hasMorePages[friendId] = false; // 에러 발생 시 더 이상 시도하지 않음
         });
-        showTabaError(context, message: '편지 목록을 불러오는데 실패했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: '${AppStrings.letterListLoadFailed(locale)}: $e');
       }
     }
   }

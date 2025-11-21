@@ -52,7 +52,8 @@ class _MainShellState extends State<MainShell> {
       _loadData();
       
       // 스낵바로 알림 표시
-      final title = message.notification?.title ?? '새 알림';
+      final locale = AppLocaleController.localeNotifier.value;
+      final title = message.notification?.title ?? AppStrings.newNotification(locale);
       final body = message.notification?.body ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -281,7 +282,8 @@ class _MainShellState extends State<MainShell> {
           return;
         }
         
-        showTabaError(context, message: '데이터를 불러오는데 실패했습니다: $e');
+        final locale = AppLocaleController.localeNotifier.value;
+        showTabaError(context, message: '${AppStrings.loadDataFailed(locale)}: $e');
       }
     }
   }
