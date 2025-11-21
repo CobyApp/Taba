@@ -158,18 +158,22 @@ jobs:
             rm -f "$TEMP_PLIST"
             
             # Update ExportOptions with provisioning profile UUID
+            # First, delete existing provisioningProfiles if exists
             /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || true
-            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
-            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || true
+            
+            # Add provisioningProfiles dictionary
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist
+            
+            # Add bundle ID and UUID mapping
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist
             
             # Ensure signingStyle is manual
             /usr/libexec/PlistBuddy -c "Set :signingStyle manual" ios/ExportOptions-dev.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-dev.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-dev.plist
             
-            # Ensure teamID is set
-            /usr/libexec/PlistBuddy -c "Set :teamID 6M5JX8T4LL" ios/ExportOptions-dev.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :teamID string 6M5JX8T4LL" ios/ExportOptions-dev.plist 2>/dev/null || true
+            # Ensure teamID is set (use the team ID from the signing certificate)
+            /usr/libexec/PlistBuddy -c "Set :teamID 3Y8YH8GWMM" ios/ExportOptions-dev.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :teamID string 3Y8YH8GWMM" ios/ExportOptions-dev.plist
             
             # Update PROVISIONING_PROFILE_SPECIFIER in Release and Profile configurations
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
