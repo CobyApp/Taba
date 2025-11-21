@@ -214,6 +214,10 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist
 
+            # Update method to app-store-connect (deprecated app-store)
+            /usr/libexec/PlistBuddy -c "Set :method app-store-connect" ios/ExportOptions-prod.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" ios/ExportOptions-prod.plist
+
             # Update project.pbxproj
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
 
@@ -225,13 +229,26 @@ jobs:
 
           # Verify certificate before building
           echo "=== Verifying Certificate Access ==="
-          DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          DIST_CERT=$(security find-identity -v -p codesigning build.keychain | grep "Distribution" | head -1 || echo "")
+          if [ -z "$DIST_CERT" ]; then
+            DIST_CERT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep "Distribution" | head -1 || echo "")
+          fi
+          if [ -z "$DIST_CERT" ]; then
+            DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          fi
           if [ -z "$DIST_CERT" ]; then
             echo "❌ No Distribution certificate found"
-            security find-identity -v -p codesigning || true
+            echo "Checking build.keychain:"
+            security find-identity -v -p codesigning build.keychain || true
+            echo "Checking login.keychain:"
+            security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db || true
             exit 1
           fi
           echo "✅ Certificate verified: $DIST_CERT"
+          
+          # Ensure keychain is unlocked and accessible
+          security unlock-keychain -p "" build.keychain || true
+          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
 
           # Build IPA
           echo "=== Building IPA ==="

@@ -195,6 +195,10 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist
 
+            # Update method to app-store-connect (deprecated app-store)
+            /usr/libexec/PlistBuddy -c "Set :method app-store-connect" ios/ExportOptions-dev.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" ios/ExportOptions-dev.plist
+
             # Update project.pbxproj
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
 
