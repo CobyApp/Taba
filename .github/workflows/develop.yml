@@ -158,13 +158,14 @@ jobs:
             rm -f "$TEMP_PLIST"
             
             # Update ExportOptions with provisioning profile UUID
-            # First, delete existing provisioningProfiles if exists
+            # Delete existing provisioningProfiles if exists, then recreate
             /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || true
             
-            # Add provisioningProfiles dictionary
-            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist
+            # Add provisioningProfiles dictionary (will fail if already exists, so ignore error)
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist 2>/dev/null || true
             
-            # Add bundle ID and UUID mapping
+            # Set bundle ID and UUID mapping (use Set in case it already exists)
+            /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.coby.taba $PROFILE_UUID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist
             
             # Ensure signingStyle is manual
@@ -174,6 +175,16 @@ jobs:
             # Ensure teamID is set (use the team ID from the signing certificate)
             /usr/libexec/PlistBuddy -c "Set :teamID 3Y8YH8GWMM" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string 3Y8YH8GWMM" ios/ExportOptions-dev.plist
+            
+            # Verify ExportOptions structure
+            echo "=== ExportOptions Structure ==="
+            /usr/libexec/PlistBuddy -c "Print" ios/ExportOptions-dev.plist
+            echo "=== Provisioning Profiles ==="
+            /usr/libexec/PlistBuddy -c "Print :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || echo "No provisioningProfiles found"
+            echo "=== Signing Style ==="
+            /usr/libexec/PlistBuddy -c "Print :signingStyle" ios/ExportOptions-dev.plist 2>/dev/null || echo "No signingStyle found"
+            echo "=== Team ID ==="
+            /usr/libexec/PlistBuddy -c "Print :teamID" ios/ExportOptions-dev.plist 2>/dev/null || echo "No teamID found"
             
             # Update PROVISIONING_PROFILE_SPECIFIER in Release and Profile configurations
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
