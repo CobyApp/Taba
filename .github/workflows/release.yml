@@ -128,14 +128,22 @@ jobs:
 
           # Import certificate to build keychain
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
+            echo "❌ Failed to import certificate to build.keychain"
+            exit 1
+          }
 
           # Import certificate to login keychain (for xcodebuild)
-          security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild
+          security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
+            echo "⚠️ Failed to import certificate to login.keychain, continuing..."
+          }
 
-          # Set keychain permissions
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db
+          # Set keychain permissions (use -k "" for empty password)
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
+          
+          # For login keychain, unlock it first
+          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
 
           # Verify certificate import
           echo "=== Verifying Certificate Import ==="
