@@ -9,6 +9,7 @@ import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
+import 'package:taba_app/data/services/translation_service.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
 import 'package:taba_app/presentation/widgets/taba_notice.dart';
 import 'package:taba_app/presentation/screens/write/write_letter_page.dart';
@@ -34,8 +35,13 @@ class LetterDetailScreen extends StatefulWidget {
 
 class _LetterDetailScreenState extends State<LetterDetailScreen> {
   final _repository = DataRepository.instance;
+  final _translationService = TranslationService.instance;
   TabaUser? _currentUser;
   bool _isLoadingUser = true;
+  bool _isTranslating = false;
+  bool _showTranslated = false;
+  String? _translatedTitle;
+  String? _translatedContent;
 
   @override
   void initState() {
@@ -219,6 +225,52 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                                 ],
                               ),
                             ),
+                            // 번역 버튼
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                IconButton(
+                                  onPressed: _isTranslating ? null : () => _toggleTranslation(locale),
+                                  icon: Icon(
+                                    _showTranslated ? Icons.translate : Icons.translate_outlined,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                  tooltip: _showTranslated 
+                                      ? AppStrings.showOriginal(locale)
+                                      : AppStrings.translate(locale),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white.withOpacity(0.1),
+                                    padding: const EdgeInsets.all(8),
+                                    minimumSize: const Size(36, 36),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                                if (_isTranslating)
+                                  Positioned(
+                                    top: -4,
+                                    right: -4,
+                                    child: Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.neonPink,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 8,
+                                          height: 8,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 1.5,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         )
                       else if (!_isMyLetter)
@@ -263,6 +315,52 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                               ],
                             ),
                           ),
+                          // 번역 버튼
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              IconButton(
+                                onPressed: _isTranslating ? null : () => _toggleTranslation(locale),
+                                icon: Icon(
+                                  _showTranslated ? Icons.translate : Icons.translate_outlined,
+                                  size: 20,
+                                  color: Colors.white,
+                                ),
+                                tooltip: _showTranslated 
+                                    ? AppStrings.showOriginal(locale)
+                                    : AppStrings.translate(locale),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withOpacity(0.1),
+                                  padding: const EdgeInsets.all(8),
+                                  minimumSize: const Size(36, 36),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                              if (_isTranslating)
+                                Positioned(
+                                  top: -4,
+                                  right: -4,
+                                  child: Container(
+                                    width: 12,
+                                    height: 12,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.neonPink,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 8,
+                                        height: 8,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 1.5,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
@@ -278,11 +376,11 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTitleText(style, textColor),
+                        _buildTitleText(style, textColor, locale),
                         // 제목-본문 간격을 본문 줄간격(height: 2.0, 폰트 24px 기준 약 48px)보다 좁게 설정
                         // 24px = 24px * 1.0
                         const SizedBox(height: 24),
-                        _buildContentText(style, textColor),
+                        _buildContentText(style, textColor, locale),
                         // 첨부한 사진 보기 버튼을 편지 내용 하단에 배치
                         if (widget.letter.attachedImages.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xl),
@@ -355,7 +453,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
     );
   }
 
-  Widget _buildTitleText(LetterStyle? style, Color textColor) {
+  Widget _buildTitleText(LetterStyle? style, Color textColor, Locale locale) {
     // 기본 폰트 크기를 더 크게 설정 (24 -> 28)
     final baseFontSize = style?.fontSize ?? 24;
     final fontSize = baseFontSize * 1.15; // 제목은 본문보다 15% 크게
@@ -382,16 +480,20 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       );
     }
     
+    final displayText = _showTranslated && _translatedTitle != null
+        ? _translatedTitle!
+        : widget.letter.title;
+    
     return SizedBox(
       width: double.infinity,
       child: Text(
-        widget.letter.title,
+        displayText,
         style: titleTextStyle,
       ),
     );
   }
 
-  Widget _buildContentText(LetterStyle? style, Color textColor) {
+  Widget _buildContentText(LetterStyle? style, Color textColor, Locale locale) {
     // 기본 폰트 크기를 더 크게 설정 (20 -> 24)
     final fontSize = style?.fontSize ?? 24;
     final fontFamily = style?.fontFamily;
@@ -415,13 +517,70 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       );
     }
     
+    final displayText = _showTranslated && _translatedContent != null
+        ? _translatedContent!
+        : widget.letter.content;
+    
     return SizedBox(
       width: double.infinity,
       child: Text(
-        widget.letter.content,
+        displayText,
         style: contentTextStyle,
       ),
     );
+  }
+
+  Future<void> _toggleTranslation(Locale locale) async {
+    if (_showTranslated) {
+      // 원문 보기
+      setState(() {
+        _showTranslated = false;
+      });
+    } else {
+      // 번역하기
+      if (_translatedTitle != null && _translatedContent != null) {
+        // 이미 번역된 결과가 있으면 바로 표시
+        setState(() {
+          _showTranslated = true;
+        });
+      } else {
+        // 번역 수행
+        setState(() {
+          _isTranslating = true;
+        });
+
+        try {
+          final targetLocale = AppLocaleController.localeNotifier.value;
+          
+          final results = await _translationService.translateMultiple(
+            texts: {
+              'title': widget.letter.title,
+              'content': widget.letter.content,
+            },
+            targetLocale: targetLocale,
+          );
+
+          if (mounted) {
+            setState(() {
+              _translatedTitle = results['title'];
+              _translatedContent = results['content'];
+              _showTranslated = true;
+              _isTranslating = false;
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isTranslating = false;
+            });
+            showTabaError(
+              context,
+              message: AppStrings.translationFailed(locale),
+            );
+          }
+        }
+      }
+    }
   }
 }
 
@@ -626,12 +785,14 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
           final response = await http.get(uri).timeout(
             const Duration(seconds: 30),
             onTimeout: () {
-              throw Exception('다운로드 시간 초과');
+              final locale = AppLocaleController.localeNotifier.value;
+              throw Exception(AppStrings.downloadTimeout(locale));
             },
           );
           
           if (response.statusCode != 200) {
-            throw Exception('이미지 다운로드 실패: HTTP ${response.statusCode}');
+            final locale = AppLocaleController.localeNotifier.value;
+            throw Exception(AppStrings.imageDownloadFailed(locale, response.statusCode));
           }
           
           // Content-Type에서 MIME 타입 확인
@@ -662,7 +823,8 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
           
           // 파일이 제대로 생성되었는지 확인
           if (!await tempFile.exists()) {
-            throw Exception('임시 파일 생성 실패');
+            final locale = AppLocaleController.localeNotifier.value;
+            throw Exception(AppStrings.tempFileCreationFailed(locale));
           }
           
           file = XFile(
@@ -864,5 +1026,6 @@ class _ImageViewerScreenState extends State<_ImageViewerScreen> {
     );
   }
 }
+
 
 

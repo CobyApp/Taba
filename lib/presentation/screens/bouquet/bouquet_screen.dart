@@ -548,7 +548,7 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
       } else {
         showTabaError(
           context,
-          message: AppStrings.errorOccurred(locale, '친구 삭제에 실패했습니다.'),
+          message: AppStrings.friendDeleteFailed(locale),
         );
       }
     } catch (e) {

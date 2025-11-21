@@ -292,21 +292,21 @@ class _SignupScreenState extends State<SignupScreen> {
                               TabaTextField(
                                 controller: _nicknameCtrl,
                                 labelText: AppStrings.nickname(locale),
-                                hintText: '네온길잡이',
+                                hintText: AppStrings.nicknamePlaceholder(locale),
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _passwordCtrl,
                                 obscureText: true,
                                 labelText: AppStrings.password(locale),
-                                hintText: '••••••••',
+                                hintText: AppStrings.passwordPlaceholder(locale),
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               TabaTextField(
                                 controller: _confirmCtrl,
                                 obscureText: true,
                                 labelText: AppStrings.confirmPassword(locale),
-                                hintText: '••••••••',
+                                hintText: AppStrings.passwordPlaceholder(locale),
                               ),
                               const SizedBox(height: AppSpacing.lg),
                               Row(

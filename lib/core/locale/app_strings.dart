@@ -2479,6 +2479,50 @@ class AppStrings {
     }
   }
 
+  static String translate(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Translate';
+      case 'ja':
+        return '翻訳';
+      default:
+        return '번역';
+    }
+  }
+
+  static String translating(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Translating...';
+      case 'ja':
+        return '翻訳中...';
+      default:
+        return '번역 중...';
+    }
+  }
+
+  static String showOriginal(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Show Original';
+      case 'ja':
+        return '原文を表示';
+      default:
+        return '원문 보기';
+    }
+  }
+
+  static String translationFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Translation failed. Please try again.';
+      case 'ja':
+        return '翻訳に失敗しました。もう一度お試しください。';
+      default:
+        return '번역에 실패했습니다. 다시 시도해주세요.';
+    }
+  }
+
   // 튜토리얼
   static String skipTutorial(Locale locale) {
     switch (locale.languageCode) {
@@ -3191,6 +3235,72 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
         return '希望する言語の手紙だけを見ることができます';
       default:
         return '원하는 언어의 편지만 볼 수 있어요';
+    }
+  }
+
+  static String nicknamePlaceholder(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'NeonGuide';
+      case 'ja':
+        return 'ネオンガイド';
+      default:
+        return '네온길잡이';
+    }
+  }
+
+  static String passwordPlaceholder(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return '••••••••';
+      case 'ja':
+        return '••••••••';
+      default:
+        return '••••••••';
+    }
+  }
+
+  static String friendDeleteFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to delete friend.';
+      case 'ja':
+        return '友達の削除に失敗しました。';
+      default:
+        return '친구 삭제에 실패했습니다.';
+    }
+  }
+
+  static String downloadTimeout(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Download timeout';
+      case 'ja':
+        return 'ダウンロードタイムアウト';
+      default:
+        return '다운로드 시간 초과';
+    }
+  }
+
+  static String imageDownloadFailed(Locale locale, int statusCode) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Image download failed: HTTP $statusCode';
+      case 'ja':
+        return '画像のダウンロードに失敗しました: HTTP $statusCode';
+      default:
+        return '이미지 다운로드 실패: HTTP $statusCode';
+    }
+  }
+
+  static String tempFileCreationFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to create temporary file';
+      case 'ja':
+        return '一時ファイルの作成に失敗しました';
+      default:
+        return '임시 파일 생성 실패';
     }
   }
 }
