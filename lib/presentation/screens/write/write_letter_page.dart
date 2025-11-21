@@ -120,6 +120,66 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       background: Color(0xFF2A1F00),
       textColor: Color(0xFFFFFF00),
     ),
+    _TemplateOption(
+      id: 'ocean_deep',
+      name: '오션 딥',
+      background: Color(0xFF001A2E),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'lavender_night',
+      name: '라벤더 나이트',
+      background: Color(0xFF1A0F2E),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'cherry_blossom',
+      name: '벚꽃',
+      background: Color(0xFF2D0F1A),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'midnight_forest',
+      name: '미드나잇 포레스트',
+      background: Color(0xFF0A1A0F),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'royal_purple',
+      name: '로얄 퍼플',
+      background: Color(0xFF1A0A2E),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'deep_rose',
+      name: '딥 로즈',
+      background: Color(0xFF2E0A14),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'starry_night',
+      name: '별이 빛나는 밤',
+      background: Color(0xFF0A0A1A),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'emerald_dark',
+      name: '에메랄드 다크',
+      background: Color(0xFF0A1A0A),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'sapphire_blue',
+      name: '사파이어 블루',
+      background: Color(0xFF0A0F2E),
+      textColor: Colors.white,
+    ),
+    _TemplateOption(
+      id: 'crimson_night',
+      name: '크림슨 나이트',
+      background: Color(0xFF1A0A0A),
+      textColor: Colors.white,
+    ),
   ];
   late _TemplateOption _selectedTemplate = _templateOptions.first;
   final TextEditingController _titleController = TextEditingController();
@@ -279,7 +339,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     // 한국어 폰트
     final krFonts = [
       'Jua', 'Sunflower', 'Yeon Sung', 'Poor Story', 
-      'Dongle', 'Gamja Flower', 'Hi Melody', 'Nanum Pen Script'
+      'Dongle', 'Gamja Flower', 'Hi Melody', 'Nanum Gothic',
+      'Nanum Myeongjo', 'Noto Sans KR', 'Noto Serif KR',
+      'Gowun Batang', 'Gowun Dodum', 'Do Hyeon', 'Black Han Sans',
+      'Song Myung', 'Stylish', 'Single Day', 'Gowun Batang', 'Noto Sans KR'
     ];
     if (krFonts.contains(fontFamily)) {
       return 'ko';
@@ -288,7 +351,12 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     // 일본어 폰트
     final jpFonts = [
       'Yomogi', 'M PLUS Rounded 1c', 'Kosugi Maru', 
-      'Shippori Mincho', 'Noto Sans JP'
+      'Shippori Mincho', 'Noto Sans JP', 'Noto Serif JP',
+      'M PLUS 1p', 'Sawarabi Mincho', 'Sawarabi Gothic',
+      'Zen Kurenaido', 'Zen Maru Gothic', 'Kiwi Maru',
+      'Mochiy Pop One', 'Mochiy Pop P One', 'Hachi Maru Pop',
+      'Yusei Magic', 'Zen Antique', 'Zen Antique Soft',
+      'Zen Kaku Gothic New', 'Zen Old Mincho'
     ];
     if (jpFonts.contains(fontFamily)) {
       return 'ja';
@@ -598,16 +666,30 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   }
 
   void _openFontPicker() {
+    // 영어 폰트 20개 (10대 20대 여성 선호 귀여운 폰트, 크기 균일)
     final enFonts = <String>[
       'Indie Flower',
       'Kalam',
       'Patrick Hand',
-      'Shadows Into Light',
       'Comic Neue',
-      'Caveat',
-      'Dancing Script',
       'Permanent Marker',
+      'Pacifico',
+      'Lobster',
+      'Chewy',
+      'Fredoka One',
+      'Baloo 2',
+      'Bangers',
+      'Bubblegum Sans',
+      'Cookie',
+      'Nunito',
+      'Quicksand',
+      'Comfortaa',
+      'Poppins',
+      'Raleway',
+      'Open Sans',
+      'Roboto',
     ];
+    // 한국어 폰트 20개 (10대 20대 여성 선호 귀여운 폰트, 크기 균일)
     final krFonts = <String>[
       'Jua',
       'Sunflower',
@@ -616,15 +698,42 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       'Dongle',
       'Gamja Flower',
       'Hi Melody',
-      'Nanum Pen Script',
+      'Nanum Gothic',
+      'Nanum Myeongjo',
+      'Noto Sans KR',
+      'Noto Serif KR',
+      'Gowun Batang',
+      'Gowun Dodum',
+      'Do Hyeon',
+      'Black Han Sans',
+      'Song Myung',
+      'Stylish',
+      'Single Day',
+      'Gowun Batang',
+      'Noto Sans KR',
     ];
+    // 일본어 폰트 20개 (10대 20대 여성 선호 귀여운 폰트)
     final jpFonts = <String>[
       'Yomogi',
       'M PLUS Rounded 1c',
       'Kosugi Maru',
-      'Comic Neue',
       'Shippori Mincho',
       'Noto Sans JP',
+      'Noto Serif JP',
+      'M PLUS 1p',
+      'Sawarabi Mincho',
+      'Sawarabi Gothic',
+      'Zen Kurenaido',
+      'Zen Maru Gothic',
+      'Kiwi Maru',
+      'Mochiy Pop One',
+      'Mochiy Pop P One',
+      'Hachi Maru Pop',
+      'Yusei Magic',
+      'Zen Antique',
+      'Zen Antique Soft',
+      'Zen Kaku Gothic New',
+      'Zen Old Mincho',
     ];
 
     TabaModalSheet.show<void>(

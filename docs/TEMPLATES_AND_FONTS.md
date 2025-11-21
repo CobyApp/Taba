@@ -1,8 +1,8 @@
 # 템플릿 및 폰트 목록
 
-## 📄 템플릿 목록 (10개)
+## 📄 템플릿 목록 (20개)
 
-편지 작성 시 사용할 수 있는 템플릿 목록입니다.
+편지 작성 시 사용할 수 있는 템플릿 목록입니다. 모든 템플릿은 흰색 텍스트가 잘 보이도록 어두운 배경색을 사용합니다.
 
 | ID | 이름 | 배경색 | 텍스트 색상 |
 |---|---|---|---|
@@ -16,24 +16,44 @@
 | `matrix_dark` | 매트릭스 다크 | `#000000` (black) | `#00CC00` (green) |
 | `neon_pink` | 네온 핑크 | `#1A0016` | `#FF00FF` (magenta) |
 | `retro_yellow` | 레트로 옐로우 | `#2A1F00` | `#FFFF00` (yellow) |
-
-> **참고**: 시즌/프리미엄 템플릿은 곧 추가될 예정입니다.
+| `ocean_deep` | 오션 딥 | `#001A2E` | `#FFFFFF` (white) |
+| `lavender_night` | 라벤더 나이트 | `#1A0F2E` | `#FFFFFF` (white) |
+| `cherry_blossom` | 벚꽃 | `#2D0F1A` | `#FFFFFF` (white) |
+| `midnight_forest` | 미드나잇 포레스트 | `#0A1A0F` | `#FFFFFF` (white) |
+| `royal_purple` | 로얄 퍼플 | `#1A0A2E` | `#FFFFFF` (white) |
+| `deep_rose` | 딥 로즈 | `#2E0A14` | `#FFFFFF` (white) |
+| `starry_night` | 별이 빛나는 밤 | `#0A0A1A` | `#FFFFFF` (white) |
+| `emerald_dark` | 에메랄드 다크 | `#0A1A0A` | `#FFFFFF` (white) |
+| `sapphire_blue` | 사파이어 블루 | `#0A0F2E` | `#FFFFFF` (white) |
+| `crimson_night` | 크림슨 나이트 | `#1A0A0A` | `#FFFFFF` (white) |
 
 ---
 
 ## 🔤 폰트 목록
 
-### 영어 폰트 (8개)
+### 영어 폰트 (20개)
 - **Indie Flower** (기본 display 폰트)
 - **Kalam** (기본 body 폰트)
 - Patrick Hand
-- Shadows Into Light
 - Comic Neue
-- Caveat
-- Dancing Script
 - Permanent Marker
+- Pacifico
+- Lobster
+- Chewy
+- Fredoka One
+- Baloo 2
+- Bangers
+- Bubblegum Sans
+- Cookie
+- Nunito
+- Quicksand
+- Comfortaa
+- Poppins
+- Raleway
+- Open Sans
+- Roboto
 
-### 한국어 폰트 (8개)
+### 한국어 폰트 (20개)
 - **Jua** (기본 display 폰트)
 - **Sunflower** (기본 body 폰트)
 - Yeon Sung
@@ -41,15 +61,41 @@
 - Dongle
 - Gamja Flower
 - Hi Melody
-- Nanum Pen Script
+- Nanum Gothic
+- Nanum Myeongjo
+- Noto Sans KR
+- Noto Serif KR
+- Gowun Batang
+- Gowun Dodum
+- Do Hyeon
+- Black Han Sans
+- Song Myung
+- Stylish
+- Single Day
+- Gowun Batang
+- Noto Sans KR
 
-### 일본어 폰트 (6개)
+### 일본어 폰트 (20개)
 - **Yomogi** (기본 display 폰트)
 - **Kosugi Maru** (기본 body 폰트)
 - M PLUS Rounded 1c
-- Comic Neue
 - Shippori Mincho
 - Noto Sans JP
+- Noto Serif JP
+- M PLUS 1p
+- Sawarabi Mincho
+- Sawarabi Gothic
+- Zen Kurenaido
+- Zen Maru Gothic
+- Kiwi Maru
+- Mochiy Pop One
+- Mochiy Pop P One
+- Hachi Maru Pop
+- Yusei Magic
+- Zen Antique
+- Zen Antique Soft
+- Zen Kaku Gothic New
+- Zen Old Mincho
 
 ---
 

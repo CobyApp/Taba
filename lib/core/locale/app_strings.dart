@@ -3085,6 +3085,7 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
 
   // 템플릿 이름
   static String templateName(Locale locale, String templateId) {
+    // 템플릿 이름을 로컬라이즈
     switch (templateId) {
       case 'neon_grid':
         switch (locale.languageCode) {
@@ -3175,6 +3176,96 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
             return 'レトロイエロー';
           default:
             return '레트로 옐로우';
+        }
+      case 'ocean_deep':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Ocean Deep';
+          case 'ja':
+            return 'オーシャンディープ';
+          default:
+            return '오션 딥';
+        }
+      case 'lavender_night':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Lavender Night';
+          case 'ja':
+            return 'ラベンダーナイト';
+          default:
+            return '라벤더 나이트';
+        }
+      case 'cherry_blossom':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Cherry Blossom';
+          case 'ja':
+            return '桜';
+          default:
+            return '벚꽃';
+        }
+      case 'midnight_forest':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Midnight Forest';
+          case 'ja':
+            return 'ミッドナイトフォレスト';
+          default:
+            return '미드나잇 포레스트';
+        }
+      case 'royal_purple':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Royal Purple';
+          case 'ja':
+            return 'ロイヤルパープル';
+          default:
+            return '로얄 퍼플';
+        }
+      case 'deep_rose':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Deep Rose';
+          case 'ja':
+            return 'ディプローズ';
+          default:
+            return '딥 로즈';
+        }
+      case 'starry_night':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Starry Night';
+          case 'ja':
+            return '星降る夜';
+          default:
+            return '별이 빛나는 밤';
+        }
+      case 'emerald_dark':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Emerald Dark';
+          case 'ja':
+            return 'エメラルドダーク';
+          default:
+            return '에메랄드 다크';
+        }
+      case 'sapphire_blue':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Sapphire Blue';
+          case 'ja':
+            return 'サファイアブルー';
+          default:
+            return '사파이어 블루';
+        }
+      case 'crimson_night':
+        switch (locale.languageCode) {
+          case 'en':
+            return 'Crimson Night';
+          case 'ja':
+            return 'クリムゾンナイト';
+          default:
+            return '크림슨 나이트';
         }
       default:
         return templateId;
