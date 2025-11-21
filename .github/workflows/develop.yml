@@ -296,42 +296,71 @@ jobs:
           BUILD_EXIT_CODE=$?
           set -e  # Re-enable exit on error
           
-          # Check if IPA was created
+          # Check if IPA was created (even if exit code is 0, export might have failed)
           if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
             echo "✅ IPA created successfully by flutter build ipa"
             find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
-          elif [ -f build/ios/archive/Runner.xcarchive ]; then
-            echo "⚠️ Flutter build ipa failed (exit code: $BUILD_EXIT_CODE), but archive exists. Trying to export manually..."
+          else
+            echo "⚠️ IPA file not found, checking for archive..."
             
-            # Try to export manually
-            xcodebuild -exportArchive \
-              -archivePath build/ios/archive/Runner.xcarchive \
-              -exportPath build/ios/ipa \
-              -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 || {
-                echo "❌ xcodebuild export failed"
+            # Find archive file (could be Runner.xcarchive or in a subdirectory)
+            ARCHIVE_PATH=$(find build/ios/archive -name "*.xcarchive" -type d | head -1)
+            
+            if [ -n "$ARCHIVE_PATH" ] && [ -d "$ARCHIVE_PATH" ]; then
+              echo "✅ Found archive at: $ARCHIVE_PATH"
+              echo "Archive contents:"
+              ls -la "$ARCHIVE_PATH" || true
+              
+              echo "⚠️ Flutter build ipa export failed (exit code: $BUILD_EXIT_CODE), but archive exists. Trying to export manually..."
+              
+              # Ensure ipa directory exists
+              mkdir -p build/ios/ipa
+              
+              # Try to export manually (without provisioning flags for manual signing)
+              set +e
+              xcodebuild -exportArchive \
+                -archivePath "$ARCHIVE_PATH" \
+                -exportPath build/ios/ipa \
+                -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 | tee /tmp/export_log.txt
+              EXPORT_EXIT_CODE=$?
+              set -e
+              
+              if [ $EXPORT_EXIT_CODE -ne 0 ]; then
+                echo "❌ xcodebuild export failed with exit code: $EXPORT_EXIT_CODE"
+                echo "Export log:"
+                cat /tmp/export_log.txt || true
+                echo ""
                 echo "ExportOptions content:"
                 cat ios/ExportOptions-dev.plist
                 echo ""
-                echo "Archive info:"
-                ls -la build/ios/archive/ || true
+                echo "Available signing identities:"
+                security find-identity -v -p codesigning || true
                 exit 1
-              }
-            
-            # Check if IPA was created
-            if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
-              echo "✅ IPA created successfully via xcodebuild"
-              find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
+              fi
+              
+              # Check if IPA was created
+              if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
+                echo "✅ IPA created successfully via xcodebuild"
+                find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
+              else
+                echo "❌ xcodebuild export completed but no IPA file found"
+                echo "Contents of build/ios/ipa:"
+                ls -la build/ios/ipa/ 2>/dev/null || echo "Directory does not exist"
+                echo ""
+                echo "Export log:"
+                cat /tmp/export_log.txt || true
+                exit 1
+              fi
             else
-              echo "❌ xcodebuild export completed but no IPA file found"
-              echo "Contents of build/ios/ipa:"
-              ls -la build/ios/ipa/ 2>/dev/null || echo "Directory does not exist"
+              echo "❌ Flutter build ipa failed (exit code: $BUILD_EXIT_CODE) and no archive found"
+              echo "Checking build directory:"
+              ls -la build/ios/ 2>/dev/null || echo "build/ios/ does not exist"
+              if [ -d build/ios/archive ]; then
+                echo "Archive directory exists, contents:"
+                find build/ios/archive -type f -o -type d | head -20 || true
+              fi
               exit 1
             fi
-          else
-            echo "❌ Flutter build ipa failed (exit code: $BUILD_EXIT_CODE) and no archive found"
-            echo "Checking build directory:"
-            ls -la build/ios/ 2>/dev/null || echo "build/ios/ does not exist"
-            exit 1
           fi
 
       - name: Upload IPA artifact
