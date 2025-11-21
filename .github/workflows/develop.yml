@@ -286,34 +286,53 @@ jobs:
           fi
           
           # Try building IPA with verbose output
+          set +e  # Don't exit on error immediately
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
             --export-options-plist=ios/ExportOptions-dev.plist \
-            --verbose || {
-              echo "Flutter build failed, trying xcodebuild directly..."
-              
-              # If flutter build fails, try xcodebuild directly
-              if [ -f build/ios/archive/Runner.xcarchive ]; then
-                echo "Archive exists, trying to export manually..."
-                # Remove provisioning flags for manual signing
-                xcodebuild -exportArchive \
-                  -archivePath build/ios/archive/Runner.xcarchive \
-                  -exportPath build/ios/ipa \
-                  -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 || true
-                
-                # Check if IPA was created
-                if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa')" ]; then
-                  echo "IPA created successfully via xcodebuild"
-                else
-                  echo "xcodebuild export also failed"
-                  exit 1
-                fi
-              else
+            --verbose
+          BUILD_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
+          
+          # Check if IPA was created
+          if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
+            echo "✅ IPA created successfully by flutter build ipa"
+            find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
+          elif [ -f build/ios/archive/Runner.xcarchive ]; then
+            echo "⚠️ Flutter build ipa failed (exit code: $BUILD_EXIT_CODE), but archive exists. Trying to export manually..."
+            
+            # Try to export manually
+            xcodebuild -exportArchive \
+              -archivePath build/ios/archive/Runner.xcarchive \
+              -exportPath build/ios/ipa \
+              -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 || {
+                echo "❌ xcodebuild export failed"
+                echo "ExportOptions content:"
+                cat ios/ExportOptions-dev.plist
+                echo ""
+                echo "Archive info:"
+                ls -la build/ios/archive/ || true
                 exit 1
-              fi
-            }
+              }
+            
+            # Check if IPA was created
+            if [ -d build/ios/ipa ] && [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
+              echo "✅ IPA created successfully via xcodebuild"
+              find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
+            else
+              echo "❌ xcodebuild export completed but no IPA file found"
+              echo "Contents of build/ios/ipa:"
+              ls -la build/ios/ipa/ 2>/dev/null || echo "Directory does not exist"
+              exit 1
+            fi
+          else
+            echo "❌ Flutter build ipa failed (exit code: $BUILD_EXIT_CODE) and no archive found"
+            echo "Checking build directory:"
+            ls -la build/ios/ 2>/dev/null || echo "build/ios/ does not exist"
+            exit 1
+          fi
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
