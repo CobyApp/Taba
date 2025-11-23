@@ -56,7 +56,35 @@ jobs:
 
       - name: Setup Android Keystore
         run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret is not set"
+            exit 1
+          fi
+          
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
+          
+          # Verify keystore file was created
+          if [ ! -f android/app/keystore.jks ]; then
+            echo "❌ Failed to create keystore file"
+            exit 1
+          fi
+          
+          # Verify keystore file size (should be > 0)
+          KEYSTORE_SIZE=$(stat -f%z android/app/keystore.jks 2>/dev/null || stat -c%s android/app/keystore.jks 2>/dev/null || echo "0")
+          if [ "$KEYSTORE_SIZE" -eq "0" ]; then
+            echo "❌ Keystore file is empty"
+            exit 1
+          fi
+          
+          echo "✅ Keystore file created successfully (size: ${KEYSTORE_SIZE} bytes)"
+          
+          # Verify keystore with keytool (optional, for debugging)
+          if command -v keytool &> /dev/null; then
+            echo "Verifying keystore..."
+            keytool -list -v -keystore android/app/keystore.jks -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" -alias "${{ secrets.ANDROID_KEY_ALIAS }}" || {
+              echo "⚠️ Keystore verification failed, but continuing..."
+            }
+          fi
 
       - name: Build Android App Bundle (Production)
         env:
@@ -64,11 +92,47 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          CI: "true"
+          GITHUB_ACTIONS: "true"
         run: |
+          # Verify environment variables are set
+          if [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "❌ Keystore credentials are not set"
+            echo "Required: KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
+            exit 1
+          fi
+          
+          # Verify keystore file exists
+          if [ ! -f "$KEYSTORE_PATH" ]; then
+            echo "❌ Keystore file not found: $KEYSTORE_PATH"
+            exit 1
+          fi
+          
+          echo "Building AAB with release signing..."
           flutter build appbundle --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=prod
+          
+          # Verify AAB was created
+          AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB_PATH" ]; then
+            echo "❌ AAB file not found: $AAB_PATH"
+            exit 1
+          fi
+          
+          echo "✅ AAB file created: $AAB_PATH"
+          ls -lh "$AAB_PATH"
+          
+          # Verify AAB is signed (check if it's a valid ZIP and contains META-INF)
+          if command -v unzip &> /dev/null; then
+            echo "Verifying AAB signature..."
+            if unzip -l "$AAB_PATH" | grep -q "META-INF/.*\.RSA\|META-INF/.*\.DSA\|META-INF/.*\.EC"; then
+              echo "✅ AAB is properly signed"
+            else
+              echo "⚠️ WARNING: AAB signature verification inconclusive"
+            fi
+          fi
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4

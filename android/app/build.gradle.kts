@@ -49,11 +49,20 @@ android {
 
     buildTypes {
         release {
-            // CI/CD 환경에서는 release signing config 사용, 로컬에서는 debug 사용
+            // Release 빌드는 항상 release signing config 사용
+            // keystore가 없으면 빌드 실패 (CI/CD에서는 필수)
             val keystorePath = System.getenv("KEYSTORE_PATH") ?: "../keystore.jks"
-            if (file(keystorePath).exists()) {
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            
+            if (file(keystorePath).exists() && keystorePassword.isNotEmpty()) {
                 signingConfig = signingConfigs.getByName("release")
             } else {
+                // CI/CD 환경에서는 keystore가 필수이므로 빌드 실패
+                if (System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true") {
+                    throw GradleException("Release keystore is required for CI/CD builds. Please set KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD environment variables.")
+                }
+                // 로컬 개발 환경에서는 경고만 표시하고 debug 서명 사용 (선택사항)
+                println("⚠️ WARNING: Release keystore not found. Using debug signing. This AAB cannot be uploaded to Google Play.")
                 signingConfig = signingConfigs.getByName("debug")
             }
         }
