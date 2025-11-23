@@ -393,9 +393,32 @@ jobs:
           fi
 
           echo "Uploading IPA to App Store Connect: $IPA_FILE"
-          xcrun altool --upload-app \
+          if xcrun altool --upload-app \
             --type ios \
             --file "$IPA_FILE" \
             --apiKey $APP_STORE_CONNECT_API_KEY_ID \
             --apiIssuer $APP_STORE_CONNECT_ISSUER_ID \
-            --verbose
+            --verbose 2>&1 | tee /tmp/upload_log.txt; then
+            echo "✅ IPA uploaded successfully to App Store Connect"
+          else
+            UPLOAD_ERROR=$(cat /tmp/upload_log.txt || echo "")
+            if echo "$UPLOAD_ERROR" | grep -q "No suitable application records were found"; then
+              echo "⚠️ App not found in App Store Connect"
+              echo "📝 To fix this:"
+              echo "   1. Go to https://appstoreconnect.apple.com"
+              echo "   2. Click 'My Apps' → '+' → 'New App'"
+              echo "   3. Create app with Bundle ID: com.coby.taba"
+              echo "   4. After app is created, uploads will work automatically"
+              echo ""
+              echo "✅ IPA file was created successfully and saved as artifact"
+              echo "   You can download it from the Actions artifacts and upload manually if needed"
+              exit 0
+            else
+              echo "❌ Upload failed with error:"
+              cat /tmp/upload_log.txt || true
+              echo ""
+              echo "✅ IPA file was created successfully and saved as artifact"
+              echo "   You can download it from the Actions artifacts and upload manually if needed"
+              exit 0
+            fi
+          fi

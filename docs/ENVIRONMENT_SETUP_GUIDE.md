@@ -81,6 +81,20 @@ base64 -i android/app/keystore.jks
 
 ## 🍎 2. iOS 설정
 
+### 2.0 App Store Connect에 앱 등록 (필수!)
+
+**⚠️ 중요**: CI/CD에서 자동 업로드를 사용하려면 먼저 App Store Connect에 앱을 등록해야 합니다!
+
+1. [App Store Connect](https://appstoreconnect.apple.com) 접속
+2. **내 앱** → **+** → **새 앱** 클릭
+3. 앱 정보 입력:
+   - 이름: Taba
+   - Bundle ID: `com.coby.taba` (Apple Developer Portal에 등록되어 있어야 함)
+   - SKU: 고유 식별자 (예: `taba-001`)
+4. **만들기** 클릭
+
+**상세 가이드**: [App Store Connect 앱 등록 가이드](./APP_STORE_CONNECT_APP_REGISTRATION.md) 참고
+
 ### 2.1 App Store Connect API Key 생성
 
 1. [App Store Connect](https://appstoreconnect.apple.com) 접속
