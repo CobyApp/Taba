@@ -162,11 +162,22 @@ jobs:
             # Install provisioning profile
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+            chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+
+            # Verify profile was installed
+            if [ ! -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
+              echo "❌ Failed to install provisioning profile"
+              exit 1
+            fi
 
             echo "✅ Installed provisioning profile: $PROFILE_NAME (UUID: $PROFILE_UUID, Team: $PROFILE_TEAM_ID)"
             echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
             echo "$PROFILE_NAME" > /tmp/profile_name.txt
             echo "$PROFILE_TEAM_ID" > /tmp/profile_team_id.txt
+            
+            # List installed profiles for verification
+            echo "=== Installed Provisioning Profiles ==="
+            ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep -E "\.mobileprovision$" || echo "No profiles found"
           else
             echo "⚠️ Provisioning profile not provided"
           fi
@@ -210,13 +221,43 @@ jobs:
 
           # Verify certificate before building
           echo "=== Verifying Certificate Access ==="
-          DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          DIST_CERT=$(security find-identity -v -p codesigning build.keychain | grep "Distribution" | head -1 || echo "")
+          if [ -z "$DIST_CERT" ]; then
+            DIST_CERT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep "Distribution" | head -1 || echo "")
+          fi
+          if [ -z "$DIST_CERT" ]; then
+            DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          fi
           if [ -z "$DIST_CERT" ]; then
             echo "❌ No Distribution certificate found"
-            security find-identity -v -p codesigning || true
+            echo "Checking build.keychain:"
+            security find-identity -v -p codesigning build.keychain || true
+            echo "Checking login.keychain:"
+            security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db || true
             exit 1
           fi
           echo "✅ Certificate verified: $DIST_CERT"
+          
+          # Ensure keychain is unlocked and accessible
+          security unlock-keychain -p "" build.keychain || true
+          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
+          
+          # Set keychain search list to include both keychains
+          security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
+          security default-keychain -s build.keychain
+          
+          # Verify ExportOptions plist before building
+          echo "=== Verifying ExportOptions ==="
+          if [ -f /tmp/profile_uuid.txt ]; then
+            # Verify provisioningProfiles exists
+            PROV_PROFILES=$(/usr/libexec/PlistBuddy -c "Print :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || echo "")
+            if [ -z "$PROV_PROFILES" ]; then
+              echo "❌ provisioningProfiles not found in ExportOptions"
+              exit 1
+            fi
+            echo "✅ ExportOptions verified:"
+            cat ios/ExportOptions-dev.plist
+          fi
 
           # Build IPA
           echo "=== Building IPA ==="
@@ -236,6 +277,33 @@ jobs:
               echo "⚠️ Archive found, attempting manual export..."
               mkdir -p build/ios/ipa
               
+              # Ensure keychain is accessible before export
+              security unlock-keychain -p "" build.keychain || true
+              security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
+              security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
+              security default-keychain -s build.keychain
+              
+              # Verify provisioning profiles are accessible
+              echo "=== Verifying Provisioning Profiles ==="
+              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory"
+              
+              # Verify ExportOptions one more time
+              echo "=== Final ExportOptions Check ==="
+              cat ios/ExportOptions-dev.plist
+              
+              # Verify the provisioning profile UUID in ExportOptions matches installed profile
+              if [ -f /tmp/profile_uuid.txt ]; then
+                EXPECTED_UUID=$(cat /tmp/profile_uuid.txt)
+                INSTALLED_PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/$EXPECTED_UUID.mobileprovision 2>/dev/null || echo "")
+                if [ -z "$INSTALLED_PROFILE" ]; then
+                  echo "❌ Provisioning profile $EXPECTED_UUID not found in installed profiles"
+                  echo "Available profiles:"
+                  ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
+                  exit 1
+                fi
+                echo "✅ Provisioning profile verified: $EXPECTED_UUID"
+              fi
+              
               xcodebuild -exportArchive \
                 -archivePath "$ARCHIVE_PATH" \
                 -exportPath build/ios/ipa \
@@ -245,7 +313,10 @@ jobs:
                 echo "✅ IPA created via manual export"
               else
                 echo "❌ Manual export failed"
+                echo "=== Export Log ==="
                 cat /tmp/export_log.txt || true
+                echo "=== Checking for detailed error logs ==="
+                find /var/folders -name "*.xcdistributionlogs" -type d -exec ls -la {} \; 2>/dev/null | head -5 || true
                 exit 1
               fi
             else
