@@ -225,9 +225,12 @@ jobs:
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist
 
-            # Update method to app-store-connect (deprecated app-store)
-            /usr/libexec/PlistBuddy -c "Set :method app-store-connect" ios/ExportOptions-prod.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :method string app-store-connect" ios/ExportOptions-prod.plist
+            # Update method to app-store (app-store-connect requires account access)
+            /usr/libexec/PlistBuddy -c "Set :method app-store" ios/ExportOptions-prod.plist 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :method string app-store" ios/ExportOptions-prod.plist
+            
+            # Remove destination key for manual signing (upload requires account access)
+            /usr/libexec/PlistBuddy -c "Delete :destination" ios/ExportOptions-prod.plist 2>/dev/null || true
 
             # Update project.pbxproj
             sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
@@ -335,7 +338,18 @@ jobs:
                 echo "=== Export Log ==="
                 cat /tmp/export_log.txt || true
                 echo "=== Checking for detailed error logs ==="
-                find /var/folders -name "*.xcdistributionlogs" -type d -exec ls -la {} \; 2>/dev/null | head -5 || true
+                LOG_DIR=$(find /var/folders -name "*.xcdistributionlogs" -type d | head -1)
+                if [ -n "$LOG_DIR" ]; then
+                  echo "=== Distribution Log Directory: $LOG_DIR ==="
+                  ls -la "$LOG_DIR" || true
+                  echo "=== IDEDistribution.critical.log ==="
+                  cat "$LOG_DIR/IDEDistribution.critical.log" 2>/dev/null || echo "No critical log"
+                  echo "=== DVTITunesSoftwareService.log ==="
+                  cat "$LOG_DIR/DVTITunesSoftwareService.log" 2>/dev/null || echo "No iTunes log"
+                  find "$LOG_DIR" -name "*.log" -exec echo "=== {} ===" \; -exec cat {} \; 2>/dev/null | head -100 || true
+                fi
+                echo "=== Final ExportOptions Check ==="
+                cat ios/ExportOptions-prod.plist
                 exit 1
               fi
             else

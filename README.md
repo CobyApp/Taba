@@ -154,10 +154,25 @@ flutter build ios --release
 
 ### 설정 가이드
 
+- [환경변수 및 인증서 설정 완전 가이드](./docs/ENVIRONMENT_SETUP_GUIDE.md) ⭐ **시작하기** - 모든 환경변수와 인증서 설정
 - [빠른 시작 가이드](./docs/QUICK_START.md) - 5분 안에 설정하기
 - [상세 설정 가이드](./docs/CI_CD_SETUP.md) - 전체 설정 방법
 - [설정 체크리스트](./docs/CI_CD_CHECKLIST.md) - 단계별 확인 사항
 - [설정 요약](./docs/CI_CD_SUMMARY.md) - 필요한 환경 변수 및 준비 사항
+
+### 자동화 스크립트
+
+환경변수와 인증서 설정을 자동화하는 스크립트가 제공됩니다:
+
+```bash
+# iOS 인증서 및 프로비저닝 프로파일 설정
+./scripts/setup_ios_certificates.sh
+
+# GitHub Secrets 설정 (GitHub CLI 사용 시)
+./scripts/setup_github_secrets.sh
+```
+
+자세한 내용은 [스크립트 가이드](./scripts/README.md)를 참고하세요.
 
 ## 📝 앱 정보
 
