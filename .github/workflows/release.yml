@@ -91,8 +91,10 @@ jobs:
 
       - name: Check Google Play Upload Result
         if: always()
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -z "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+          if [ -z "${SERVICE_ACCOUNT_JSON}" ]; then
             echo "⚠️ Google Play service account JSON not provided, skipping upload"
             echo "✅ AAB file was created successfully and saved as artifact"
             exit 0
@@ -113,16 +115,26 @@ jobs:
             echo "   • Wait 2-5 minutes for API propagation"
             echo "   • See detailed guide: docs/GOOGLE_PLAY_API_SETUP.md"
             echo ""
-            echo "2️⃣ App not found or package name mismatch"
-            echo "   Error: 'Application not found' or 'Package not found'"
+            echo "2️⃣ Package not found: com.coby.taba"
+            echo "   Error: 'Package not found' or 'Application not found'"
+            echo "   ⚠️ This means the app doesn't exist in Google Play Console with this package name"
             echo "   Solution:"
-            echo "   • Verify app exists: https://play.google.com/console"
-            echo "   • Check package name matches: com.coby.taba"
-            echo "   • If app doesn't exist, create it:"
-            echo "     - Go to: https://play.google.com/console"
-            echo "     - Click 'Create app' or '+' button"
-            echo "     - Package name: com.coby.taba"
-            echo "     - Complete basic app setup"
+            echo "   • Go to: https://play.google.com/console"
+            echo "   • Check if app exists with package name: com.coby.taba"
+            echo "   • If app doesn't exist:"
+            echo "     1. Click 'Create app' or '+' button"
+            echo "     2. Select 'App' type"
+            echo "     3. Fill in app details:"
+            echo "        - App name: Taba"
+            echo "        - Default language: English"
+            echo "        - Free or paid: Free"
+            echo "     4. Click 'Create'"
+            echo "     5. Enter package name: com.coby.taba"
+            echo "     6. Complete basic app setup (at least app name and store listing)"
+            echo "   • If app exists but package name is different:"
+            echo "     - Check the actual package name in Google Play Console"
+            echo "     - Update android/app/build.gradle.kts → applicationId to match"
+            echo "     - Or create a new app with the correct package name"
             echo ""
             echo "3️⃣ Service account permissions"
             echo "   Error: Permission denied or authentication failed"
