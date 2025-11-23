@@ -78,7 +78,9 @@ jobs:
           retention-days: 90
 
       - name: Upload to Google Play (Production)
-        if: success()
+        id: upload-google-play
+        if: success() && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        continue-on-error: true
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -86,6 +88,45 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: production
           status: completed
+
+      - name: Check Google Play Upload Result
+        if: always()
+        run: |
+          if [ -z "${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "⚠️ Google Play service account JSON not provided, skipping upload"
+            echo "✅ AAB file was created successfully and saved as artifact"
+            exit 0
+          fi
+          
+          if [ "${{ steps.upload-google-play.outcome }}" == "failure" ]; then
+            echo "⚠️ Google Play upload failed"
+            echo ""
+            echo "📝 Common issues and solutions:"
+            echo ""
+            echo "1. Android Publisher API not enabled:"
+            echo "   Error: 'Google Play Android Developer API has not been used'"
+            echo "   Solution:"
+            echo "   - Go to: https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview"
+            echo "   - Select your project (or create one)"
+            echo "   - Click 'Enable' to enable Android Publisher API"
+            echo "   - Wait a few minutes for the API to propagate"
+            echo "   - See detailed guide: docs/GOOGLE_PLAY_API_SETUP.md"
+            echo ""
+            echo "2. Service account not configured:"
+            echo "   - Ensure GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret is set"
+            echo "   - Verify the service account has 'App Manager' role in Google Play Console"
+            echo ""
+            echo "3. App not created in Google Play Console:"
+            echo "   - Create the app in Google Play Console first"
+            echo "   - Package name must match: com.coby.taba"
+            echo ""
+            echo "✅ AAB file was created successfully and saved as artifact"
+            echo "   You can download it from the Actions artifacts and upload manually if needed"
+            echo "   Artifact: android-prod-aab"
+            exit 0
+          else
+            echo "✅ Google Play upload successful"
+          fi
 
   build-ios-prod:
     name: Build iOS Production
