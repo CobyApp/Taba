@@ -88,13 +88,16 @@ jobs:
 
       - name: Build Android App Bundle (Production)
         env:
-          KEYSTORE_PATH: android/app/keystore.jks
+          KEYSTORE_PATH: keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           CI: "true"
           GITHUB_ACTIONS: "true"
         run: |
+          # Change to android/app directory (where build.gradle.kts runs)
+          cd android/app
+          
           # Verify environment variables are set
           if [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
             echo "❌ Keystore credentials are not set"
@@ -102,13 +105,24 @@ jobs:
             exit 1
           fi
           
-          # Verify keystore file exists
-          if [ ! -f "$KEYSTORE_PATH" ]; then
-            echo "❌ Keystore file not found: $KEYSTORE_PATH"
+          # Verify keystore file exists (relative to android/app directory)
+          if [ ! -f "keystore.jks" ]; then
+            echo "❌ Keystore file not found: keystore.jks"
+            echo "Current directory: $(pwd)"
+            echo "Files in current directory:"
+            ls -la || true
             exit 1
           fi
           
+          echo "✅ Keystore file found: keystore.jks"
+          ls -lh keystore.jks
+          
+          # Go back to project root for flutter build
+          cd ../..
+          
           echo "Building AAB with release signing..."
+          echo "KEYSTORE_PATH: $KEYSTORE_PATH"
+          echo "KEY_ALIAS: $KEY_ALIAS"
           flutter build appbundle --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
@@ -128,7 +142,7 @@ jobs:
           if command -v unzip &> /dev/null; then
             echo "Verifying AAB signature..."
             if unzip -l "$AAB_PATH" | grep -q "META-INF/.*\.RSA\|META-INF/.*\.DSA\|META-INF/.*\.EC"; then
-              echo "✅ AAB is properly signed"
+              echo "✅ AAB is properly signed with release key"
             else
               echo "⚠️ WARNING: AAB signature verification inconclusive"
             fi
