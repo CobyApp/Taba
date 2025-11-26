@@ -696,6 +696,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 3Y8YH8GWMM;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Taba (dev)";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

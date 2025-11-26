@@ -130,6 +130,49 @@ API 키 생성 후 다음을 확인하세요:
 - 계정 소유자에게 권한 요청
 - 일부 계정은 제한된 권한만 가질 수 있음
 
+## 📱 앱 등록
+
+CI/CD에서 자동 업로드를 사용하려면 먼저 App Store Connect에 앱을 등록해야 합니다.
+
+### ⚠️ 중요
+
+**앱을 등록하지 않으면 IPA 업로드가 실패합니다!**
+
+오류 메시지:
+```
+No suitable application records were found. Verify your bundle identifier 'com.coby.taba' is correct...
+```
+
+### 앱 등록 단계
+
+1. [App Store Connect](https://appstoreconnect.apple.com)에 로그인
+2. **내 앱** (My Apps) 클릭
+3. **+** 버튼 클릭 → **새 앱** (New App) 선택
+4. 앱 정보 입력:
+   - **플랫폼**: iOS
+   - **이름**: Taba (또는 원하는 앱 이름)
+   - **기본 언어**: 한국어 (또는 원하는 언어)
+   - **번들 ID**: `com.coby.taba` 선택
+     - ⚠️ **중요**: 이 Bundle ID는 Apple Developer Portal에서 먼저 생성되어 있어야 합니다
+   - **SKU**: 고유 식별자 (예: `taba-001`)
+   - **사용자 액세스**: **전체 액세스** 또는 **제한된 액세스** 선택
+5. **만들기** (Create) 클릭
+
+### Bundle ID 확인
+
+앱을 등록하기 전에 Bundle ID가 Apple Developer Portal에 등록되어 있는지 확인:
+1. [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list) 접속
+2. **Identifiers** → **App IDs** 확인
+3. `com.coby.taba`가 있는지 확인
+4. 없으면 [iOS 인증서 설정 가이드](./IOS_CERTIFICATE_SETUP.md) 참고하여 생성
+
+### 앱 등록 후
+
+앱이 등록되면:
+- ✅ IPA 파일이 자동으로 업로드됨
+- ✅ TestFlight에 빌드가 표시됨
+- ✅ 수동 업로드 불필요
+
 ## 📚 참고 자료
 
 - [App Store Connect API 공식 문서](https://developer.apple.com/documentation/appstoreconnectapi)

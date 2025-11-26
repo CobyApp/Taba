@@ -2,10 +2,34 @@
 
 이 문서는 GitHub Actions를 사용한 자동 빌드 및 배포 파이프라인 설정 방법을 설명합니다.
 
-## 브랜치 전략
+## 📦 생성된 파일
+
+- `.github/workflows/develop.yml` - Develop 브랜치용 워크플로우
+- `.github/workflows/release.yml` - Release 브랜치용 워크플로우
+- `ios/ExportOptions-dev.plist` - iOS Dev 빌드 설정
+- `ios/ExportOptions-prod.plist` - iOS Prod 빌드 설정
+
+## 🎯 브랜치 전략
 
 - **`develop`**: 개발 빌드 → TestFlight (iOS) / Internal Testing (Android)
 - **`release`**: 프로덕션 빌드 → App Store (iOS) / Production (Android)
+
+## 🔑 필요한 GitHub Secrets
+
+### Android (5개)
+1. `ANDROID_KEYSTORE_BASE64` - Keystore 파일 (base64 인코딩)
+2. `ANDROID_KEYSTORE_PASSWORD` - Keystore 비밀번호
+3. `ANDROID_KEY_ALIAS` - 키 별칭 (예: `taba-key`)
+4. `ANDROID_KEY_PASSWORD` - 키 비밀번호
+5. `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` - Google Play 서비스 계정 JSON
+
+### iOS (6개)
+1. `APP_STORE_CONNECT_API_KEY_ID` - API Key ID (10자리)
+2. `APP_STORE_CONNECT_ISSUER_ID` - Issuer ID (UUID)
+3. `APP_STORE_CONNECT_API_KEY` - API Key (.p8 파일 내용)
+4. `APPLE_CERTIFICATE_BASE64` - Distribution Certificate (.p12, base64)
+5. `APPLE_CERTIFICATE_PASSWORD` - Certificate 비밀번호
+6. `APPLE_PROVISIONING_PROFILE_BASE64` - Provisioning Profile (base64)
 
 ## 필요한 준비 사항
 

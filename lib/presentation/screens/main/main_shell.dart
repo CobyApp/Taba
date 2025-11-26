@@ -53,8 +53,53 @@ class _MainShellState extends State<MainShell> {
       
       // 스낵바로 알림 표시
       final locale = AppLocaleController.localeNotifier.value;
-      final title = message.notification?.title ?? AppStrings.newNotification(locale);
-      final body = message.notification?.body ?? '';
+      final category = message.data['category'] as String? ?? message.data['type'] as String?;
+      
+      // 친구 추가 알림인 경우 로컬라이즈된 메시지 사용
+      String title;
+      String body;
+      
+      if (category?.toUpperCase() == 'FRIEND') {
+        // 친구 추가 알림 패턴 감지
+        final originalTitle = message.notification?.title ?? '';
+        final originalBody = message.notification?.body ?? '';
+        
+        // 한국어 패턴 감지: "님이 친구로 추가되었어요" 또는 "님이 친구 요청을 수락했어요"
+        if (originalTitle.contains('친구로 추가되었어요') || 
+            originalTitle.contains('친구 요청을 수락했어요') ||
+            originalTitle.contains('친구로 추가')) {
+          // 친구 닉네임 추출 시도 (제목에서 "님" 앞의 텍스트)
+          final match = RegExp(r'^(.+?)님').firstMatch(originalTitle);
+          if (match != null) {
+            final friendName = match.group(1) ?? '';
+            if (originalTitle.contains('친구 요청을 수락했어요')) {
+              title = '${friendName}${AppStrings.friendRequestAcceptedTitle(locale)}';
+            } else {
+              title = '${friendName}${AppStrings.friendAddedTitle(locale)}';
+            }
+          } else {
+            // 패턴 매칭 실패 시 기본 메시지 사용
+            title = AppStrings.friendAdded(locale);
+          }
+          
+          // 본문도 로컬라이즈
+          if (originalBody.contains('이제 서로 편지를 주고받을 수 있어요') ||
+              originalBody.contains('이제 서로의 편지를 주고받을 수 있어요')) {
+            body = AppStrings.friendAddedMessage(locale);
+          } else {
+            body = originalBody;
+          }
+        } else {
+          // 다른 친구 관련 알림은 원본 사용
+          title = originalTitle.isNotEmpty ? originalTitle : AppStrings.newNotification(locale);
+          body = originalBody;
+        }
+      } else {
+        // 친구 알림이 아닌 경우 원본 사용
+        title = message.notification?.title ?? AppStrings.newNotification(locale);
+        body = message.notification?.body ?? '';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Column(

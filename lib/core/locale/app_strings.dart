@@ -1237,6 +1237,30 @@ class AppStrings {
     }
   }
 
+  /// 친구 추가 알림 제목 (닉네임 뒤에 붙일 텍스트)
+  static String friendAddedTitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return ' has been added as a friend';
+      case 'ja':
+        return 'さんが友達として追加されました';
+      default:
+        return '님이 친구로 추가되었어요';
+    }
+  }
+
+  /// 친구 요청 수락 알림 제목 (닉네임 뒤에 붙일 텍스트)
+  static String friendRequestAcceptedTitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return ' accepted your friend request';
+      case 'ja':
+        return 'さんが友達リクエストを承認しました';
+      default:
+        return '님이 친구 요청을 수락했어요';
+    }
+  }
+
   static String friendAddedMessage(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
