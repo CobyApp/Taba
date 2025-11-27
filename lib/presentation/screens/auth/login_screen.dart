@@ -61,7 +61,24 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showTabaError(context, message: AppStrings.errorOccurred(locale, e.toString()));
+        // 예외 발생 시 에러 메시지 표시 (iPad에서 발생할 수 있는 네트워크 에러 등 처리)
+        final errorMessage = e.toString().toLowerCase();
+        String displayMessage;
+        
+        if (errorMessage.contains('socketexception') || 
+            errorMessage.contains('network') ||
+            errorMessage.contains('timeout') ||
+            errorMessage.contains('connection')) {
+          displayMessage = '${AppStrings.loginFailed(locale)}\n네트워크 연결을 확인해주세요.';
+        } else if (errorMessage.contains('401') || 
+                   errorMessage.contains('unauthorized') ||
+                   errorMessage.contains('invalid_credentials')) {
+          displayMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        } else {
+          displayMessage = '${AppStrings.loginFailed(locale)}: ${e.toString()}';
+        }
+        
+        showTabaError(context, message: displayMessage);
       }
     } finally {
       if (mounted) {

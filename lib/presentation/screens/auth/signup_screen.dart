@@ -70,6 +70,7 @@ class _SignupScreenState extends State<SignupScreen> {
         maxWidth: 800,
         maxHeight: 800,
         imageQuality: 85,
+        preferredCameraDevice: CameraDevice.rear,
       );
       if (pickedFile != null) {
         setState(() {
@@ -79,7 +80,23 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       if (mounted) {
         final locale = AppLocaleController.localeNotifier.value;
-        showTabaError(context, message: AppStrings.photoError(locale) + e.toString());
+        // iPad에서 카메라가 없을 때 발생하는 에러 처리
+        final errorMessage = e.toString().toLowerCase();
+        if (errorMessage.contains('camera') || 
+            errorMessage.contains('not available') ||
+            errorMessage.contains('no camera') ||
+            errorMessage.contains('source type 1') ||
+            errorMessage.contains('source type unavailable')) {
+          showTabaError(
+            context, 
+            message: AppStrings.cameraNotAvailable(locale),
+          );
+        } else {
+          showTabaError(
+            context, 
+            message: '${AppStrings.photoError(locale)}: ${e.toString()}',
+          );
+        }
       }
     }
   }

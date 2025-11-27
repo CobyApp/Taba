@@ -1027,6 +1027,17 @@ class AppStrings {
     }
   }
 
+  static String cameraNotAvailable(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Camera is not available on this device. Please use the gallery instead.';
+      case 'ja':
+        return 'このデバイスではカメラを使用できません。ギャラリーから選択してください。';
+      default:
+        return '이 기기에서는 카메라를 사용할 수 없습니다. 갤러리에서 선택해주세요.';
+    }
+  }
+
   static String profileUpdated(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
