@@ -215,7 +215,7 @@ class _MainShellState extends State<MainShell> {
             final letterId = segments[1];
             final letter = await _repository.getLetter(letterId);
             if (mounted && letter != null) {
-              Navigator.of(context).push(
+              final result = await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => LetterDetailScreen(
                     letter: letter,
@@ -223,6 +223,10 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
               );
+              // 편지를 읽었거나 삭제되었으면 데이터 새로고침
+              if (result == true && mounted) {
+                _loadData();
+              }
             }
           }
           break;

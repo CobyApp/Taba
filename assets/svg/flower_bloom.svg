@@ -1,0 +1,31 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="flowerGlow" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#FFE5F1" stop-opacity="1"/>
+      <stop offset="50%" stop-color="#FFB3D9" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#FF6BB5" stop-opacity="0.4"/>
+    </radialGradient>
+    <linearGradient id="petalGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFB3D9"/>
+      <stop offset="100%" stop-color="#FF6BB5"/>
+    </linearGradient>
+    <linearGradient id="centerGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE5B4"/>
+      <stop offset="100%" stop-color="#FFB347"/>
+    </linearGradient>
+  </defs>
+  <!-- 배경 글로우 -->
+  <circle cx="32" cy="32" r="30" fill="url(#flowerGlow)" stroke="#FFFFFF" stroke-opacity="0.4" stroke-width="2"/>
+  <!-- 꽃잎들 (5개) -->
+  <ellipse cx="32" cy="20" rx="8" ry="12" fill="url(#petalGradient)" opacity="0.9" transform="rotate(0 32 32)"/>
+  <ellipse cx="32" cy="20" rx="8" ry="12" fill="url(#petalGradient)" opacity="0.9" transform="rotate(72 32 32)"/>
+  <ellipse cx="32" cy="20" rx="8" ry="12" fill="url(#petalGradient)" opacity="0.9" transform="rotate(144 32 32)"/>
+  <ellipse cx="32" cy="20" rx="8" ry="12" fill="url(#petalGradient)" opacity="0.9" transform="rotate(216 32 32)"/>
+  <ellipse cx="32" cy="20" rx="8" ry="12" fill="url(#petalGradient)" opacity="0.9" transform="rotate(288 32 32)"/>
+  <!-- 중앙 -->
+  <circle cx="32" cy="32" r="6" fill="url(#centerGradient)"/>
+  <circle cx="32" cy="32" r="4" fill="#FFE5B4" opacity="0.6"/>
+  <!-- 하이라이트 -->
+  <ellipse cx="34" cy="30" rx="3" ry="4" fill="white" fill-opacity="0.3"/>
+</svg>
+

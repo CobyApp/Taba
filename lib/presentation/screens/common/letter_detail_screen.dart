@@ -18,6 +18,7 @@ import 'package:taba_app/presentation/widgets/taba_text_field.dart';
 import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:taba_app/core/storage/read_letter_storage.dart';
 
 class LetterDetailScreen extends StatefulWidget {
   const LetterDetailScreen({
@@ -48,9 +49,34 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   void initState() {
     super.initState();
     _loadCurrentUser();
-    // 편지를 열었을 때 서버에 읽음 처리 (getLetter 호출 시 자동 처리될 수 있음)
-    // 하지만 확실하게 하기 위해 편지를 열었다는 것을 표시
-    _letterWasRead = true;
+    // API 명세서: GET /letters/{letterId} 호출 시 서버에서 자동으로 읽음 처리됨
+    // 작성자가 아닌 경우에만 읽음 처리가 수행됨
+    // 편지 상세 정보를 서버에서 다시 조회하여 읽음 처리 및 최신 정보 가져오기
+    _loadLetterFromServer();
+  }
+
+  /// 서버에서 편지 상세 정보를 조회하여 읽음 처리 및 최신 정보 가져오기
+  /// API 명세서: GET /letters/{letterId} 호출 시 자동으로 읽음 처리됨
+  Future<void> _loadLetterFromServer() async {
+    try {
+      // 서버에서 편지 상세 정보를 조회 (읽음 처리 자동 수행)
+      final letter = await _repository.getLetter(widget.letter.id);
+      
+      if (mounted && letter != null) {
+        // 편지를 읽었음을 표시
+        _letterWasRead = true;
+        
+        // 공개 편지인 경우 로컬 스토리지에도 읽은 목록에 추가 (UI 표시용)
+        if (letter.visibility == VisibilityScope.public) {
+          await ReadLetterStorage.markAsRead(letter.id);
+        }
+      }
+    } catch (e) {
+      // 에러가 발생해도 편지 상세 화면은 표시됨 (기존 편지 정보 사용)
+      print('편지 상세 조회 실패 (읽음 처리): $e');
+      // 편지를 열었다는 것은 표시 (에러가 발생해도 읽음 처리 시도는 했음)
+      _letterWasRead = true;
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -73,6 +99,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
 
   bool get _isMyLetter {
     if (_currentUser == null) return false;
+    // API 명세서: 작성자가 아닌 경우에만 읽음 처리가 수행됨
     return widget.letter.sender.id == _currentUser!.id;
   }
 
@@ -165,8 +192,26 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                             onPressed: () => Navigator.of(context).pop(_letterWasRead),
                           ),
                           const Spacer(),
+                          // 내가 보낸 편지인 경우 삭제 버튼 표시
+                          if (_isMyLetter)
+                          TextButton(
+                            onPressed: () => _deleteLetter(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              AppStrings.deleteButton(locale),
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 14,
+                                fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
+                              ),
+                            ),
+                          )
                           // 내가 보낸 편지가 아닐 때만 신고 버튼 표시
-                          if (!_isMyLetter)
+                          else
                           TextButton(
                             onPressed: () => _openReportSheet(context),
                             style: TextButton.styleFrom(
@@ -455,6 +500,54 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       fixedSize: true,
       child: _ReportSheet(letterId: widget.letter.id),
     );
+  }
+
+  Future<void> _deleteLetter(BuildContext context) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    
+    // 삭제 확인 다이얼로그 표시
+    final confirmed = await TabaModalSheet.showConfirm(
+      context: context,
+      title: AppStrings.deleteLetter(locale),
+      message: AppStrings.deleteLetterConfirm(locale),
+      confirmText: AppStrings.deleteButton(locale),
+      cancelText: AppStrings.cancel(locale),
+      confirmColor: Colors.red,
+      icon: Icons.delete_outline,
+    );
+    
+    if (confirmed != true) return;
+    
+    try {
+      final result = await _repository.deleteLetter(widget.letter.id);
+      
+      if (!mounted) return;
+      
+      if (result.success) {
+        // 삭제 성공 시 편지 상세 화면 닫기 (삭제되었음을 알리기 위해 true 반환)
+        Navigator.of(context).pop(true);
+        // API 응답의 message가 있으면 사용, 없으면 기본 메시지 사용
+        final successMessage = result.message ?? AppStrings.letterDeletedMessage(locale);
+        showTabaSuccess(
+          context,
+          title: AppStrings.letterDeleted(locale),
+          message: successMessage,
+        );
+      } else {
+        // API 응답의 에러 메시지가 있으면 사용, 없으면 기본 메시지 사용
+        final errorMessage = result.message ?? AppStrings.letterDeleteFailed(locale);
+        showTabaError(
+          context,
+          message: errorMessage,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showTabaError(
+        context,
+        message: AppStrings.errorOccurred(locale, e.toString()),
+      );
+    }
   }
 
   Widget _buildTitleText(LetterStyle? style, Color textColor, Locale locale) {

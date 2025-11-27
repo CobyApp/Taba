@@ -2194,6 +2194,72 @@ class AppStrings {
     }
   }
 
+  static String deleteButton(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Delete';
+      case 'ja':
+        return '削除';
+      default:
+        return '삭제';
+    }
+  }
+
+  static String deleteLetter(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Delete Letter';
+      case 'ja':
+        return '手紙を削除';
+      default:
+        return '편지 삭제';
+    }
+  }
+
+  static String deleteLetterConfirm(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Are you sure you want to delete this letter? This action cannot be undone.';
+      case 'ja':
+        return 'この手紙を削除してもよろしいですか？この操作は元に戻せません。';
+      default:
+        return '이 편지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.';
+    }
+  }
+
+  static String letterDeleted(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Letter deleted';
+      case 'ja':
+        return '手紙が削除されました';
+      default:
+        return '편지가 삭제되었습니다';
+    }
+  }
+
+  static String letterDeletedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'The letter has been deleted.';
+      case 'ja':
+        return '手紙が削除されました。';
+      default:
+        return '편지가 삭제되었습니다.';
+    }
+  }
+
+  static String letterDeleteFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to delete letter.';
+      case 'ja':
+        return '手紙の削除に失敗しました。';
+      default:
+        return '편지 삭제에 실패했습니다.';
+    }
+  }
+
   static String friendDeleted(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
@@ -2533,6 +2599,17 @@ class AppStrings {
         return '種';
       default:
         return '씨앗';
+    }
+  }
+
+  static String flower(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Flower';
+      case 'ja':
+        return '花';
+      default:
+        return '꽃';
     }
   }
 

@@ -174,9 +174,17 @@ class DataRepository {
     return response.isSuccess;
   }
 
-  Future<bool> deleteLetter(String letterId) async {
+  Future<({bool success, String? message})> deleteLetter(String letterId) async {
     final response = await _letterService.deleteLetter(letterId);
-    return response.isSuccess;
+    if (response.isSuccess) {
+      // API 명세서: Response에 message가 포함될 수 있음
+      final message = response.message;
+      return (success: true, message: message);
+    } else {
+      // 에러 메시지 반환
+      final errorMessage = response.error?.message;
+      return (success: false, message: errorMessage);
+    }
   }
 
   /// 편지 답장 (자동 친구 추가)

@@ -14,6 +14,7 @@ import 'package:taba_app/presentation/widgets/nav_header.dart';
 import 'package:taba_app/presentation/widgets/app_logo.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:taba_app/core/storage/read_letter_storage.dart';
 
 class SkyScreen extends StatefulWidget {
   const SkyScreen({
@@ -53,6 +54,7 @@ class _SkyScreenState extends State<SkyScreen> {
   int _currentPage = 0;
   bool _isLoadingMore = false;
   bool _hasMorePages = true;
+  Set<String> _readLetterIds = {};
 
   @override
   void initState() {
@@ -63,6 +65,16 @@ class _SkyScreenState extends State<SkyScreen> {
     _pageLetters[0] = widget.letters.take(10).toList();
     // 초기 데이터가 있으면 다음 페이지가 있다고 가정
     _hasMorePages = widget.letters.length >= 10;
+    _loadReadLetterIds();
+  }
+
+  Future<void> _loadReadLetterIds() async {
+    final readIds = await ReadLetterStorage.getReadLetterIds();
+    if (mounted) {
+      setState(() {
+        _readLetterIds = readIds;
+      });
+    }
   }
 
   @override
@@ -77,6 +89,8 @@ class _SkyScreenState extends State<SkyScreen> {
       _pageLetters[0] = widget.letters.take(10).toList();
       _hasMorePages = widget.letters.length >= 10;
       _currentPage = 0;
+      // 읽은 편지 ID 목록 다시 로드
+      _loadReadLetterIds();
     }
   }
 
@@ -309,6 +323,7 @@ class _SkyScreenState extends State<SkyScreen> {
                         
                         return _SkyCanvas(
                           letters: pageLetters,
+                          readLetterIds: _readLetterIds,
                           onTap: (letter) => _openSeedBloom(context, letter),
                         );
                       },
@@ -347,9 +362,9 @@ class _SkyScreenState extends State<SkyScreen> {
     }
   }
 
-  void _openLetterPreview(BuildContext context, Letter letter) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
+  Future<void> _openLetterPreview(BuildContext context, Letter letter) async {
+    final result = await Navigator.of(context).push(
+      PageRouteBuilder<bool>(
         opaque: false,
         barrierColor: Colors.black.withAlpha(204),
         pageBuilder: (context, animation, secondaryAnimation) {
@@ -363,6 +378,12 @@ class _SkyScreenState extends State<SkyScreen> {
         },
       ),
     );
+    // 편지를 읽었거나 삭제되었으면 데이터 새로고침
+    if (result == true && widget.onRefresh != null) {
+      widget.onRefresh!();
+      // 읽은 편지 ID 목록 다시 로드
+      _loadReadLetterIds();
+    }
   }
 }
 
@@ -370,10 +391,12 @@ class _SkyScreenState extends State<SkyScreen> {
 class _SkyCanvas extends StatefulWidget {
   const _SkyCanvas({
     required this.letters,
+    required this.readLetterIds,
     required this.onTap,
   });
 
   final List<Letter> letters;
+  final Set<String> readLetterIds;
   final ValueChanged<Letter> onTap;
 
   @override
@@ -443,12 +466,15 @@ class _SkyCanvasState extends State<_SkyCanvas> {
             // 고정된 씨앗들 (겹치지 않게 배치)
             ...widget.letters.map((letter) {
               final position = _positionCache![letter.id] ?? Offset(0, 0);
+              final isRead = widget.readLetterIds.contains(letter.id);
               return Positioned(
                 left: position.dx,
                 top: position.dy,
                 child: GestureDetector(
                   onTap: () => widget.onTap(letter),
-                  child: _SeedOrb(letter: letter),
+                  child: isRead 
+                      ? _FlowerOrb(letter: letter)
+                      : _SeedOrb(letter: letter),
                 ),
               );
             }).toList(),
@@ -625,6 +651,38 @@ class _SeedOrb extends StatelessWidget {
         ),
         child: SvgPicture.asset(
           'assets/svg/seed_bubble.svg',
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+class _FlowerOrb extends StatelessWidget {
+  const _FlowerOrb({required this.letter});
+
+  final Letter letter;
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = AppLocaleController.localeNotifier.value;
+    return Semantics(
+      label: AppStrings.flower(locale),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(60),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SvgPicture.asset(
+          'assets/svg/flower_bloom.svg',
           fit: BoxFit.contain,
         ),
       ),
