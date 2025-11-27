@@ -163,7 +163,7 @@ class _MainShellState extends State<MainShell> {
               );
               // 편지를 읽었으면 데이터 새로고침하여 뱃지 카운트 업데이트
               if (result == true && mounted) {
-                _loadData();
+              _loadData();
               }
             }
           }

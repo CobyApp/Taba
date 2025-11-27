@@ -27,9 +27,9 @@
 ### Android
 
 1. **Keystore 생성**:
-   ```bash
-   keytool -genkey -v -keystore android/app/keystore.jks \
-     -keyalg RSA -keysize 2048 -validity 10000 \
+```bash
+keytool -genkey -v -keystore android/app/keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 \
      -alias taba-key
    ```
 
@@ -54,10 +54,10 @@
    - App Store Provisioning Profile 생성 → `.mobileprovision` 다운로드
 
 3. **Base64 인코딩**:
-   ```bash
-   base64 -i certificate.p12 | pbcopy
-   base64 -i profile.mobileprovision | pbcopy
-   ```
+```bash
+base64 -i certificate.p12 | pbcopy
+base64 -i profile.mobileprovision | pbcopy
+```
 
 ## 워크플로우 동작
 

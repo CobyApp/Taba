@@ -233,7 +233,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 errorData['message'] as String?;
               if (apiMessage != null && apiMessage.isNotEmpty) {
                 errorMessage = apiMessage;
-              }
+        }
             } catch (_) {
               // JSON 파싱 실패 시 기본 메시지 사용
             }

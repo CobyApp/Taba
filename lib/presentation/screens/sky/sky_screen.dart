@@ -381,9 +381,10 @@ class _SkyScreenState extends State<SkyScreen> {
     // 편지를 읽었거나 삭제되었으면 데이터 새로고침
     if (result == true && widget.onRefresh != null) {
       widget.onRefresh!();
-      // 읽은 편지 ID 목록 다시 로드
-      _loadReadLetterIds();
     }
+    // 편지 상세 화면에서 돌아올 때 항상 읽음 상태를 다시 로드하여 UI 즉시 반영
+    // (편지를 읽었을 때 ReadLetterStorage에 저장되므로 항상 다시 로드)
+    _loadReadLetterIds();
   }
 }
 

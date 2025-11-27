@@ -45,7 +45,7 @@ jobs:
           channel: 'stable'
       - run: flutter pub get
       - run: cd ios && pod install
-      
+
       - name: Setup Certificates
         if: env.APPLE_CERTIFICATE_BASE64 != ''
         env:
@@ -57,7 +57,7 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
-          
+
           echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > cert.p12
           security import cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || exit 1
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
@@ -70,7 +70,7 @@ jobs:
             PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "")
             PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$TEMP_PLIST" 2>/dev/null || echo "")
             rm -f "$TEMP_PLIST"
-            
+
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
             chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
@@ -82,11 +82,11 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-dev.plist
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist
-            
+
             sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj || true
             sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development";/CODE_SIGN_IDENTITY = "Apple Distribution";/g' ios/Runner.xcodeproj/project.pbxproj || true
             sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
-            
+
             echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
           fi
       
@@ -98,13 +98,13 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
             --export-options-plist=ios/ExportOptions-dev.plist
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: ios-dev-ipa
           path: build/ios/ipa/*.ipa
           retention-days: 30
-      
+
       - name: Upload to TestFlight
         if: success() && env.APP_STORE_CONNECT_API_KEY_ID != ''
         env:
@@ -115,7 +115,7 @@ jobs:
           mkdir -p ~/private_keys
           echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
           chmod 600 ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
-          
+
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
           xcrun altool --upload-app --type ios --file "$IPA_FILE" \
             --apiKey $APP_STORE_CONNECT_API_KEY_ID \

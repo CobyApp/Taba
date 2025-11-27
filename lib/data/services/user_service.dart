@@ -244,10 +244,10 @@ class UserService {
       final response = await _apiClient.dio.delete('/users/$userId');
 
       if (response.data is! Map<String, dynamic>) {
-        return ApiResponse<void>(
-          success: false,
-          error: ApiError(
-            code: 'DELETE_USER_ERROR',
+      return ApiResponse<void>(
+        success: false,
+        error: ApiError(
+          code: 'DELETE_USER_ERROR',
             message: 'Invalid response format',
           ),
         );
