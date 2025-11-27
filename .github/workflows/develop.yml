@@ -1,432 +1,122 @@
 name: Develop Build & Deploy
 
-# 개발 빌드 워크플로우
-# - develop 브랜치에 push 시 자동 실행
-# - 개발 서버 (https://dev.taba.asia/api/v1) 연결
-# - Android: APK 빌드 → Artifact 저장
-# - iOS: IPA 빌드 → TestFlight 업로드
+# 개발 빌드: develop 브랜치 → 개발 서버 (dev.taba.asia)
+# Android: APK → Artifact
+# iOS: IPA → TestFlight
 
 on:
   push:
-    branches:
-      - develop
+    branches: [develop]
   workflow_dispatch:
 
 jobs:
-  build-android-dev:
-    name: Build Android Dev
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Pre-download Gradle
-        timeout-minutes: 5
-        run: |
-          cd android
-          # Check if gradlew exists and make it executable
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            for i in {1..3}; do
-              if ./gradlew --version; then
-                echo "✅ Gradle downloaded successfully"
-                break
-              else
-                if [ $i -eq 3 ]; then
-                  echo "❌ Gradle download failed after 3 attempts"
-                  exit 1
-                fi
-                echo "Retry $i/3 in 5 seconds..."
-                sleep 5
-              fi
-            done
-          else
-            echo "⚠️ gradlew not found, Flutter will download Gradle automatically during build"
-          fi
-
-      - name: Build Android APK (Dev)
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔧 개발 빌드 시작 (개발 서버)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📱 환경: Development"
-          echo "🌐 서버: https://dev.taba.asia/api/v1"
-          echo "📦 빌드 타입: Release APK (개발 서버 연결)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          
+      - run: flutter pub get
+      - run: |
+          echo "🔧 개발 빌드 (서버: https://dev.taba.asia/api/v1)"
           flutter build apk --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev
-          
-          echo ""
-          echo "✅ 개발 빌드 완료 (개발 서버: https://dev.taba.asia/api/v1)"
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: android-dev-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 
-  build-ios-dev:
-    name: Build iOS Dev
+  build-ios:
     runs-on: macos-latest
-    timeout-minutes: 90
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install
-
-      - name: Setup iOS Certificates and Profiles
+      - run: flutter pub get
+      - run: cd ios && pod install
+      
+      - name: Setup Certificates
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
-          if [ -z "$APPLE_CERTIFICATE_BASE64" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
-            echo "⚠️ Certificate secrets not provided, skipping certificate setup"
-            exit 0
-          fi
-
-          # Create and configure keychain
           security create-keychain -p "" build.keychain || true
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
-
-          # Import certificate to build keychain
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
-            echo "❌ Failed to import certificate to build.keychain"
-            exit 1
-          }
-
-          # Import certificate to login keychain (for xcodebuild)
-          security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
-            echo "⚠️ Failed to import certificate to login.keychain, continuing..."
-          }
-
-          # Set keychain permissions (use -k "" for empty password)
+          
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > cert.p12
+          security import cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || exit 1
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
           
-          # For login keychain, unlock it first
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
-
-          # Verify certificate import
-          echo "=== Verifying Certificate Import ==="
-          CERT_COUNT=$(security find-identity -v -p codesigning build.keychain | grep -c "Distribution" || echo "0")
-          if [ "$CERT_COUNT" -eq "0" ]; then
-            CERT_COUNT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep -c "Distribution" || echo "0")
-          fi
-
-          if [ "$CERT_COUNT" -eq "0" ]; then
-            echo "❌ ERROR: No Distribution certificate found after import"
-            security find-identity -v -p codesigning || true
-            exit 1
-          fi
-
-          echo "✅ Found $CERT_COUNT Distribution certificate(s)"
-          security find-identity -v -p codesigning | grep "Distribution" || true
-
-          # Import provisioning profile
           if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
             echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-
-            # Extract UUID from provisioning profile
             TEMP_PLIST=$(mktemp)
-            security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
-            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
+            security cms -D -i profile.mobileprovision > "$TEMP_PLIST"
+            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST")
             PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "")
             PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$TEMP_PLIST" 2>/dev/null || echo "")
             rm -f "$TEMP_PLIST"
-
-            if [ -z "$PROFILE_UUID" ]; then
-              echo "❌ Failed to extract UUID from provisioning profile"
-              exit 1
-            fi
-
-            # Install provisioning profile
+            
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
             chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-
-            # Verify profile was installed
-            if [ ! -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
-              echo "❌ Failed to install provisioning profile"
-              exit 1
-            fi
-
-            echo "✅ Installed provisioning profile: $PROFILE_NAME (UUID: $PROFILE_UUID, Team: $PROFILE_TEAM_ID)"
-            echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
-            echo "$PROFILE_NAME" > /tmp/profile_name.txt
-            echo "$PROFILE_TEAM_ID" > /tmp/profile_team_id.txt
             
-            # List installed profiles for verification
-            echo "=== Installed Provisioning Profiles ==="
-            ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep -E "\.mobileprovision$" || echo "No profiles found"
-          else
-            echo "⚠️ Provisioning profile not provided"
-          fi
-
-      - name: Build iOS IPA (Dev)
-        run: |
-          # Update ExportOptions if provisioning profile is available
-          if [ -f /tmp/profile_uuid.txt ]; then
-            PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
-            PROFILE_NAME=$(cat /tmp/profile_name.txt 2>/dev/null || echo "Taba App Store Distribution")
-            PROFILE_TEAM_ID=$(cat /tmp/profile_team_id.txt 2>/dev/null || echo "3Y8YH8GWMM")
-
-            echo "=== Updating ExportOptions ==="
-            echo "Profile UUID: $PROFILE_UUID"
-            echo "Profile Name: $PROFILE_NAME"
-            echo "Team ID: $PROFILE_TEAM_ID"
-
-            # Update ExportOptions with provisioning profile
             /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-dev.plist
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-dev.plist
-
-            # Set signing style and team ID
             /usr/libexec/PlistBuddy -c "Set :signingStyle manual" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-dev.plist
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-dev.plist
-
-            # Update method to app-store (app-store-connect requires account access)
-            /usr/libexec/PlistBuddy -c "Set :method app-store" ios/ExportOptions-dev.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :method string app-store" ios/ExportOptions-dev.plist
             
-            # Remove destination key for manual signing (upload requires account access)
-            /usr/libexec/PlistBuddy -c "Delete :destination" ios/ExportOptions-dev.plist 2>/dev/null || true
-
-            # Update project.pbxproj
-            sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
-
-            echo "Updated ExportOptions:"
-            cat ios/ExportOptions-dev.plist
-          else
-            echo "⚠️ No provisioning profile UUID found, using ExportOptions as-is"
+            sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj || true
+            sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development";/CODE_SIGN_IDENTITY = "Apple Distribution";/g' ios/Runner.xcodeproj/project.pbxproj || true
+            sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
+            
+            echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
           fi
-
-          # Verify certificate before building
-          echo "=== Verifying Certificate Access ==="
-          DIST_CERT=$(security find-identity -v -p codesigning build.keychain | grep "Distribution" | head -1 || echo "")
-          if [ -z "$DIST_CERT" ]; then
-            DIST_CERT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep "Distribution" | head -1 || echo "")
-          fi
-          if [ -z "$DIST_CERT" ]; then
-          DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
-          fi
-          if [ -z "$DIST_CERT" ]; then
-            echo "❌ No Distribution certificate found"
-            echo "Checking build.keychain:"
-            security find-identity -v -p codesigning build.keychain || true
-            echo "Checking login.keychain:"
-            security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db || true
-            exit 1
-          fi
-          echo "✅ Certificate verified: $DIST_CERT"
-          
-          # Ensure keychain is unlocked and accessible
-          security unlock-keychain -p "" build.keychain || true
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-          
-          # Set keychain search list to include both keychains
-          security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
-          security default-keychain -s build.keychain
-          
-          # Verify ExportOptions plist before building
-          echo "=== Verifying ExportOptions ==="
-          if [ -f /tmp/profile_uuid.txt ]; then
-            # Verify provisioningProfiles exists
-            PROV_PROFILES=$(/usr/libexec/PlistBuddy -c "Print :provisioningProfiles" ios/ExportOptions-dev.plist 2>/dev/null || echo "")
-            if [ -z "$PROV_PROFILES" ]; then
-              echo "❌ provisioningProfiles not found in ExportOptions"
-              exit 1
-            fi
-            echo "✅ ExportOptions verified:"
-            cat ios/ExportOptions-dev.plist
-          fi
-
-          # Build IPA
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔧 개발 빌드 시작 (개발 서버)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📱 환경: Development"
-          echo "🌐 서버: https://dev.taba.asia/api/v1"
-          echo "📦 빌드 타입: Release IPA (개발 서버 연결)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "=== Building IPA ==="
+      
+      - name: Build IPA
+        run: |
+          echo "🔧 개발 빌드 (서버: https://dev.taba.asia/api/v1)"
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
             --export-options-plist=ios/ExportOptions-dev.plist
-          
-          echo ""
-          echo "✅ 개발 빌드 완료 (개발 서버: https://dev.taba.asia/api/v1)"
-
-          # Verify IPA was created
-          if [ ! -d build/ios/ipa ] || [ -z "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
-            echo "❌ IPA file not found after build"
-            
-            # Check if archive exists and try manual export
-            ARCHIVE_PATH=$(find build/ios/archive -name "*.xcarchive" -type d | head -1)
-            if [ -n "$ARCHIVE_PATH" ] && [ -d "$ARCHIVE_PATH" ]; then
-              echo "⚠️ Archive found, attempting manual export..."
-              mkdir -p build/ios/ipa
-              
-              # Ensure keychain is accessible before export
-              security unlock-keychain -p "" build.keychain || true
-              security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-              security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
-              security default-keychain -s build.keychain
-              
-              # Verify provisioning profiles are accessible
-              echo "=== Verifying Provisioning Profiles ==="
-              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory"
-              
-              # Verify ExportOptions one more time
-              echo "=== Final ExportOptions Check ==="
-              cat ios/ExportOptions-dev.plist
-              
-              # Verify the provisioning profile UUID in ExportOptions matches installed profile
-              if [ -f /tmp/profile_uuid.txt ]; then
-                EXPECTED_UUID=$(cat /tmp/profile_uuid.txt)
-                INSTALLED_PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/$EXPECTED_UUID.mobileprovision 2>/dev/null || echo "")
-                if [ -z "$INSTALLED_PROFILE" ]; then
-                  echo "❌ Provisioning profile $EXPECTED_UUID not found in installed profiles"
-                  echo "Available profiles:"
-                  ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
-                  exit 1
-                fi
-                echo "✅ Provisioning profile verified: $EXPECTED_UUID"
-              fi
-              
-              xcodebuild -exportArchive \
-                -archivePath "$ARCHIVE_PATH" \
-                -exportPath build/ios/ipa \
-                -exportOptionsPlist ios/ExportOptions-dev.plist 2>&1 | tee /tmp/export_log.txt
-              
-              if [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
-                echo "✅ IPA created via manual export"
-              else
-                echo "❌ Manual export failed"
-                echo "=== Export Log ==="
-                cat /tmp/export_log.txt || true
-                echo "=== Checking for detailed error logs ==="
-                LOG_DIR=$(find /var/folders -name "*.xcdistributionlogs" -type d | head -1)
-                if [ -n "$LOG_DIR" ]; then
-                  echo "=== Distribution Log Directory: $LOG_DIR ==="
-                  ls -la "$LOG_DIR" || true
-                  echo "=== IDEDistribution.critical.log ==="
-                  cat "$LOG_DIR/IDEDistribution.critical.log" 2>/dev/null || echo "No critical log"
-                  echo "=== DVTITunesSoftwareService.log ==="
-                  cat "$LOG_DIR/DVTITunesSoftwareService.log" 2>/dev/null || echo "No iTunes log"
-                  find "$LOG_DIR" -name "*.log" -exec echo "=== {} ===" \; -exec cat {} \; 2>/dev/null | head -100 || true
-                fi
-                echo "=== Final ExportOptions Check ==="
-                cat ios/ExportOptions-dev.plist
-                exit 1
-              fi
-            else
-              echo "❌ No archive found"
-              exit 1
-            fi
-          else
-            echo "✅ IPA created successfully"
-            find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
-          fi
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: ios-dev-ipa
           path: build/ios/ipa/*.ipa
           retention-days: 30
-
-      - name: Upload to TestFlight (Dev)
-        if: success()
+      
+      - name: Upload to TestFlight
+        if: success() && env.APP_STORE_CONNECT_API_KEY_ID != ''
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          if [ -z "$APP_STORE_CONNECT_API_KEY_ID" ] || [ -z "$APP_STORE_CONNECT_ISSUER_ID" ] || [ -z "$APP_STORE_CONNECT_API_KEY" ]; then
-            echo "⚠️ App Store Connect API credentials not provided, skipping upload"
-            exit 0
-          fi
-
-          # Create API key file
           mkdir -p ~/private_keys
           echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
           chmod 600 ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
-
-          # Find IPA file
+          
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          if [ -z "$IPA_FILE" ]; then
-            echo "❌ IPA file not found"
-            exit 1
-          fi
-
-          echo "Uploading IPA to TestFlight: $IPA_FILE"
-          if xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_FILE" \
+          xcrun altool --upload-app --type ios --file "$IPA_FILE" \
             --apiKey $APP_STORE_CONNECT_API_KEY_ID \
-            --apiIssuer $APP_STORE_CONNECT_ISSUER_ID \
-            --verbose 2>&1 | tee /tmp/upload_log.txt; then
-            echo "✅ IPA uploaded successfully to TestFlight"
-          else
-            UPLOAD_ERROR=$(cat /tmp/upload_log.txt || echo "")
-            if echo "$UPLOAD_ERROR" | grep -q "No suitable application records were found"; then
-              echo "⚠️ App not found in App Store Connect"
-              echo "📝 To fix this:"
-              echo "   1. Go to https://appstoreconnect.apple.com"
-              echo "   2. Click 'My Apps' → '+' → 'New App'"
-              echo "   3. Create app with Bundle ID: com.coby.taba"
-              echo "   4. After app is created, uploads will work automatically"
-              echo ""
-              echo "✅ IPA file was created successfully and saved as artifact"
-              echo "   You can download it from the Actions artifacts and upload manually if needed"
-              exit 0
-            else
-              echo "❌ Upload failed with error:"
-              cat /tmp/upload_log.txt || true
-              echo ""
-              echo "✅ IPA file was created successfully and saved as artifact"
-              echo "   You can download it from the Actions artifacts and upload manually if needed"
-              exit 0
-            fi
-          fi
+            --apiIssuer $APP_STORE_CONNECT_ISSUER_ID || echo "⚠️ Upload failed, IPA saved as artifact"

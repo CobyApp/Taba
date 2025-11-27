@@ -1,182 +1,59 @@
 name: Release Build & Deploy
 
-# 프로덕션 빌드 워크플로우
-# - release 브랜치에 push 시 자동 실행
-# - 프로덕션 서버 (https://www.taba.asia/api/v1) 연결
-# - Android: AAB 빌드 → Google Play Production 업로드
-# - iOS: IPA 빌드 → App Store Connect 업로드
+# 프로덕션 빌드: release 브랜치 → 프로덕션 서버 (www.taba.asia)
+# Android: AAB → Google Play Production
+# iOS: IPA → App Store Connect
 
 on:
   push:
-    branches:
-      - release
+    branches: [release]
   workflow_dispatch:
 
 jobs:
-  build-android-prod:
-    name: Build Android Production
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Pre-download Gradle
-        timeout-minutes: 5
+      - run: flutter pub get
+      
+      - name: Setup Keystore
         run: |
-          cd android
-          # Check if gradlew exists and make it executable
-          if [ -f gradlew ]; then
-            chmod +x gradlew
-            for i in {1..3}; do
-              if ./gradlew --version; then
-                echo "✅ Gradle downloaded successfully"
-                break
-              else
-                if [ $i -eq 3 ]; then
-                  echo "❌ Gradle download failed after 3 attempts"
-                  exit 1
-                fi
-                echo "Retry $i/3 in 5 seconds..."
-                sleep 5
-              fi
-            done
-          else
-            echo "⚠️ gradlew not found, Flutter will download Gradle automatically during build"
-          fi
-
-      - name: Setup Android Keystore
-        run: |
-          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
-            echo "❌ ANDROID_KEYSTORE_BASE64 secret is not set"
-            exit 1
-          fi
-          
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
-          
-          # Verify keystore file was created
-          if [ ! -f android/app/keystore.jks ]; then
-            echo "❌ Failed to create keystore file"
-            exit 1
-          fi
-          
-          # Verify keystore file size (should be > 0)
-          KEYSTORE_SIZE=$(stat -f%z android/app/keystore.jks 2>/dev/null || stat -c%s android/app/keystore.jks 2>/dev/null || echo "0")
-          if [ "$KEYSTORE_SIZE" -eq "0" ]; then
-            echo "❌ Keystore file is empty"
-            exit 1
-          fi
-          
-          echo "✅ Keystore file created successfully (size: ${KEYSTORE_SIZE} bytes)"
-          
-          # Verify keystore with keytool (optional, for debugging)
-          if command -v keytool &> /dev/null; then
-            echo "Verifying keystore..."
-            keytool -list -v -keystore android/app/keystore.jks -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" -alias "${{ secrets.ANDROID_KEY_ALIAS }}" || {
-              echo "⚠️ Keystore verification failed, but continuing..."
-            }
-          fi
-
-      - name: Build Android App Bundle (Production)
+      
+      - name: Build AAB
         env:
           KEYSTORE_PATH: keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          CI: "true"
-          GITHUB_ACTIONS: "true"
         run: |
-          # Change to android/app directory (where build.gradle.kts runs)
+          echo "🚀 프로덕션 빌드 (서버: https://www.taba.asia/api/v1)"
           cd android/app
-          
-          # Verify environment variables are set
-          if [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "❌ Keystore credentials are not set"
-            echo "Required: KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD"
-            exit 1
-          fi
-          
-          # Verify keystore file exists (relative to android/app directory)
-          if [ ! -f "keystore.jks" ]; then
-            echo "❌ Keystore file not found: keystore.jks"
-            echo "Current directory: $(pwd)"
-            echo "Files in current directory:"
-            ls -la || true
-            exit 1
-          fi
-          
-          echo "✅ Keystore file found: keystore.jks"
-          ls -lh keystore.jks
-          
-          # Go back to project root for flutter build
-          cd ../..
-          
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🚀 프로덕션 빌드 시작 (프로덕션 서버)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📱 환경: Production"
-          echo "🌐 서버: https://www.taba.asia/api/v1"
-          echo "📦 빌드 타입: Release AAB (프로덕션 서버 연결)"
-          echo "🔐 서명: Release Keystore"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "Building AAB with release signing..."
-          echo "KEYSTORE_PATH: $KEYSTORE_PATH"
-          echo "KEY_ALIAS: $KEY_ALIAS"
           flutter build appbundle --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=prod
-          
-          echo ""
-          echo "✅ 프로덕션 빌드 완료 (프로덕션 서버: https://www.taba.asia/api/v1)"
-          
-          # Verify AAB was created
-          AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
-          if [ ! -f "$AAB_PATH" ]; then
-            echo "❌ AAB file not found: $AAB_PATH"
-            exit 1
-          fi
-          
-          echo "✅ AAB file created: $AAB_PATH"
-          ls -lh "$AAB_PATH"
-          
-          # Verify AAB is signed (check if it's a valid ZIP and contains META-INF)
-          if command -v unzip &> /dev/null; then
-            echo "Verifying AAB signature..."
-            if unzip -l "$AAB_PATH" | grep -q "META-INF/.*\.RSA\|META-INF/.*\.DSA\|META-INF/.*\.EC"; then
-              echo "✅ AAB is properly signed with release key"
-            else
-              echo "⚠️ WARNING: AAB signature verification inconclusive"
-            fi
-          fi
-
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: android-prod-aab
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 90
-
-      - name: Upload to Google Play (Production)
-        id: upload-google-play
-        if: success()
-        continue-on-error: true
+      
+      - name: Upload to Google Play
+        if: success() && env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != ''
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         uses: r0adkll/upload-google-play@v1
+        continue-on-error: true
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.coby.taba
@@ -184,437 +61,86 @@ jobs:
           track: production
           status: completed
 
-      - name: Check Google Play Upload Result
-        if: always()
-        env:
-          SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-        run: |
-          if [ -z "${SERVICE_ACCOUNT_JSON}" ]; then
-            echo "⚠️ Google Play service account JSON not provided, skipping upload"
-            echo "✅ AAB file was created successfully and saved as artifact"
-            exit 0
-          fi
-          
-          if [ "${{ steps.upload-google-play.outcome }}" == "failure" ] || [ "${{ steps.upload-google-play.outcome }}" == "cancelled" ]; then
-            echo "⚠️ Google Play upload failed"
-            echo ""
-            echo "📋 Troubleshooting Guide:"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "1️⃣ Android Publisher API not enabled"
-            echo "   Error: 'Google Play Android Developer API has not been used'"
-            echo "   Solution:"
-            echo "   • Go to: https://console.developers.google.com/apis/api/androidpublisher.googleapis.com/overview"
-            echo "   • Select your project (check error message for project ID)"
-            echo "   • Click 'Enable' button"
-            echo "   • Wait 2-5 minutes for API propagation"
-            echo "   • See detailed guide: docs/GOOGLE_PLAY_API_SETUP.md"
-            echo ""
-            echo "2️⃣ Package not found: com.coby.taba"
-            echo "   Error: 'Package not found' or 'Application not found'"
-            echo "   ⚠️ This means the app doesn't exist in Google Play Console with this package name"
-            echo "   Solution:"
-            echo "   • Go to: https://play.google.com/console"
-            echo "   • Check if app exists with package name: com.coby.taba"
-            echo "   • If app doesn't exist:"
-            echo "     1. Click 'Create app' or '+' button"
-            echo "     2. Select 'App' type"
-            echo "     3. Fill in app details:"
-            echo "        - App name: Taba"
-            echo "        - Default language: English"
-            echo "        - Free or paid: Free"
-            echo "     4. Click 'Create'"
-            echo "     5. Enter package name: com.coby.taba"
-            echo "     6. Complete basic app setup (at least app name and store listing)"
-            echo "   • If app exists but package name is different:"
-            echo "     - Check the actual package name in Google Play Console"
-            echo "     - Update android/app/build.gradle.kts → applicationId to match"
-            echo "     - Or create a new app with the correct package name"
-            echo ""
-            echo "3️⃣ Service account permissions"
-            echo "   Error: Permission denied or authentication failed"
-            echo "   Solution:"
-            echo "   • Go to: https://play.google.com/console → Settings → API access"
-            echo "   • Find your service account"
-            echo "   • Click 'Grant access' or 'Manage'"
-            echo "   • Ensure 'App Manager' role is assigned"
-            echo "   • Verify service account email matches JSON file"
-            echo ""
-            echo "4️⃣ Package name mismatch"
-            echo "   Error: Package name doesn't match"
-            echo "   Solution:"
-            echo "   • Verify package name in Google Play Console matches: com.coby.taba"
-            echo "   • Check android/app/build.gradle.kts → applicationId"
-            echo ""
-            echo "5️⃣ First release requirements"
-            echo "   Error: 'Edit not found' or 'No releases'"
-            echo "   Solution:"
-            echo "   • Complete app setup in Google Play Console"
-            echo "   • Upload at least one release manually first (optional)"
-            echo "   • Ensure app is in 'Draft' or 'In review' status"
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "✅ AAB file was created successfully!"
-            echo "   📦 Artifact: android-prod-aab"
-            echo "   📥 Download from: Actions → Artifacts"
-            echo "   💡 You can upload manually to Google Play Console if needed"
-            echo ""
-            echo "📚 Additional Resources:"
-            echo "   • API Setup Guide: docs/GOOGLE_PLAY_API_SETUP.md"
-            echo "   • Google Play Console: https://play.google.com/console"
-            echo "   • Google Cloud Console: https://console.cloud.google.com"
-            exit 0
-          elif [ "${{ steps.upload-google-play.outcome }}" == "success" ]; then
-            echo "✅ Google Play upload successful!"
-            echo "   Your app has been uploaded to the production track"
-          else
-            echo "ℹ️ Upload step outcome: ${{ steps.upload-google-play.outcome }}"
-          fi
-
-  build-ios-prod:
-    name: Build iOS Production
+  build-ios:
     runs-on: macos-latest
-    timeout-minutes: 90
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Install CocoaPods dependencies
-        run: |
-          cd ios
-          pod install
-
-      - name: Setup iOS Certificates and Profiles
+      - run: flutter pub get
+      - run: cd ios && pod install
+      
+      - name: Setup Certificates
+        if: env.APPLE_CERTIFICATE_BASE64 != ''
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
         run: |
-          if [ -z "$APPLE_CERTIFICATE_BASE64" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ]; then
-            echo "⚠️ Certificate secrets not provided, skipping certificate setup"
-            exit 0
-          fi
-
-          # Create and configure keychain
           security create-keychain -p "" build.keychain || true
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
-
-          # Import certificate to build keychain
-          echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > certificate.p12
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
-            echo "❌ Failed to import certificate to build.keychain"
-            exit 1
-          }
-
-          # Import certificate to login keychain (for xcodebuild)
-          security import certificate.p12 -k ~/Library/Keychains/login.keychain-db -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || {
-            echo "⚠️ Failed to import certificate to login.keychain, continuing..."
-          }
-
-          # Set keychain permissions (use -k "" for empty password)
+          
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 -d > cert.p12
+          security import cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign || exit 1
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain || true
           
-          # For login keychain, unlock it first
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" ~/Library/Keychains/login.keychain-db || true
-
-          # Verify certificate import
-          echo "=== Verifying Certificate Import ==="
-          CERT_COUNT=$(security find-identity -v -p codesigning build.keychain | grep -c "Distribution" || echo "0")
-          if [ "$CERT_COUNT" -eq "0" ]; then
-            CERT_COUNT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep -c "Distribution" || echo "0")
-          fi
-
-          if [ "$CERT_COUNT" -eq "0" ]; then
-            echo "❌ ERROR: No Distribution certificate found after import"
-            security find-identity -v -p codesigning || true
-            exit 1
-          fi
-
-          echo "✅ Found $CERT_COUNT Distribution certificate(s)"
-          security find-identity -v -p codesigning | grep "Distribution" || true
-
-          # Import provisioning profile
           if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
             echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > profile.mobileprovision
-
-            # Extract UUID from provisioning profile
             TEMP_PLIST=$(mktemp)
-            security cms -D -i profile.mobileprovision > "$TEMP_PLIST" 2>/dev/null
-            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST" 2>/dev/null)
+            security cms -D -i profile.mobileprovision > "$TEMP_PLIST"
+            PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$TEMP_PLIST")
             PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$TEMP_PLIST" 2>/dev/null || echo "")
             PROFILE_TEAM_ID=$(/usr/libexec/PlistBuddy -c "Print TeamIdentifier:0" "$TEMP_PLIST" 2>/dev/null || echo "")
             rm -f "$TEMP_PLIST"
-
-            if [ -z "$PROFILE_UUID" ]; then
-              echo "❌ Failed to extract UUID from provisioning profile"
-              exit 1
-            fi
-
-            # Install provisioning profile
+            
             mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
             cp profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
             chmod 644 ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
-
-            # Verify profile was installed
-            if [ ! -f ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision ]; then
-              echo "❌ Failed to install provisioning profile"
-              exit 1
-            fi
-
-            echo "✅ Installed provisioning profile: $PROFILE_NAME (UUID: $PROFILE_UUID, Team: $PROFILE_TEAM_ID)"
-            echo "$PROFILE_UUID" > /tmp/profile_uuid.txt
-            echo "$PROFILE_NAME" > /tmp/profile_name.txt
-            echo "$PROFILE_TEAM_ID" > /tmp/profile_team_id.txt
             
-            # List installed profiles for verification
-            echo "=== Installed Provisioning Profiles ==="
-            ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ | grep -E "\.mobileprovision$" || echo "No profiles found"
-          else
-            echo "⚠️ Provisioning profile not provided"
-          fi
-
-      - name: Build iOS IPA (Production)
-        run: |
-          # Update ExportOptions if provisioning profile is available
-          if [ -f /tmp/profile_uuid.txt ]; then
-            PROFILE_UUID=$(cat /tmp/profile_uuid.txt)
-            PROFILE_NAME=$(cat /tmp/profile_name.txt 2>/dev/null || echo "Taba App Store Distribution")
-            PROFILE_TEAM_ID=$(cat /tmp/profile_team_id.txt 2>/dev/null || echo "3Y8YH8GWMM")
-
-            echo "=== Updating ExportOptions ==="
-            echo "Profile UUID: $PROFILE_UUID"
-            echo "Profile Name: $PROFILE_NAME"
-            echo "Team ID: $PROFILE_TEAM_ID"
-
-            # Update ExportOptions with provisioning profile
             /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions-prod.plist 2>/dev/null || true
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions-prod.plist
             /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.coby.taba string $PROFILE_UUID" ios/ExportOptions-prod.plist
-
-            # Set signing style and team ID
             /usr/libexec/PlistBuddy -c "Set :signingStyle manual" ios/ExportOptions-prod.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions-prod.plist
             /usr/libexec/PlistBuddy -c "Set :teamID $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist 2>/dev/null || \
             /usr/libexec/PlistBuddy -c "Add :teamID string $PROFILE_TEAM_ID" ios/ExportOptions-prod.plist
-
-            # Update method to app-store (app-store-connect requires account access)
-            /usr/libexec/PlistBuddy -c "Set :method app-store" ios/ExportOptions-prod.plist 2>/dev/null || \
-            /usr/libexec/PlistBuddy -c "Add :method string app-store" ios/ExportOptions-prod.plist
             
-            # Remove destination key for manual signing (upload requires account access)
-            /usr/libexec/PlistBuddy -c "Delete :destination" ios/ExportOptions-prod.plist 2>/dev/null || true
-
-            # Update project.pbxproj
-            sed -i '' "s/\"PROVISIONING_PROFILE_SPECIFIER\[sdk=iphoneos\*\]\" = \".*\";/\"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]\" = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
-
-            echo "Updated ExportOptions:"
-            cat ios/ExportOptions-prod.plist
-          else
-            echo "⚠️ No provisioning profile UUID found, using ExportOptions as-is"
+            sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj || true
+            sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Development";/CODE_SIGN_IDENTITY = "Apple Distribution";/g' ios/Runner.xcodeproj/project.pbxproj || true
+            sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
           fi
-
-          # Verify certificate before building
-          echo "=== Verifying Certificate Access ==="
-          DIST_CERT=$(security find-identity -v -p codesigning build.keychain | grep "Distribution" | head -1 || echo "")
-          if [ -z "$DIST_CERT" ]; then
-            DIST_CERT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep "Distribution" | head -1 || echo "")
-          fi
-          if [ -z "$DIST_CERT" ]; then
-            DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
-          fi
-          if [ -z "$DIST_CERT" ]; then
-            echo "❌ No Distribution certificate found"
-            echo "Checking build.keychain:"
-            security find-identity -v -p codesigning build.keychain || true
-            echo "Checking login.keychain:"
-            security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db || true
-            exit 1
-          fi
-          echo "✅ Certificate verified: $DIST_CERT"
-          
-          # Ensure keychain is unlocked and accessible
-          security unlock-keychain -p "" build.keychain || true
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-          
-          # Set keychain search list to include both keychains
-          security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
-          security default-keychain -s build.keychain
-          
-          # Verify ExportOptions plist before building
-          echo "=== Verifying ExportOptions ==="
-          if [ -f /tmp/profile_uuid.txt ]; then
-            # Verify provisioningProfiles exists
-            PROV_PROFILES=$(/usr/libexec/PlistBuddy -c "Print :provisioningProfiles" ios/ExportOptions-prod.plist 2>/dev/null || echo "")
-            if [ -z "$PROV_PROFILES" ]; then
-              echo "❌ provisioningProfiles not found in ExportOptions"
-              exit 1
-            fi
-            echo "✅ ExportOptions verified:"
-            cat ios/ExportOptions-prod.plist
-          fi
-
-          # Build IPA
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🚀 프로덕션 빌드 시작 (프로덕션 서버)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📱 환경: Production"
-          echo "🌐 서버: https://www.taba.asia/api/v1"
-          echo "📦 빌드 타입: Release IPA (프로덕션 서버 연결)"
-          echo "🔐 서명: App Store Distribution"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "=== Building IPA ==="
+      
+      - name: Build IPA
+        run: |
+          echo "🚀 프로덕션 빌드 (서버: https://www.taba.asia/api/v1)"
           flutter build ipa --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=prod \
             --export-options-plist=ios/ExportOptions-prod.plist
-          
-          echo ""
-          echo "✅ 프로덕션 빌드 완료 (프로덕션 서버: https://www.taba.asia/api/v1)"
-
-          # Verify IPA was created
-          if [ ! -d build/ios/ipa ] || [ -z "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
-            echo "❌ IPA file not found after build"
-            
-            # Check if archive exists and try manual export
-            ARCHIVE_PATH=$(find build/ios/archive -name "*.xcarchive" -type d | head -1)
-            if [ -n "$ARCHIVE_PATH" ] && [ -d "$ARCHIVE_PATH" ]; then
-              echo "⚠️ Archive found, attempting manual export..."
-              mkdir -p build/ios/ipa
-              
-              # Ensure keychain is accessible before export
-              security unlock-keychain -p "" build.keychain || true
-              security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db || true
-              security list-keychains -d user -s build.keychain ~/Library/Keychains/login.keychain-db
-              security default-keychain -s build.keychain
-              
-              # Verify provisioning profiles are accessible
-              echo "=== Verifying Provisioning Profiles ==="
-              ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || echo "No profiles directory"
-              
-              # Verify ExportOptions one more time
-              echo "=== Final ExportOptions Check ==="
-              cat ios/ExportOptions-prod.plist
-              
-              # Verify the provisioning profile UUID in ExportOptions matches installed profile
-              if [ -f /tmp/profile_uuid.txt ]; then
-                EXPECTED_UUID=$(cat /tmp/profile_uuid.txt)
-                INSTALLED_PROFILE=$(ls ~/Library/MobileDevice/Provisioning\ Profiles/$EXPECTED_UUID.mobileprovision 2>/dev/null || echo "")
-                if [ -z "$INSTALLED_PROFILE" ]; then
-                  echo "❌ Provisioning profile $EXPECTED_UUID not found in installed profiles"
-                  echo "Available profiles:"
-                  ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ || true
-                  exit 1
-                fi
-                echo "✅ Provisioning profile verified: $EXPECTED_UUID"
-              fi
-              
-              xcodebuild -exportArchive \
-                -archivePath "$ARCHIVE_PATH" \
-                -exportPath build/ios/ipa \
-                -exportOptionsPlist ios/ExportOptions-prod.plist 2>&1 | tee /tmp/export_log.txt
-              
-              if [ -n "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
-                echo "✅ IPA created via manual export"
-              else
-                echo "❌ Manual export failed"
-                echo "=== Export Log ==="
-                cat /tmp/export_log.txt || true
-                echo "=== Checking for detailed error logs ==="
-                LOG_DIR=$(find /var/folders -name "*.xcdistributionlogs" -type d | head -1)
-                if [ -n "$LOG_DIR" ]; then
-                  echo "=== Distribution Log Directory: $LOG_DIR ==="
-                  ls -la "$LOG_DIR" || true
-                  echo "=== IDEDistribution.critical.log ==="
-                  cat "$LOG_DIR/IDEDistribution.critical.log" 2>/dev/null || echo "No critical log"
-                  echo "=== DVTITunesSoftwareService.log ==="
-                  cat "$LOG_DIR/DVTITunesSoftwareService.log" 2>/dev/null || echo "No iTunes log"
-                  find "$LOG_DIR" -name "*.log" -exec echo "=== {} ===" \; -exec cat {} \; 2>/dev/null | head -100 || true
-                fi
-                echo "=== Final ExportOptions Check ==="
-                cat ios/ExportOptions-prod.plist
-                exit 1
-              fi
-            else
-              echo "❌ No archive found"
-              exit 1
-            fi
-          else
-            echo "✅ IPA created successfully"
-            find build/ios/ipa -name "*.ipa" -exec ls -lh {} \;
-          fi
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+      
+      - uses: actions/upload-artifact@v4
         with:
           name: ios-prod-ipa
           path: build/ios/ipa/*.ipa
           retention-days: 90
-
-      - name: Upload to App Store Connect (Production)
-        if: success()
+      
+      - name: Upload to App Store Connect
+        if: success() && env.APP_STORE_CONNECT_API_KEY_ID != ''
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
         run: |
-          if [ -z "$APP_STORE_CONNECT_API_KEY_ID" ] || [ -z "$APP_STORE_CONNECT_ISSUER_ID" ] || [ -z "$APP_STORE_CONNECT_API_KEY" ]; then
-            echo "⚠️ App Store Connect API credentials not provided, skipping upload"
-            exit 0
-          fi
-
-          # Create API key file
           mkdir -p ~/private_keys
           echo "$APP_STORE_CONNECT_API_KEY" > ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
           chmod 600 ~/private_keys/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8
-
-          # Find IPA file
+          
           IPA_FILE=$(find build/ios/ipa -name "*.ipa" | head -1)
-          if [ -z "$IPA_FILE" ]; then
-            echo "❌ IPA file not found"
-            exit 1
-          fi
-
-          echo "Uploading IPA to App Store Connect: $IPA_FILE"
-          if xcrun altool --upload-app \
-            --type ios \
-            --file "$IPA_FILE" \
+          xcrun altool --upload-app --type ios --file "$IPA_FILE" \
             --apiKey $APP_STORE_CONNECT_API_KEY_ID \
-            --apiIssuer $APP_STORE_CONNECT_ISSUER_ID \
-            --verbose 2>&1 | tee /tmp/upload_log.txt; then
-            echo "✅ IPA uploaded successfully to App Store Connect"
-          else
-            UPLOAD_ERROR=$(cat /tmp/upload_log.txt || echo "")
-            if echo "$UPLOAD_ERROR" | grep -q "No suitable application records were found"; then
-              echo "⚠️ App not found in App Store Connect"
-              echo "📝 To fix this:"
-              echo "   1. Go to https://appstoreconnect.apple.com"
-              echo "   2. Click 'My Apps' → '+' → 'New App'"
-              echo "   3. Create app with Bundle ID: com.coby.taba"
-              echo "   4. After app is created, uploads will work automatically"
-              echo ""
-              echo "✅ IPA file was created successfully and saved as artifact"
-              echo "   You can download it from the Actions artifacts and upload manually if needed"
-              exit 0
-            else
-              echo "❌ Upload failed with error:"
-              cat /tmp/upload_log.txt || true
-              echo ""
-              echo "✅ IPA file was created successfully and saved as artifact"
-              echo "   You can download it from the Actions artifacts and upload manually if needed"
-              exit 0
-            fi
-          fi
+            --apiIssuer $APP_STORE_CONNECT_ISSUER_ID || echo "⚠️ Upload failed, IPA saved as artifact"
