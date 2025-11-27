@@ -52,7 +52,7 @@ class _TemplateOption {
 class _WriteLetterPageState extends State<WriteLetterPage> {
   final _repository = DataRepository.instance;
   bool _sendToFriend = false;
-  String? _fontFamily;
+  final ValueNotifier<String?> _fontFamilyNotifier = ValueNotifier<String?>(null);
   String? _previousLocaleCode; // 이전 locale 추적
   static const double _editorFontSize = 24; // 편지 읽기 화면과 동일하게
   List<FriendProfile> _friends = [];
@@ -198,7 +198,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     // 시스템 언어에 맞게 기본 폰트 설정
     final locale = AppLocaleController.localeNotifier.value;
     _previousLocaleCode = locale.languageCode;
-    _fontFamily = _getDefaultFontForLocale(locale.languageCode);
+    _fontFamilyNotifier.value = _getDefaultFontForLocale(locale.languageCode);
     _loadFriends();
     
     // 언어 변경 시 기본 폰트 업데이트
@@ -247,12 +247,10 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     
     // 현재 폰트가 이전 locale의 기본 폰트와 같으면 (사용자가 수동으로 변경하지 않았으면)
     // 새 locale의 기본 폰트로 업데이트
-    if (previousDefaultFont != null && _fontFamily == previousDefaultFont) {
+    if (previousDefaultFont != null && _fontFamilyNotifier.value == previousDefaultFont) {
       final newDefaultFont = _getDefaultFontForLocale(newLocaleCode);
-      setState(() {
-        _fontFamily = newDefaultFont;
-        _previousLocaleCode = newLocaleCode;
-      });
+      _fontFamilyNotifier.value = newDefaultFont;
+      _previousLocaleCode = newLocaleCode;
     } else {
       // 사용자가 수동으로 폰트를 변경한 경우 locale만 업데이트
       _previousLocaleCode = newLocaleCode;
@@ -323,7 +321,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   }
 
   void _applyFont(String family) {
-    setState(() => _fontFamily = family);
+    _fontFamilyNotifier.value = family;
   }
 
   /// 폰트에서 언어 정보 추출 (ko, en, ja)
@@ -366,16 +364,16 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     return 'en';
   }
 
-  TextStyle _titleStyle() => (_fontFamily != null
-      ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
+  TextStyle _titleStyle(String? fontFamily) => (fontFamily != null
+      ? GoogleFonts.getFont(fontFamily, color: Colors.white)
       : const TextStyle(color: Colors.white)).copyWith(
     fontSize: _editorFontSize * 1.15, // 제목은 본문보다 15% 크게 (편지 읽기 화면과 동일)
     fontWeight: FontWeight.w700,
     height: 1.8, // 줄간격 더 넓게 (편지 읽기 화면과 동일)
   );
 
-  TextStyle _bodyStyle() => (_fontFamily != null
-      ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
+  TextStyle _bodyStyle(String? fontFamily) => (fontFamily != null
+      ? GoogleFonts.getFont(fontFamily, color: Colors.white)
       : const TextStyle(color: Colors.white)).copyWith(
     fontSize: _editorFontSize,
     height: 1.5, // 본문 줄간격 (편지 읽기 화면과 동일)
@@ -1158,73 +1156,84 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     return ValueListenableBuilder<Locale>(
       valueListenable: AppLocaleController.localeNotifier,
       builder: (context, locale, _) {
-    final titleStyle = _titleStyle();
-    final bodyStyle = _bodyStyle();
+        return ValueListenableBuilder<String?>(
+          valueListenable: _fontFamilyNotifier,
+          builder: (context, fontFamily, _) {
+            final titleStyle = _titleStyle(fontFamily);
+            final bodyStyle = _bodyStyle(fontFamily);
+            
+            // 폰트에 따라 언어 결정 (폰트가 없으면 현재 locale 사용)
+            final languageCode = fontFamily != null 
+                ? _getLanguageFromFont(fontFamily)
+                : locale.languageCode;
+            final fontLocale = Locale(languageCode);
 
-    return Theme(
-      data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 제목 TextField
-          TextField(
-            controller: _titleController,
-            focusNode: _titleFocusNode,
-            maxLines: null,
-            keyboardType: TextInputType.text,
-            textInputAction: TextInputAction.next,
-            cursorColor: Colors.white,
-            cursorWidth: 2.0,
-            cursorHeight: titleStyle.fontSize! * titleStyle.height!,
-            decoration: InputDecoration(
-                  hintText: _getTitlePlaceholder(locale),
-              hintStyle: (_fontFamily != null
-                      ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
-                      : const TextStyle(color: Colors.white))
-                  .copyWith(
-                    color: Colors.white.withOpacity(.5),
-                    fontSize: titleStyle.fontSize,
-                    fontWeight: titleStyle.fontWeight,
-                    height: titleStyle.height,
+            return Theme(
+              data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 제목 TextField
+                  TextField(
+                    controller: _titleController,
+                    focusNode: _titleFocusNode,
+                    maxLines: null,
+                    keyboardType: TextInputType.text,
+                    textInputAction: TextInputAction.next,
+                    cursorColor: Colors.white,
+                    cursorWidth: 2.0,
+                    cursorHeight: titleStyle.fontSize! * titleStyle.height!,
+                    decoration: InputDecoration(
+                      hintText: _getTitlePlaceholder(fontLocale),
+                      hintStyle: (fontFamily != null
+                              ? GoogleFonts.getFont(fontFamily, color: Colors.white)
+                              : const TextStyle(color: Colors.white))
+                          .copyWith(
+                            color: Colors.white.withOpacity(.5),
+                            fontSize: titleStyle.fontSize,
+                            fontWeight: titleStyle.fontWeight,
+                            height: titleStyle.height,
+                          ),
+                    ),
+                    style: titleStyle,
+                    onSubmitted: (_) {
+                      // 제목에서 엔터를 치면 본문으로 포커스 이동
+                      _bodyFocusNode.requestFocus();
+                    },
                   ),
-            ),
-            style: titleStyle,
-            onSubmitted: (_) {
-              // 제목에서 엔터를 치면 본문으로 포커스 이동
-              _bodyFocusNode.requestFocus();
-            },
-          ),
-          // 제목-본문 간격 (편지 읽기 화면과 동일)
-          const SizedBox(height: 24),
-          // 본문 TextField
-          Expanded(
-            child: SingleChildScrollView(
-      child: TextField(
-                controller: _bodyController,
-                focusNode: _bodyFocusNode,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-        cursorColor: Colors.white,
-        cursorWidth: 2.0,
-                cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
-        decoration: InputDecoration(
-                      hintText: _getBodyPlaceholder(locale),
-          hintStyle: (_fontFamily != null
-                  ? GoogleFonts.getFont(_fontFamily!, color: Colors.white)
-                  : const TextStyle(color: Colors.white))
-                      .copyWith(
-                        color: Colors.white.withOpacity(.5),
-                        fontSize: bodyStyle.fontSize,
-                        height: bodyStyle.height,
+                  // 제목-본문 간격 (편지 읽기 화면과 동일)
+                  const SizedBox(height: 24),
+                  // 본문 TextField
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: TextField(
+                        controller: _bodyController,
+                        focusNode: _bodyFocusNode,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        cursorColor: Colors.white,
+                        cursorWidth: 2.0,
+                        cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
+                        decoration: InputDecoration(
+                          hintText: _getBodyPlaceholder(fontLocale),
+                          hintStyle: (fontFamily != null
+                                  ? GoogleFonts.getFont(fontFamily, color: Colors.white)
+                                  : const TextStyle(color: Colors.white))
+                              .copyWith(
+                                color: Colors.white.withOpacity(.5),
+                                fontSize: bodyStyle.fontSize,
+                                height: bodyStyle.height,
+                              ),
+                        ),
+                        style: bodyStyle,
                       ),
-        ),
-                style: bodyStyle,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
-        ],
-      ),
+            );
+          },
         );
       },
     );
@@ -1291,7 +1300,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
       final template = {
         'background': colorToHex(_selectedTemplate.background),
         'textColor': colorToHex(Colors.white),
-        'fontFamily': _fontFamily ?? 'Jua',
+        'fontFamily': _fontFamilyNotifier.value ?? 'Jua',
         'fontSize': _editorFontSize,
       };
       
@@ -1300,7 +1309,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           : content;
       
       // 폰트에서 언어 정보 추출
-      final language = _getLanguageFromFont(_fontFamily);
+      final language = _getLanguageFromFont(_fontFamilyNotifier.value);
       
       bool success;
       
@@ -1380,6 +1389,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     _titleFocusNode.dispose();
     _bodyFocusNode.dispose();
     _isSendingNotifier.dispose();
+    _fontFamilyNotifier.dispose();
     super.dispose();
   }
 }
