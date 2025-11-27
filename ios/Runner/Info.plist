@@ -41,5 +41,14 @@
 	<!-- Firebase 및 FCM 설정 -->
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<!-- Privacy - Camera Usage Description -->
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to take photos for your profile picture and letters.</string>
+	<!-- Privacy - Photo Library Usage Description -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select photos for your profile picture and letters.</string>
+	<!-- Privacy - Photo Library Add Usage Description -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to save photos to your photo library.</string>
 </dict>
 </plist>
