@@ -971,6 +971,39 @@ class AppStrings {
     }
   }
 
+  static String invalidCredentials(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Email or password is incorrect.';
+      case 'ja':
+        return 'メールアドレスまたはパスワードが正しくありません。';
+      default:
+        return '이메일 또는 비밀번호가 올바르지 않습니다.';
+    }
+  }
+
+  static String networkTimeout(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Connection timeout. Please check your network and try again.';
+      case 'ja':
+        return '接続がタイムアウトしました。ネットワークを確認してもう一度お試しください。';
+      default:
+        return '연결 시간이 초과되었습니다. 네트워크를 확인하고 다시 시도해주세요.';
+    }
+  }
+
+  static String networkConnectionError(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Network connection error. Please check your internet connection.';
+      case 'ja':
+        return 'ネットワーク接続エラー。インターネット接続を確認してください。';
+      default:
+        return '네트워크 연결 오류가 발생했습니다. 인터넷 연결을 확인해주세요.';
+    }
+  }
+
   static String errorOccurred(Locale locale, String error) {
     switch (locale.languageCode) {
       case 'en':

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/repository/data_repository.dart';
@@ -14,6 +16,7 @@ import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/presentation/widgets/nav_header.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:dio/dio.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, required this.onSuccess});
@@ -77,16 +80,36 @@ class _SignupScreenState extends State<SignupScreen> {
           _profileImage = File(pickedFile.path);
         });
       }
-    } catch (e) {
+    } on PlatformException catch (e) {
       if (mounted) {
         final locale = AppLocaleController.localeNotifier.value;
-        // iPad에서 카메라가 없을 때 발생하는 에러 처리
-        final errorMessage = e.toString().toLowerCase();
+        // iOS에서 카메라 권한이 없거나 카메라가 없을 때 발생하는 에러 처리
+        final errorMessage = e.message?.toLowerCase() ?? e.code.toLowerCase();
         if (errorMessage.contains('camera') || 
             errorMessage.contains('not available') ||
             errorMessage.contains('no camera') ||
             errorMessage.contains('source type 1') ||
-            errorMessage.contains('source type unavailable')) {
+            errorMessage.contains('source type unavailable') ||
+            errorMessage.contains('permission') ||
+            errorMessage.contains('privacy')) {
+          showTabaError(
+            context, 
+            message: AppStrings.cameraNotAvailable(locale),
+          );
+        } else {
+          showTabaError(
+            context, 
+            message: '${AppStrings.photoError(locale)}: ${e.message ?? e.code}',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final locale = AppLocaleController.localeNotifier.value;
+        final errorMessage = e.toString().toLowerCase();
+        if (errorMessage.contains('camera') || 
+            errorMessage.contains('not available') ||
+            errorMessage.contains('no camera')) {
           showTabaError(
             context, 
             message: AppStrings.cameraNotAvailable(locale),
@@ -192,6 +215,34 @@ class _SignupScreenState extends State<SignupScreen> {
         } else {
           showTabaError(context, message: AppStrings.signupFailed(locale));
         }
+      }
+    } on DioException catch (e) {
+      if (mounted) {
+        String errorMessage = AppStrings.signupFailed(locale);
+        
+        if (e.response?.statusCode == 400 || e.response?.statusCode == 409) {
+          // 400 Bad Request 또는 409 Conflict (이미 존재하는 이메일 등)
+          if (e.response?.data != null) {
+            try {
+              final errorData = e.response!.data as Map<String, dynamic>;
+              final error = errorData['error'] as Map<String, dynamic>?;
+              final apiMessage = error?['message'] as String? ?? 
+                                errorData['message'] as String?;
+              if (apiMessage != null && apiMessage.isNotEmpty) {
+                errorMessage = apiMessage;
+              }
+            } catch (_) {
+              // JSON 파싱 실패 시 기본 메시지 사용
+            }
+          }
+        } else if (e.type == DioExceptionType.connectionTimeout || 
+                   e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = AppStrings.networkTimeout(locale);
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = AppStrings.networkConnectionError(locale);
+        }
+        
+        showTabaError(context, message: errorMessage);
       }
     } catch (e) {
       if (mounted) {

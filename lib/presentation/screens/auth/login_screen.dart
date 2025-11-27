@@ -12,6 +12,7 @@ import 'package:taba_app/presentation/widgets/taba_card.dart';
 import 'package:taba_app/presentation/widgets/app_logo.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
+import 'package:dio/dio.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.onSuccess});
@@ -56,12 +57,56 @@ class _LoginScreenState extends State<LoginScreen> {
         if (success) {
           widget.onSuccess();
         } else {
+          // DataRepository에서 반환된 에러 메시지 사용
           showTabaError(context, message: AppStrings.loginFailed(locale));
         }
       }
+    } on DioException catch (e) {
+      if (mounted) {
+        String errorMessage = AppStrings.loginFailed(locale);
+        
+        if (e.response?.statusCode == 401) {
+          // 401 Unauthorized - 잘못된 자격증명
+          if (e.response?.data != null) {
+            try {
+              final errorData = e.response!.data as Map<String, dynamic>;
+              final error = errorData['error'] as Map<String, dynamic>?;
+              final apiMessage = error?['message'] as String? ?? 
+                                errorData['message'] as String?;
+              if (apiMessage != null && apiMessage.isNotEmpty) {
+                errorMessage = apiMessage;
+              } else {
+                errorMessage = AppStrings.invalidCredentials(locale);
+              }
+            } catch (_) {
+              errorMessage = AppStrings.invalidCredentials(locale);
+            }
+          } else {
+            errorMessage = AppStrings.invalidCredentials(locale);
+          }
+        } else if (e.type == DioExceptionType.connectionTimeout || 
+                   e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = AppStrings.networkTimeout(locale);
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = AppStrings.networkConnectionError(locale);
+        } else if (e.response?.data != null) {
+          try {
+            final errorData = e.response!.data as Map<String, dynamic>;
+            final error = errorData['error'] as Map<String, dynamic>?;
+            final apiMessage = error?['message'] as String? ?? 
+                              errorData['message'] as String?;
+            if (apiMessage != null && apiMessage.isNotEmpty) {
+              errorMessage = apiMessage;
+            }
+          } catch (_) {
+            // JSON 파싱 실패 시 기본 메시지 사용
+          }
+        }
+        
+        showTabaError(context, message: errorMessage);
+      }
     } catch (e) {
       if (mounted) {
-        // 예외 발생 시 에러 메시지 표시 (iPad에서 발생할 수 있는 네트워크 에러 등 처리)
         final errorMessage = e.toString().toLowerCase();
         String displayMessage;
         
@@ -69,11 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             errorMessage.contains('network') ||
             errorMessage.contains('timeout') ||
             errorMessage.contains('connection')) {
-          displayMessage = '${AppStrings.loginFailed(locale)}\n네트워크 연결을 확인해주세요.';
-        } else if (errorMessage.contains('401') || 
-                   errorMessage.contains('unauthorized') ||
-                   errorMessage.contains('invalid_credentials')) {
-          displayMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+          displayMessage = AppStrings.networkConnectionError(locale);
         } else {
           displayMessage = '${AppStrings.loginFailed(locale)}: ${e.toString()}';
         }
