@@ -1573,7 +1573,6 @@ class _FontPickerSheetState extends State<_FontPickerSheet> {
                     ),
                     onTap: () {
                       widget.onFontSelected(font);
-                      Navigator.of(context).pop();
                     },
                   );
                 },
