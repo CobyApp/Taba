@@ -198,7 +198,8 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final success = await DataRepository.instance.signup(
+      // 에러 메시지도 함께 받기 위해 signupWithError 사용
+      final result = await DataRepository.instance.signupWithError(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
         nickname: _nicknameCtrl.text.trim(),
@@ -208,12 +209,14 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (mounted) {
-        if (success) {
+        if (result.success) {
           // 회원가입 성공 시 화면을 닫고 콜백 호출
           Navigator.of(context).pop();
           widget.onSuccess();
         } else {
-          showTabaError(context, message: AppStrings.signupFailed(locale));
+          // API에서 반환한 구체적인 에러 메시지 표시
+          final errorMessage = result.errorMessage ?? AppStrings.signupFailed(locale);
+          showTabaError(context, message: errorMessage);
         }
       }
     } on DioException catch (e) {

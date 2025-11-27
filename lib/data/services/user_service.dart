@@ -89,9 +89,17 @@ class UserService {
         );
       }
 
+      // API 명세서: {success: true, data: {id, email, nickname, profileImageUrl, createdAt}}
       return ApiResponse<UserDto>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => UserDto.fromJson(data as Map<String, dynamic>),
+        (data) {
+          // API 명세서에 따르면 data 안에 유저 정보가 있음
+          if (data is Map<String, dynamic> && data.containsKey('id')) {
+            return UserDto.fromJson(data as Map<String, dynamic>);
+          }
+          // 하위 호환성: data가 직접 유저 객체인 경우
+          return UserDto.fromJson(data as Map<String, dynamic>);
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '사용자 정보를 불러오는데 실패했습니다.';
@@ -176,9 +184,17 @@ class UserService {
         );
       }
 
+      // API 명세서: {success: true, data: {id, email, nickname, profileImageUrl}, message: "프로필이 수정되었습니다."}
       return ApiResponse<UserDto>.fromJson(
         response.data as Map<String, dynamic>,
-        (data) => UserDto.fromJson(data as Map<String, dynamic>),
+        (data) {
+          // API 명세서에 따르면 data 안에 유저 정보가 있음
+          if (data is Map<String, dynamic> && data.containsKey('id')) {
+            return UserDto.fromJson(data as Map<String, dynamic>);
+          }
+          // 하위 호환성: data가 직접 유저 객체인 경우
+          return UserDto.fromJson(data as Map<String, dynamic>);
+        },
       );
     } on DioException catch (e) {
       String errorMessage = '사용자 정보를 수정하는데 실패했습니다.';
@@ -222,27 +238,25 @@ class UserService {
 
   /// 회원탈퇴
   /// DELETE /users/{userId}
+  /// API 명세서: {success: true, data: null, message: "회원탈퇴가 완료되었습니다."}
   Future<ApiResponse<void>> deleteUser(String userId) async {
     try {
       final response = await _apiClient.dio.delete('/users/$userId');
 
-      // API 명세서에 따르면 success: true, data: null, message: "회원탈퇴가 완료되었습니다."
-      if (response.data is Map<String, dynamic>) {
-        final data = response.data as Map<String, dynamic>;
-        if (data['success'] == true) {
-          return ApiResponse<void>(
-            success: true,
-            data: null,
-          );
-        }
+      if (response.data is! Map<String, dynamic>) {
+        return ApiResponse<void>(
+          success: false,
+          error: ApiError(
+            code: 'DELETE_USER_ERROR',
+            message: 'Invalid response format',
+          ),
+        );
       }
 
-      return ApiResponse<void>(
-        success: false,
-        error: ApiError(
-          code: 'DELETE_USER_ERROR',
-          message: '회원탈퇴에 실패했습니다.',
-        ),
+      // API 명세서에 따르면 success: true, data: null, message: "회원탈퇴가 완료되었습니다."
+      return ApiResponse<void>.fromJson(
+        response.data as Map<String, dynamic>,
+        null,
       );
     } on DioException catch (e) {
       String errorMessage = '회원탈퇴에 실패했습니다.';

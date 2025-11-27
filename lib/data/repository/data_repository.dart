@@ -67,6 +67,33 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  /// 회원가입 (에러 메시지 포함)
+  /// 성공 여부와 함께 에러 메시지도 반환
+  Future<({bool success, String? errorMessage})> signupWithError({
+    required String email,
+    required String password,
+    required String nickname,
+    required bool agreeTerms,
+    required bool agreePrivacy,
+    File? profileImage,
+  }) async {
+    final response = await _authService.signup(
+      email: email,
+      password: password,
+      nickname: nickname,
+      agreeTerms: agreeTerms,
+      agreePrivacy: agreePrivacy,
+      profileImage: profileImage,
+    );
+    if (response.isSuccess && response.data != null) {
+      // 회원가입 성공 시 FCM 토큰 등록
+      final userId = response.data!.user.id;
+      await _fcmService.registerTokenToServer(userId);
+      return (success: true, errorMessage: null);
+    }
+    return (success: false, errorMessage: response.error?.message ?? response.message);
+  }
+
   Future<bool> forgotPassword(String email) async {
     final response = await _authService.forgotPassword(email);
     return response.isSuccess;
