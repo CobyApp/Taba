@@ -1,5 +1,11 @@
 name: Release Build & Deploy
 
+# 프로덕션 빌드 워크플로우
+# - release 브랜치에 push 시 자동 실행
+# - 프로덕션 서버 (https://www.taba.asia/api/v1) 연결
+# - Android: AAB 빌드 → Google Play Production 업로드
+# - iOS: IPA 빌드 → App Store Connect 업로드
+
 on:
   push:
     branches:
@@ -120,6 +126,14 @@ jobs:
           # Go back to project root for flutter build
           cd ../..
           
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🚀 프로덕션 빌드 시작 (프로덕션 서버)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📱 환경: Production"
+          echo "🌐 서버: https://www.taba.asia/api/v1"
+          echo "📦 빌드 타입: Release AAB (프로덕션 서버 연결)"
+          echo "🔐 서명: Release Keystore"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "Building AAB with release signing..."
           echo "KEYSTORE_PATH: $KEYSTORE_PATH"
           echo "KEY_ALIAS: $KEY_ALIAS"
@@ -127,6 +141,9 @@ jobs:
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=prod
+          
+          echo ""
+          echo "✅ 프로덕션 빌드 완료 (프로덕션 서버: https://www.taba.asia/api/v1)"
           
           # Verify AAB was created
           AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
@@ -450,12 +467,23 @@ jobs:
           fi
 
           # Build IPA
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🚀 프로덕션 빌드 시작 (프로덕션 서버)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📱 환경: Production"
+          echo "🌐 서버: https://www.taba.asia/api/v1"
+          echo "📦 빌드 타입: Release IPA (프로덕션 서버 연결)"
+          echo "🔐 서명: App Store Distribution"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "=== Building IPA ==="
           flutter build ipa --release \
             --build-name=${{ github.ref_name }} \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=prod \
             --export-options-plist=ios/ExportOptions-prod.plist
+          
+          echo ""
+          echo "✅ 프로덕션 빌드 완료 (프로덕션 서버: https://www.taba.asia/api/v1)"
 
           # Verify IPA was created
           if [ ! -d build/ios/ipa ] || [ -z "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then

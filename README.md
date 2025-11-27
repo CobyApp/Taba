@@ -133,15 +133,58 @@ lib/
 
 ### 빌드
 
-**Android**
+#### ⚠️ 중요: 환경 분리
+
+- **Release 빌드**: 프로덕션 서버 (`https://www.taba.asia/api/v1`) 사용
+- **개발 빌드**: 개발 서버 (`https://dev.taba.asia/api/v1`) 사용
+
+#### 빠른 빌드 스크립트 (권장)
+
+**프로덕션 빌드 (Release)**
 ```bash
-flutter build apk --release
+# Android + iOS 모두 빌드
+./scripts/build_release.sh
+
+# Android만 빌드
+./scripts/build_release.sh android
+
+# iOS만 빌드
+./scripts/build_release.sh ios
 ```
 
-**iOS**
+**개발 빌드**
 ```bash
-flutter build ios --release
+# Android + iOS 모두 빌드
+./scripts/build_dev.sh
+
+# Android만 빌드
+./scripts/build_dev.sh android
+
+# iOS만 빌드
+./scripts/build_dev.sh ios
 ```
+
+#### 수동 빌드
+
+**프로덕션 빌드 (Release)**
+```bash
+# Android
+flutter build appbundle --release --dart-define=API_ENV=prod
+
+# iOS
+flutter build ipa --release --dart-define=API_ENV=prod --export-options-plist=ios/ExportOptions-prod.plist
+```
+
+**개발 빌드**
+```bash
+# Android
+flutter build apk --release --dart-define=API_ENV=dev
+
+# iOS
+flutter build ipa --release --dart-define=API_ENV=dev --export-options-plist=ios/ExportOptions-dev.plist
+```
+
+자세한 내용은 [빌드 환경 설정 가이드](./docs/BUILD_ENVIRONMENTS.md)를 참고하세요.
 
 ## 🔄 CI/CD
 

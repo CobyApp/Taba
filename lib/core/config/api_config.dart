@@ -7,7 +7,8 @@ enum ApiEnvironment {
 }
 
 class ApiConfig {
-  // 환경 설정 (기본값: Debug 모드면 개발, Release 모드면 프로덕션)
+  // 환경 설정
+  // 우선순위: 1) --dart-define=API_ENV, 2) 빌드 모드 (Release = 프로덕션, Debug/Profile = 개발)
   static ApiEnvironment get environment {
     // --dart-define로 환경을 명시적으로 지정한 경우 우선 사용
     const String envFromDefine = String.fromEnvironment('API_ENV', defaultValue: '');
@@ -25,8 +26,15 @@ class ApiConfig {
     }
     
     // 명시적 지정이 없으면 빌드 모드로 판단
-    // Debug 모드 = 개발 환경, Release 모드 = 프로덕션 환경
-    return kDebugMode ? ApiEnvironment.development : ApiEnvironment.production;
+    // Release 모드 = 프로덕션 환경 (항상)
+    // Debug/Profile 모드 = 개발 환경
+    if (kReleaseMode) {
+      // Release 빌드는 항상 프로덕션 서버 사용
+      return ApiEnvironment.production;
+    } else {
+      // Debug 또는 Profile 빌드는 개발 서버 사용
+      return ApiEnvironment.development;
+    }
   }
 
   // Base URL 설정

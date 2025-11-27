@@ -1,5 +1,11 @@
 name: Develop Build & Deploy
 
+# 개발 빌드 워크플로우
+# - develop 브랜치에 push 시 자동 실행
+# - 개발 서버 (https://dev.taba.asia/api/v1) 연결
+# - Android: APK 빌드 → Artifact 저장
+# - iOS: IPA 빌드 → TestFlight 업로드
+
 on:
   push:
     branches:
@@ -56,10 +62,21 @@ jobs:
 
       - name: Build Android APK (Dev)
         run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔧 개발 빌드 시작 (개발 서버)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📱 환경: Development"
+          echo "🌐 서버: https://dev.taba.asia/api/v1"
+          echo "📦 빌드 타입: Release APK (개발 서버 연결)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
           flutter build apk --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev
+          
+          echo ""
+          echo "✅ 개발 빌드 완료 (개발 서버: https://dev.taba.asia/api/v1)"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -229,7 +246,7 @@ jobs:
             DIST_CERT=$(security find-identity -v -p codesigning ~/Library/Keychains/login.keychain-db | grep "Distribution" | head -1 || echo "")
           fi
           if [ -z "$DIST_CERT" ]; then
-            DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
+          DIST_CERT=$(security find-identity -v -p codesigning | grep "Distribution" | head -1 || echo "")
           fi
           if [ -z "$DIST_CERT" ]; then
             echo "❌ No Distribution certificate found"
@@ -263,12 +280,22 @@ jobs:
           fi
 
           # Build IPA
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔧 개발 빌드 시작 (개발 서버)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📱 환경: Development"
+          echo "🌐 서버: https://dev.taba.asia/api/v1"
+          echo "📦 빌드 타입: Release IPA (개발 서버 연결)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "=== Building IPA ==="
           flutter build ipa --release \
             --build-name=1.0.0-dev \
             --build-number=${{ github.run_number }} \
             --dart-define=API_ENV=dev \
             --export-options-plist=ios/ExportOptions-dev.plist
+          
+          echo ""
+          echo "✅ 개발 빌드 완료 (개발 서버: https://dev.taba.asia/api/v1)"
 
           # Verify IPA was created
           if [ ! -d build/ios/ipa ] || [ -z "$(find build/ios/ipa -name '*.ipa' 2>/dev/null)" ]; then
