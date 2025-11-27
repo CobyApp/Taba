@@ -44,6 +44,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   String? _translatedTitle;
   String? _translatedContent;
   bool _letterWasRead = false;
+  bool _letterDeleted = false; // 편지가 삭제되었는지 여부
 
   @override
   void initState() {
@@ -60,22 +61,48 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   Future<void> _loadLetterFromServer() async {
     try {
       // 서버에서 편지 상세 정보를 조회 (읽음 처리 자동 수행)
-      final letter = await _repository.getLetter(widget.letter.id);
+      // 에러 정보도 함께 확인하여 삭제된 편지인지 판단
+      final result = await _repository.getLetterWithError(widget.letter.id);
       
-      if (mounted && letter != null) {
+      if (mounted) {
+        if (result.isNotFound || result.letter == null) {
+          // 편지를 찾을 수 없는 경우 (삭제된 편지)
+          setState(() {
+            _letterDeleted = true;
+            _letterWasRead = true;
+          });
+          
+          // 삭제된 편지 메시지 표시 후 이전 화면으로 돌아가기
+          final locale = AppLocaleController.localeNotifier.value;
+          if (mounted) {
+            showTabaError(
+              context,
+              message: AppStrings.letterNotFound(locale),
+            );
+            // 잠시 후 이전 화면으로 돌아가기
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
+            });
+          }
+          return;
+        }
+        
         // 편지를 읽었음을 표시
         _letterWasRead = true;
         
         // 공개 편지인 경우 로컬 스토리지에도 읽은 목록에 추가 (UI 표시용)
-        if (letter.visibility == VisibilityScope.public) {
-          await ReadLetterStorage.markAsRead(letter.id);
+        if (result.letter!.visibility == VisibilityScope.public) {
+          await ReadLetterStorage.markAsRead(result.letter!.id);
         }
       }
     } catch (e) {
-      // 에러가 발생해도 편지 상세 화면은 표시됨 (기존 편지 정보 사용)
+      // 예상치 못한 에러인 경우 기존 편지 정보 사용
       print('편지 상세 조회 실패 (읽음 처리): $e');
-      // 편지를 열었다는 것은 표시 (에러가 발생해도 읽음 처리 시도는 했음)
-      _letterWasRead = true;
+      if (mounted) {
+        _letterWasRead = true;
+      }
     }
   }
 
@@ -113,6 +140,16 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 삭제된 편지인 경우 빈 화면 표시 (이미 에러 메시지 표시 및 pop 처리됨)
+    if (_letterDeleted) {
+      return Scaffold(
+        backgroundColor: AppColors.midnight,
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
     final style = widget.letter.template;
     // 템플릿이 있으면 템플릿 색상 사용, 없으면 기본값
     final Color panelBackground = style?.background ?? AppColors.midnight;

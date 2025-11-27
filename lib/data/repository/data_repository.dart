@@ -127,7 +127,26 @@ class DataRepository {
     if (response.isSuccess && response.data != null) {
       return response.data!.toModel();
     }
+    // 404 에러인 경우 null 반환 (삭제된 편지)
+    // 에러 정보는 response.error에 있음
     return null;
+  }
+
+  /// 편지 조회 시 에러 정보를 포함하여 반환
+  /// 삭제된 편지인지 확인하기 위해 사용
+  Future<({Letter? letter, bool isNotFound})> getLetterWithError(String letterId) async {
+    final response = await _letterService.getLetter(letterId);
+    if (response.isSuccess && response.data != null) {
+      return (letter: response.data!.toModel(), isNotFound: false);
+    }
+    // 404 에러인지 확인
+    // API 명세서: 404 Not Found - LETTER_NOT_FOUND
+    final errorMessage = response.error?.message.toLowerCase() ?? '';
+    final isNotFound = response.error?.code == 'GET_LETTER_ERROR' && 
+                       (errorMessage.contains('찾을 수 없') ||
+                        errorMessage.contains('not found') ||
+                        errorMessage.contains('404'));
+    return (letter: null, isNotFound: isNotFound);
   }
 
   Future<bool> createLetter({

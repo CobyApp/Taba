@@ -2260,6 +2260,17 @@ class AppStrings {
     }
   }
 
+  static String letterNotFound(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'This letter has been deleted.';
+      case 'ja':
+        return 'この手紙は削除されました。';
+      default:
+        return '이 편지는 삭제되었습니다.';
+    }
+  }
+
   static String friendDeleted(Locale locale) {
     switch (locale.languageCode) {
       case 'en':
