@@ -311,7 +311,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
       ),
     );
     
-    // 답장 성공 시 목록 새로고침
+    // 편지를 읽었거나 답장 성공 시 목록 새로고침
     if (result == true && mounted) {
       _loadFriendLetters(_selectedBouquet.friend.user.id, reset: true);
     }

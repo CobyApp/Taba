@@ -42,11 +42,15 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   bool _showTranslated = false;
   String? _translatedTitle;
   String? _translatedContent;
+  bool _letterWasRead = false;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    // 편지를 열었을 때 서버에 읽음 처리 (getLetter 호출 시 자동 처리될 수 있음)
+    // 하지만 확실하게 하기 위해 편지를 열었다는 것을 표시
+    _letterWasRead = true;
   }
 
   Future<void> _loadCurrentUser() async {
@@ -158,7 +162,7 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                       Row(
                         children: [
                           _LetterDetailBackButton(
-                            onPressed: () => Navigator.of(context).pop(),
+                            onPressed: () => Navigator.of(context).pop(_letterWasRead),
                           ),
                           const Spacer(),
                           // 내가 보낸 편지가 아닐 때만 신고 버튼 표시

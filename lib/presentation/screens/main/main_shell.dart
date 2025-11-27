@@ -153,7 +153,7 @@ class _MainShellState extends State<MainShell> {
           if (relatedId != null) {
             final letter = await _repository.getLetter(relatedId);
             if (mounted && letter != null) {
-              Navigator.of(context).push(
+              final result = await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => LetterDetailScreen(
                     letter: letter,
@@ -161,8 +161,10 @@ class _MainShellState extends State<MainShell> {
                   ),
                 ),
               );
-              // 데이터 새로고침
-              _loadData();
+              // 편지를 읽었으면 데이터 새로고침하여 뱃지 카운트 업데이트
+              if (result == true && mounted) {
+                _loadData();
+              }
             }
           }
           break;
@@ -423,10 +425,10 @@ class _MainShellState extends State<MainShell> {
         ),
       );
       
-      // 친구 삭제 등으로 인해 목록이 변경된 경우 새로고침
-      if (result == true && mounted) {
-        // 친구 목록이 변경되었으므로 다시 로드할 필요는 없음
-        // (BouquetScreen에서 이미 삭제되었고, 다음에 열 때 자동으로 새 목록이 로드됨)
+      // BouquetScreen이 닫힐 때마다 데이터 새로고침하여 뱃지 카운트 업데이트
+      // (편지를 읽었을 때 서버의 unreadLetterCount가 변경되었을 수 있음)
+      if (mounted) {
+        _loadData();
       }
     } catch (e) {
       if (!mounted) return;
