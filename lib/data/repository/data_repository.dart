@@ -397,6 +397,16 @@ class DataRepository {
     return response.isSuccess;
   }
 
+  /// 읽지 않은 알림 개수 조회
+  /// API 명세서: GET /notifications/unread-count
+  Future<int> getUnreadNotificationCount() async {
+    final response = await _notificationService.getUnreadCount();
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    return 0;
+  }
+
   // Friends
   Future<List<FriendProfile>> getFriends() async {
     final response = await _friendService.getFriends();

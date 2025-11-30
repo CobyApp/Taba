@@ -209,5 +209,63 @@ class NotificationService {
       );
     }
   }
+
+  /// 읽지 않은 알림 개수 조회
+  /// API 명세서: GET /notifications/unread-count
+  Future<ApiResponse<int>> getUnreadCount() async {
+    try {
+      final response = await _apiClient.dio.get('/notifications/unread-count');
+
+      if (response.data is! Map<String, dynamic>) {
+        return ApiResponse<int>(
+          success: false,
+          error: ApiError(
+            code: 'GET_UNREAD_COUNT_ERROR',
+            message: 'Invalid response format',
+          ),
+        );
+      }
+
+      return ApiResponse<int>.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) {
+          // API 명세서: {success: true, data: {unreadCount: 5}}
+          if (data is Map<String, dynamic>) {
+            return (data['unreadCount'] as int?) ?? 0;
+          }
+          return 0;
+        },
+      );
+    } on DioException catch (e) {
+      String errorMessage = '읽지 않은 알림 개수를 불러오는데 실패했습니다.';
+      if (e.response?.statusCode == 401) {
+        errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<int>(
+        success: false,
+        error: ApiError(
+          code: 'GET_UNREAD_COUNT_ERROR',
+          message: errorMessage,
+        ),
+      );
+    } catch (e) {
+      return ApiResponse<int>(
+        success: false,
+        error: ApiError(
+          code: 'GET_UNREAD_COUNT_ERROR',
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
+        ),
+      );
+    }
+  }
 }
 
