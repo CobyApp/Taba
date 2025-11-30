@@ -15,6 +15,7 @@ class LetterDto {
   final LetterTemplateDto? template;
   final List<String>? attachedImages;
   final Map<String, double>? position; // 하늘 화면용 좌표
+  final bool? isRead; // API에서 받아온 읽음 상태 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
 
   LetterDto({
     required this.id,
@@ -29,6 +30,7 @@ class LetterDto {
     this.template,
     this.attachedImages,
     this.position,
+    this.isRead,
   });
 
   factory LetterDto.fromJson(Map<String, dynamic> json) {
@@ -77,6 +79,11 @@ class LetterDto {
               ),
             )
           : null,
+      // API 명세서: isRead 필드는 편지 조회 시 읽음 상태를 나타냅니다
+      // - true: 읽음
+      // - false: 읽지 않음
+      // - null: 작성자인 경우 또는 비로그인 사용자
+      isRead: json['isRead'] as bool?,
     );
   }
 
@@ -108,6 +115,7 @@ class LetterDto {
       tags: tags ?? [],
       template: template?.toModel(),
       attachedImages: attachedImages ?? [],
+      isRead: isRead,
     );
   }
 

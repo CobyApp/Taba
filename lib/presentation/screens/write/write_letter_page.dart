@@ -250,7 +250,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
     if (previousDefaultFont != null && _fontFamilyNotifier.value == previousDefaultFont) {
       final newDefaultFont = _getDefaultFontForLocale(newLocaleCode);
       _fontFamilyNotifier.value = newDefaultFont;
-      _previousLocaleCode = newLocaleCode;
+        _previousLocaleCode = newLocaleCode;
     } else {
       // 사용자가 수동으로 폰트를 변경한 경우 locale만 업데이트
       _previousLocaleCode = newLocaleCode;
@@ -1168,70 +1168,70 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                 : locale.languageCode;
             final fontLocale = Locale(languageCode);
 
-            return Theme(
-              data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 제목 TextField
-                  TextField(
-                    controller: _titleController,
-                    focusNode: _titleFocusNode,
-                    maxLines: null,
-                    keyboardType: TextInputType.text,
-                    textInputAction: TextInputAction.next,
-                    cursorColor: Colors.white,
-                    cursorWidth: 2.0,
-                    cursorHeight: titleStyle.fontSize! * titleStyle.height!,
-                    decoration: InputDecoration(
+    return Theme(
+      data: Theme.of(context).copyWith(inputDecorationTheme: localInputTheme),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제목 TextField
+          TextField(
+            controller: _titleController,
+            focusNode: _titleFocusNode,
+            maxLines: null,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.next,
+            cursorColor: Colors.white,
+            cursorWidth: 2.0,
+            cursorHeight: titleStyle.fontSize! * titleStyle.height!,
+            decoration: InputDecoration(
                       hintText: _getTitlePlaceholder(fontLocale),
                       hintStyle: (fontFamily != null
                               ? GoogleFonts.getFont(fontFamily, color: Colors.white)
-                              : const TextStyle(color: Colors.white))
-                          .copyWith(
-                            color: Colors.white.withOpacity(.5),
-                            fontSize: titleStyle.fontSize,
-                            fontWeight: titleStyle.fontWeight,
-                            height: titleStyle.height,
-                          ),
-                    ),
-                    style: titleStyle,
-                    onSubmitted: (_) {
-                      // 제목에서 엔터를 치면 본문으로 포커스 이동
-                      _bodyFocusNode.requestFocus();
-                    },
+                      : const TextStyle(color: Colors.white))
+                  .copyWith(
+                    color: Colors.white.withOpacity(.5),
+                    fontSize: titleStyle.fontSize,
+                    fontWeight: titleStyle.fontWeight,
+                    height: titleStyle.height,
                   ),
-                  // 제목-본문 간격 (편지 읽기 화면과 동일)
-                  const SizedBox(height: 24),
-                  // 본문 TextField
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: TextField(
-                        controller: _bodyController,
-                        focusNode: _bodyFocusNode,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        cursorColor: Colors.white,
-                        cursorWidth: 2.0,
-                        cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
-                        decoration: InputDecoration(
+            ),
+            style: titleStyle,
+            onSubmitted: (_) {
+              // 제목에서 엔터를 치면 본문으로 포커스 이동
+              _bodyFocusNode.requestFocus();
+            },
+          ),
+          // 제목-본문 간격 (편지 읽기 화면과 동일)
+          const SizedBox(height: 24),
+          // 본문 TextField
+          Expanded(
+            child: SingleChildScrollView(
+      child: TextField(
+                controller: _bodyController,
+                focusNode: _bodyFocusNode,
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+        cursorColor: Colors.white,
+        cursorWidth: 2.0,
+                cursorHeight: bodyStyle.fontSize! * bodyStyle.height!,
+        decoration: InputDecoration(
                           hintText: _getBodyPlaceholder(fontLocale),
                           hintStyle: (fontFamily != null
                                   ? GoogleFonts.getFont(fontFamily, color: Colors.white)
-                                  : const TextStyle(color: Colors.white))
-                              .copyWith(
-                                color: Colors.white.withOpacity(.5),
-                                fontSize: bodyStyle.fontSize,
-                                height: bodyStyle.height,
-                              ),
-                        ),
-                        style: bodyStyle,
+                  : const TextStyle(color: Colors.white))
+                      .copyWith(
+                        color: Colors.white.withOpacity(.5),
+                        fontSize: bodyStyle.fontSize,
+                        height: bodyStyle.height,
                       ),
-                    ),
-                  ),
-                ],
+        ),
+                style: bodyStyle,
               ),
+            ),
+          ),
+        ],
+      ),
             );
           },
         );

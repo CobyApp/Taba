@@ -14,7 +14,6 @@ import 'package:taba_app/presentation/widgets/nav_header.dart';
 import 'package:taba_app/presentation/widgets/app_logo.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
-import 'package:taba_app/core/storage/read_letter_storage.dart';
 
 class SkyScreen extends StatefulWidget {
   const SkyScreen({
@@ -54,7 +53,6 @@ class _SkyScreenState extends State<SkyScreen> {
   int _currentPage = 0;
   bool _isLoadingMore = false;
   bool _hasMorePages = true;
-  Set<String> _readLetterIds = {};
 
   @override
   void initState() {
@@ -65,16 +63,6 @@ class _SkyScreenState extends State<SkyScreen> {
     _pageLetters[0] = widget.letters.take(10).toList();
     // 초기 데이터가 있으면 다음 페이지가 있다고 가정
     _hasMorePages = widget.letters.length >= 10;
-    _loadReadLetterIds();
-  }
-
-  Future<void> _loadReadLetterIds() async {
-    final readIds = await ReadLetterStorage.getReadLetterIds();
-    if (mounted) {
-      setState(() {
-        _readLetterIds = readIds;
-      });
-    }
   }
 
   @override
@@ -89,8 +77,6 @@ class _SkyScreenState extends State<SkyScreen> {
       _pageLetters[0] = widget.letters.take(10).toList();
       _hasMorePages = widget.letters.length >= 10;
       _currentPage = 0;
-      // 읽은 편지 ID 목록 다시 로드
-      _loadReadLetterIds();
     }
   }
 
@@ -323,7 +309,6 @@ class _SkyScreenState extends State<SkyScreen> {
                         
                         return _SkyCanvas(
                           letters: pageLetters,
-                          readLetterIds: _readLetterIds,
                           onTap: (letter) => _openSeedBloom(context, letter),
                         );
                       },
@@ -379,12 +364,11 @@ class _SkyScreenState extends State<SkyScreen> {
       ),
     );
     // 편지를 읽었거나 삭제되었으면 데이터 새로고침
+    // API 명세서: GET /letters/{letterId} 호출 시 자동으로 읽음 처리되므로,
+    // 데이터를 새로고침하면 최신 isRead 상태가 반영됩니다
     if (result == true && widget.onRefresh != null) {
       widget.onRefresh!();
     }
-    // 편지 상세 화면에서 돌아올 때 항상 읽음 상태를 다시 로드하여 UI 즉시 반영
-    // (편지를 읽었을 때 ReadLetterStorage에 저장되므로 항상 다시 로드)
-    _loadReadLetterIds();
   }
 }
 
@@ -392,12 +376,10 @@ class _SkyScreenState extends State<SkyScreen> {
 class _SkyCanvas extends StatefulWidget {
   const _SkyCanvas({
     required this.letters,
-    required this.readLetterIds,
     required this.onTap,
   });
 
   final List<Letter> letters;
-  final Set<String> readLetterIds;
   final ValueChanged<Letter> onTap;
 
   @override
@@ -465,9 +447,11 @@ class _SkyCanvasState extends State<_SkyCanvas> {
               ),
             )).toList(),
             // 고정된 씨앗들 (겹치지 않게 배치)
+            // API 명세서: isRead 필드 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
             ...widget.letters.map((letter) {
               final position = _positionCache![letter.id] ?? Offset(0, 0);
-              final isRead = widget.readLetterIds.contains(letter.id);
+              // isRead가 true인 경우에만 꽃으로 표시, false나 null인 경우 씨앗으로 표시
+              final isRead = letter.isRead == true;
               return Positioned(
                 left: position.dx,
                 top: position.dy,

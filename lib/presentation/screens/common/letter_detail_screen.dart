@@ -18,7 +18,6 @@ import 'package:taba_app/presentation/widgets/taba_text_field.dart';
 import 'package:taba_app/presentation/widgets/modal_sheet.dart';
 import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
-import 'package:taba_app/core/storage/read_letter_storage.dart';
 
 class LetterDetailScreen extends StatefulWidget {
   const LetterDetailScreen({
@@ -90,12 +89,8 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
         }
         
         // 편지를 읽었음을 표시
+        // API에서 자동으로 읽음 처리가 되었으므로, 서버에서 받아온 isRead 상태를 사용
         _letterWasRead = true;
-        
-        // 공개 편지인 경우 로컬 스토리지에도 읽은 목록에 추가 (UI 표시용)
-        if (result.letter!.visibility == VisibilityScope.public) {
-          await ReadLetterStorage.markAsRead(result.letter!.id);
-        }
       }
     } catch (e) {
       // 예상치 못한 에러인 경우 기존 편지 정보 사용

@@ -55,6 +55,7 @@ class Letter {
     this.tags = const [],
     this.template,
     this.attachedImages = const [],
+    this.isRead,
   });
 
   final String id;
@@ -68,6 +69,7 @@ class Letter {
   final List<String> tags;
   final LetterStyle? template;
   final List<String> attachedImages; // 사진 첨부 경로/URL 리스트
+  final bool? isRead; // API에서 받아온 읽음 상태 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
 
   String get senderDisplay => sender.nickname;
   
