@@ -53,6 +53,8 @@ class _SkyScreenState extends State<SkyScreen> {
   int _currentPage = 0;
   bool _isLoadingMore = false;
   bool _hasMorePages = true;
+  // 읽음 상태 오버라이드: 편지 ID -> 읽음 상태 (true: 읽음, false: 읽지 않음)
+  final Map<String, bool> _readStatusOverrides = {};
 
   @override
   void initState() {
@@ -309,6 +311,7 @@ class _SkyScreenState extends State<SkyScreen> {
                         
                         return _SkyCanvas(
                           letters: pageLetters,
+                          readStatusOverrides: _readStatusOverrides,
                           onTap: (letter) => _openSeedBloom(context, letter),
                         );
                       },
@@ -363,11 +366,13 @@ class _SkyScreenState extends State<SkyScreen> {
         },
       ),
     );
-    // 편지를 읽었거나 삭제되었으면 데이터 새로고침
-    // API 명세서: GET /letters/{letterId} 호출 시 자동으로 읽음 처리되므로,
-    // 데이터를 새로고침하면 최신 isRead 상태가 반영됩니다
-    if (result == true && widget.onRefresh != null) {
-      widget.onRefresh!();
+    // 편지를 읽었거나 삭제되었으면 해당 편지의 읽음 상태만 업데이트
+    // 전체 새로고침 대신 해당 편지만 꽃으로 표시
+    if (result == true) {
+      // 편지를 읽었으므로 읽음 상태를 true로 설정
+      setState(() {
+        _readStatusOverrides[letter.id] = true;
+      });
     }
   }
 }
@@ -376,10 +381,12 @@ class _SkyScreenState extends State<SkyScreen> {
 class _SkyCanvas extends StatefulWidget {
   const _SkyCanvas({
     required this.letters,
+    required this.readStatusOverrides,
     required this.onTap,
   });
 
   final List<Letter> letters;
+  final Map<String, bool> readStatusOverrides; // 읽음 상태 오버라이드
   final ValueChanged<Letter> onTap;
 
   @override
@@ -450,8 +457,10 @@ class _SkyCanvasState extends State<_SkyCanvas> {
             // API 명세서: isRead 필드 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
             ...widget.letters.map((letter) {
               final position = _positionCache![letter.id] ?? Offset(0, 0);
-              // isRead가 true인 경우에만 꽃으로 표시, false나 null인 경우 씨앗으로 표시
-              final isRead = letter.isRead == true;
+              // 읽음 상태 확인: 오버라이드가 있으면 우선 사용, 없으면 원본 isRead 사용
+              final isRead = widget.readStatusOverrides.containsKey(letter.id)
+                  ? widget.readStatusOverrides[letter.id] == true
+                  : letter.isRead == true;
               return Positioned(
                 left: position.dx,
                 top: position.dy,

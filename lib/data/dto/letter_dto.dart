@@ -83,7 +83,7 @@ class LetterDto {
       // - true: 읽음
       // - false: 읽지 않음
       // - null: 작성자인 경우 또는 비로그인 사용자
-      isRead: json['isRead'] as bool?,
+      isRead: LetterDto._parseIsRead(json['isRead']),
     );
   }
 
@@ -132,6 +132,32 @@ class LetterDto {
       default:
         return VisibilityScope.public;
     }
+  }
+
+  /// isRead 필드를 안전하게 파싱합니다.
+  /// API 응답에서 bool, 문자열, null 등 다양한 형식으로 올 수 있습니다.
+  static bool? _parseIsRead(dynamic value) {
+    if (value == null) {
+      print('LetterDto: isRead is null');
+      return null;
+    }
+    if (value is bool) {
+      print('LetterDto: isRead is bool: $value');
+      return value;
+    }
+    if (value is String) {
+      final lower = value.toLowerCase().trim();
+      print('LetterDto: isRead is String: "$value" -> parsing...');
+      if (lower == 'true' || lower == '1') return true;
+      if (lower == 'false' || lower == '0') return false;
+      return null;
+    }
+    if (value is int) {
+      print('LetterDto: isRead is int: $value');
+      return value == 1 ? true : (value == 0 ? false : null);
+    }
+    print('LetterDto: isRead is unknown type: ${value.runtimeType}, value: $value');
+    return null;
   }
 }
 

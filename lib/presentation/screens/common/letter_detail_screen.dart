@@ -88,14 +88,22 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
           return;
         }
         
+        // 서버에서 받은 최신 편지 정보 확인
+        final updatedLetter = result.letter!;
+        // API에서 자동으로 읽음 처리가 되었으므로, 서버에서 받아온 isRead 상태를 확인
+        // 이전에 읽지 않았던 편지를 읽은 경우에만 UI 업데이트 필요
+        final wasUnread = widget.letter.isRead != true;
+        final isNowRead = updatedLetter.isRead == true;
+        
         // 편지를 읽었음을 표시
-        // API에서 자동으로 읽음 처리가 되었으므로, 서버에서 받아온 isRead 상태를 사용
-        _letterWasRead = true;
+        // 읽지 않았던 편지를 읽은 경우에만 true 반환하여 UI 업데이트
+        _letterWasRead = wasUnread && isNowRead;
       }
     } catch (e) {
       // 예상치 못한 에러인 경우 기존 편지 정보 사용
       print('편지 상세 조회 실패 (읽음 처리): $e');
       if (mounted) {
+        // 에러 발생 시에도 편지를 읽은 것으로 간주하여 새로고침
         _letterWasRead = true;
       }
     }
