@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:taba_app/core/services/app_badge_service.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/notification.dart';
 import 'package:taba_app/data/models/bouquet.dart';
@@ -353,13 +353,10 @@ class _MainShellState extends State<MainShell> {
   /// 서버에서 받은 읽지 않은 알림 개수로 뱃지 설정
   Future<void> _updateAppBadge(int unreadCount) async {
     try {
-      final isSupported = await FlutterAppBadger.isAppBadgeSupported();
-      if (isSupported) {
-        if (unreadCount > 0) {
-          await FlutterAppBadger.updateBadgeCount(unreadCount);
-        } else {
-          await FlutterAppBadger.removeBadge();
-        }
+      if (unreadCount > 0) {
+        await AppBadgeService.instance.updateBadge(unreadCount);
+      } else {
+        await AppBadgeService.instance.removeBadge();
       }
     } catch (e) {
       print('앱 뱃지 업데이트 중 오류 발생: $e');
