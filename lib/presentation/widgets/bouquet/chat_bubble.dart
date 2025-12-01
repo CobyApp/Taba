@@ -141,25 +141,23 @@ class ChatBubble extends StatelessWidget {
 }
 
 /// 시간 표시 헬퍼 함수
-/// 예약전송 편지의 경우 scheduledAt을 사용하여 "언제 발송 예정인지" 표시
+/// 예약전송 편지의 경우 scheduledAt 또는 sentAt(미래)을 사용하여 "언제 발송 예정인지" 표시
 String formatTimeAgo(DateTime time, {DateTime? scheduledAt}) {
   final locale = AppLocaleController.localeNotifier.value;
+  final now = DateTime.now();
   
-  // 예약전송 편지인 경우 scheduledAt 사용
-  if (scheduledAt != null) {
-    final now = DateTime.now();
-    // 아직 발송되지 않은 경우 (scheduledAt이 미래인 경우)
-    if (scheduledAt.isAfter(now)) {
-      return _formatScheduledTime(locale, scheduledAt);
-    }
+  // 예약전송 편지인 경우: scheduledAt이 있고 미래인 경우
+  if (scheduledAt != null && scheduledAt.isAfter(now)) {
+    return _formatScheduledTime(locale, scheduledAt);
+  }
+  
+  // sentAt이 미래인 경우 (예약전송 편지일 수 있음, API 명세서: sentAt이 scheduledAt으로 표시됨)
+  if (time.isAfter(now)) {
+    return _formatScheduledTime(locale, time);
   }
   
   // 일반 편지 또는 이미 발송된 예약전송 편지
-  final diff = DateTime.now().difference(time);
-  if (diff.isNegative) {
-    // 마이너스 시간 방지: 미래 시간인 경우 "곧" 표시
-    return AppStrings.timeAgo(locale, time);
-  }
+  final diff = now.difference(time);
   return AppStrings.timeAgo(locale, time);
 }
 
