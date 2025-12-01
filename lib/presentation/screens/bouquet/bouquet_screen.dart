@@ -435,9 +435,7 @@ class _BouquetScreenState extends State<BouquetScreen> {
                           child: Align(
                             alignment: Alignment.topCenter,
                             child: Padding(
-                              padding: EdgeInsets.only(
-                                top: MediaQuery.of(context).size.height * 0.08,
-                              ),
+                              padding: const EdgeInsets.only(top: 60),
                               child: EmptyState(
                                 icon: Icons.mail_outline,
                                 title: AppStrings.noLettersYet(locale),
