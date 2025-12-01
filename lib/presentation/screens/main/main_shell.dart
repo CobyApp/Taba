@@ -35,7 +35,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   bool _isLoadingData = false; // 데이터 로딩 중 플래그 (중복 호출 방지)
   List<String> _selectedLanguages = []; // 선택된 언어 필터 (ko, en, ja)
   bool _isSyncingBadge = false; // 뱃지 동기화 중 플래그
-  DateTime? _lastBadgeSyncTime; // 마지막 뱃지 동기화 시간
 
   @override
   void initState() {
@@ -55,15 +54,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // 앱이 포그라운드로 올라올 때 뱃지 동기화 (중복 호출 방지)
-    if (state == AppLifecycleState.resumed) {
-      // 최근 5초 이내에 동기화했으면 스킵
-      final now = DateTime.now();
-      if (_lastBadgeSyncTime == null || 
-          now.difference(_lastBadgeSyncTime!).inSeconds > 5) {
-        _syncBadgeOnly(); // 뱃지만 동기화, 데이터 새로고침은 하지 않음
-      }
-    }
+    // 포그라운드 뱃지 체크 제거 - 데이터 새로고침 시에만 뱃지 업데이트
   }
 
   void _setupPushNotificationHandlers() {
@@ -344,10 +335,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         (sum, friend) => sum + friend.unreadLetterCount,
       );
 
-      // API 명세서: POST /notifications/badge/sync를 사용하여 앱 아이콘 뱃지 동기화
-      // 앱이 포그라운드로 올라오거나 데이터 새로고침 시 뱃지 동기화
-      await _syncBadge();
-
       if (mounted) {
         setState(() {
           _letters = letters;
@@ -356,6 +343,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           _isLoading = false;
         });
       }
+
+      // 데이터 새로고침 후 조용히 뱃지 업데이트 (에러 발생해도 무시)
+      _updateBadgeQuietly(unreadCount);
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -377,52 +367,20 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
-  /// 뱃지 동기화 (데이터 새로고침 없이 뱃지만)
-  /// 앱이 포그라운드로 올라올 때 호출
-  Future<void> _syncBadgeOnly() async {
+  /// 뱃지 조용히 업데이트 (에러 발생해도 무시, 로그 최소화)
+  /// 데이터 새로고침 후 로컬 계산된 unreadCount로 뱃지 업데이트
+  Future<void> _updateBadgeQuietly(int unreadCount) async {
     if (_isSyncingBadge) return; // 이미 동기화 중이면 스킵
     
     _isSyncingBadge = true;
     try {
-      final unreadCount = await _repository.syncBadge();
-      print('📊 뱃지 동기화 완료: $unreadCount');
+      // 로컬에서 계산한 unreadCount로 뱃지 업데이트
       await _updateAppBadge(unreadCount);
-      _lastBadgeSyncTime = DateTime.now();
     } catch (e) {
-      // 뱃지 동기화 실패 시 기존 방식으로 fallback
-      print('⚠️ 뱃지 동기화 실패, fallback 사용: $e');
-      try {
-        final unreadNotificationCount = await _repository.getUnreadNotificationCount();
-        print('📊 읽지 않은 알림 개수 (fallback): $unreadNotificationCount');
-        await _updateAppBadge(unreadNotificationCount);
-        _lastBadgeSyncTime = DateTime.now();
-      } catch (e2) {
-        print('❌ 앱 뱃지 업데이트 실패: $e2');
-      }
+      // 에러 발생해도 조용히 무시 (로그만 출력)
+      // print('뱃지 업데이트 실패 (무시): $e');
     } finally {
       _isSyncingBadge = false;
-    }
-  }
-
-  /// 뱃지 동기화 (데이터 새로고침과 함께)
-  /// 데이터 새로고침 시 호출
-  Future<void> _syncBadge() async {
-    try {
-      final unreadCount = await _repository.syncBadge();
-      print('📊 뱃지 동기화 완료: $unreadCount');
-      await _updateAppBadge(unreadCount);
-      _lastBadgeSyncTime = DateTime.now();
-    } catch (e) {
-      // 뱃지 동기화 실패 시 기존 방식으로 fallback
-      print('⚠️ 뱃지 동기화 실패, fallback 사용: $e');
-      try {
-        final unreadNotificationCount = await _repository.getUnreadNotificationCount();
-        print('📊 읽지 않은 알림 개수 (fallback): $unreadNotificationCount');
-        await _updateAppBadge(unreadNotificationCount);
-        _lastBadgeSyncTime = DateTime.now();
-      } catch (e2) {
-        print('❌ 앱 뱃지 업데이트 실패: $e2');
-      }
     }
   }
 
