@@ -28,6 +28,14 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/keystore.jks
 
+      - name: Calculate Build Number
+        id: build_number
+        run: |
+          # 릴리즈 빌드 번호: 1001~2000 범위
+          BUILD_NUMBER=$((1000 + (${{ github.run_number }} % 1000)))
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "📦 릴리즈 빌드 번호: $BUILD_NUMBER (범위: 1001~2000)"
+
       - name: Build AAB
         env:
           KEYSTORE_PATH: keystore.jks
@@ -39,7 +47,7 @@ jobs:
           cd android/app
           flutter build appbundle --release \
             --build-name=${{ github.ref_name }} \
-            --build-number=${{ github.run_number }} \
+            --build-number=${{ steps.build_number.outputs.build_number }} \
             --dart-define=API_ENV=prod
 
       - uses: actions/upload-artifact@v4
@@ -129,12 +137,20 @@ jobs:
             sed -i '' "s/PROVISIONING_PROFILE_SPECIFIER = \"\";/PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE_NAME\";/g" ios/Runner.xcodeproj/project.pbxproj || true
           fi
       
+      - name: Calculate Build Number
+        id: build_number
+        run: |
+          # 릴리즈 빌드 번호: 1001~2000 범위
+          BUILD_NUMBER=$((1000 + (${{ github.run_number }} % 1000)))
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "📦 릴리즈 빌드 번호: $BUILD_NUMBER (범위: 1001~2000)"
+
       - name: Build IPA
         run: |
           echo "🚀 프로덕션 빌드 (서버: https://www.taba.asia/api/v1)"
           flutter build ipa --release \
             --build-name=${{ github.ref_name }} \
-            --build-number=${{ github.run_number }} \
+            --build-number=${{ steps.build_number.outputs.build_number }} \
             --dart-define=API_ENV=prod \
             --export-options-plist=ios/ExportOptions-prod.plist
 
