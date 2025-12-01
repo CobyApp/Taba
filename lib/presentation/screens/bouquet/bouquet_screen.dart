@@ -266,13 +266,24 @@ class _BouquetScreenState extends State<BouquetScreen> {
     // 예약전송 편지 접근 제한 확인 (가장 먼저 체크)
     // API 명세서: 예약전송 편지는 받는 사람이 예약 시간 전까지 열람할 수 없음
     // 보낸 사람은 언제든지 열람 가능
-    if (!flower.sentByMe && flower.scheduledAt != null) {
+    // API 명세서: 예약전송 편지의 경우 sentAt이 scheduledAt으로 표시됨
+    if (!flower.sentByMe) {
       final now = DateTime.now();
-      if (now.isBefore(flower.scheduledAt!)) {
+      DateTime? scheduledTime;
+      
+      // scheduledAt이 있으면 사용, 없으면 sentAt이 미래인 경우 sentAt 사용
+      if (flower.scheduledAt != null) {
+        scheduledTime = flower.scheduledAt;
+      } else if (flower.sentAt.isAfter(now)) {
+        // sentAt이 미래인 경우 (예약전송 편지)
+        scheduledTime = flower.sentAt;
+      }
+      
+      if (scheduledTime != null && now.isBefore(scheduledTime)) {
         // 예약 시간 전이면 접근 불가 - 팝업으로 안내 (화면 이동 없음)
         final locale = AppLocaleController.localeNotifier.value;
         if (mounted) {
-          _showScheduledLetterInfoDialog(context, locale, flower.scheduledAt!);
+          _showScheduledLetterInfoDialog(context, locale, scheduledTime);
         }
         return;
       }
