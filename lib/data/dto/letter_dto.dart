@@ -102,7 +102,7 @@ class LetterDto {
       'visibility': visibility,
       'template': template?.toJson(),
       'attachedImages': attachedImages,
-      if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
+      if (scheduledAt != null) 'scheduledAt': scheduledAt!.toIso8601String(),
       'recipientId': null, // 필요시 추가
     };
   }
