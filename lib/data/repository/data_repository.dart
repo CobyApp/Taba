@@ -15,6 +15,7 @@ import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
 import 'package:taba_app/data/services/fcm_service.dart';
+import 'package:taba_app/core/services/app_badge_service.dart';
 import 'dart:io';
 
 class DataRepository {
@@ -113,6 +114,15 @@ class DataRepository {
   Future<void> logout() async {
     // 로그아웃 시 FCM 토큰 삭제
     await _fcmService.deleteToken();
+    
+    // 로그아웃 시 배지 초기화
+    try {
+      await AppBadgeService.instance.removeBadge();
+      print('✅ 로그아웃 시 배지 초기화 완료');
+    } catch (e) {
+      print('❌ 로그아웃 시 배지 초기화 실패: $e');
+    }
+    
     await _authService.logout();
   }
 

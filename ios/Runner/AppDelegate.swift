@@ -11,6 +11,11 @@ import FirebaseCore
     // Firebase 초기화
     FirebaseApp.configure()
     
+    // 앱 시작 시 배지 초기화 (앱을 새로 깔 때나 재시작 시)
+    DispatchQueue.main.async {
+      UIApplication.shared.applicationIconBadgeNumber = 0
+    }
+    
     // Method Channel 설정 (앱 뱃지용)
     let controller = window?.rootViewController as! FlutterViewController
     let badgeChannel = FlutterMethodChannel(
@@ -24,6 +29,7 @@ import FirebaseCore
            let count = args["count"] as? Int {
           DispatchQueue.main.async {
             UIApplication.shared.applicationIconBadgeNumber = count
+            print("✅ iOS 배지 업데이트: \(count)")
             result(nil)
           }
         } else {
@@ -32,6 +38,7 @@ import FirebaseCore
       } else if call.method == "removeBadge" {
         DispatchQueue.main.async {
           UIApplication.shared.applicationIconBadgeNumber = 0
+          print("✅ iOS 배지 제거")
           result(nil)
         }
       } else {

@@ -13,18 +13,22 @@ class AppBadgeService {
   /// API 명세서: GET /notifications/unread-count의 unreadCount 값 사용
   Future<void> updateBadge(int count) async {
     try {
+      print('🔔 배지 업데이트 요청: $count');
       await _channel.invokeMethod('updateBadge', {'count': count});
+      print('✅ 배지 업데이트 성공: $count');
     } catch (e) {
-      print('앱 뱃지 업데이트 실패: $e');
+      print('❌ 앱 뱃지 업데이트 실패: $e');
     }
   }
 
   /// 앱 아이콘 뱃지 제거
   Future<void> removeBadge() async {
     try {
+      print('🔔 배지 제거 요청');
       await _channel.invokeMethod('removeBadge');
+      print('✅ 배지 제거 성공');
     } catch (e) {
-      print('앱 뱃지 제거 실패: $e');
+      print('❌ 앱 뱃지 제거 실패: $e');
     }
   }
 }

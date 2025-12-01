@@ -317,10 +317,11 @@ class _MainShellState extends State<MainShell> {
       // 읽지 않은 알림 개수로 뱃지 숫자 설정
       try {
         final unreadNotificationCount = await _repository.getUnreadNotificationCount();
+        print('📊 읽지 않은 알림 개수: $unreadNotificationCount');
         await _updateAppBadge(unreadNotificationCount);
       } catch (e) {
         // 뱃지 업데이트 실패해도 앱은 계속 진행
-        print('앱 뱃지 업데이트 실패: $e');
+        print('❌ 앱 뱃지 업데이트 실패: $e');
       }
 
       if (mounted) {
