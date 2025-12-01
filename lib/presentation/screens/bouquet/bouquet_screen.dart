@@ -263,6 +263,21 @@ class _BouquetScreenState extends State<BouquetScreen> {
   }
 
   void _openFlower(SharedFlower flower) async {
+    // 예약전송 편지 접근 제한 확인 (가장 먼저 체크)
+    // API 명세서: 예약전송 편지는 받는 사람이 예약 시간 전까지 열람할 수 없음
+    // 보낸 사람은 언제든지 열람 가능
+    if (!flower.sentByMe && flower.scheduledAt != null) {
+      final now = DateTime.now();
+      if (now.isBefore(flower.scheduledAt!)) {
+        // 예약 시간 전이면 접근 불가 - 팝업으로 안내 (화면 이동 없음)
+        final locale = AppLocaleController.localeNotifier.value;
+        if (mounted) {
+          _showScheduledLetterInfoDialog(context, locale, flower.scheduledAt!);
+        }
+        return;
+      }
+    }
+
     if (!flower.sentByMe && (flower.isRead == false) && !_readFlowerIds.contains(flower.id)) {
       setState(() {
         _readFlowerIds.add(flower.id);
@@ -305,21 +320,6 @@ class _BouquetScreenState extends State<BouquetScreen> {
 
     // 편지 상세 조회에 실패한 경우 기존 편지 정보 사용
     Letter letterToShow = fullLetter ?? flower.letter;
-
-    // 예약전송 편지 접근 제한 확인
-    // API 명세서: 예약전송 편지는 받는 사람이 예약 시간 전까지 열람할 수 없음
-    // 보낸 사람은 언제든지 열람 가능
-    if (!flower.sentByMe && flower.scheduledAt != null) {
-      final now = DateTime.now();
-      if (now.isBefore(flower.scheduledAt!)) {
-        // 예약 시간 전이면 접근 불가 - 팝업으로 안내
-        final locale = AppLocaleController.localeNotifier.value;
-        if (mounted) {
-          _showScheduledLetterInfoDialog(context, locale, flower.scheduledAt!);
-        }
-        return;
-      }
-    }
 
     // 내가 보낸 편지인 경우, 편지의 sender 정보를 현재 사용자로 설정
     if (flower.sentByMe) {
