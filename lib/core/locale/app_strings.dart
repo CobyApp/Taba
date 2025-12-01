@@ -3577,6 +3577,57 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
     }
   }
 
+  /// 예약전송 편지 팝업 제목
+  static String scheduledLetterDialogTitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Scheduled Letter';
+      case 'ja':
+        return '予約送信の手紙';
+      default:
+        return '예약전송 편지';
+    }
+  }
+
+  /// 예약전송 편지 팝업 메시지 (시간 포함)
+  static String scheduledLetterDialogMessage(Locale locale, DateTime scheduledAt) {
+    final now = DateTime.now();
+    final diff = scheduledAt.difference(now);
+    
+    String timeStr;
+    if (diff.inDays > 0) {
+      timeStr = '${diff.inDays}일';
+    } else if (diff.inHours > 0) {
+      timeStr = '${diff.inHours}시간';
+    } else if (diff.inMinutes > 0) {
+      timeStr = '${diff.inMinutes}분';
+    } else {
+      timeStr = '곧';
+    }
+    
+    // 날짜/시간 포맷팅
+    String dateTimeStr;
+    switch (locale.languageCode) {
+      case 'en':
+        dateTimeStr = '${scheduledAt.year}-${scheduledAt.month.toString().padLeft(2, '0')}-${scheduledAt.day.toString().padLeft(2, '0')} ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+        break;
+      case 'ja':
+        dateTimeStr = '${scheduledAt.year}年${scheduledAt.month}月${scheduledAt.day}日 ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+        break;
+      default:
+        dateTimeStr = '${scheduledAt.year}년 ${scheduledAt.month}월 ${scheduledAt.day}일 ${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+    }
+    
+    switch (locale.languageCode) {
+      case 'en':
+        return 'This letter is scheduled to be sent at $dateTimeStr.\n\nYou can read it after $timeStr.';
+      case 'ja':
+        return 'この手紙は$dateTimeStrに送信予定です。\n\n$timeStr後に閲覧できます。';
+      default:
+        return '이 편지는 $dateTimeStr에 전송 예정입니다.\n\n$timeStr 후에 열람할 수 있습니다.';
+    }
+  }
+
   static String scheduledLetterOnlyForFriends(Locale locale) {
     switch (locale.languageCode) {
       case 'en':

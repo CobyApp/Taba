@@ -34,10 +34,11 @@ class ChatMessagesList extends StatelessWidget {
           final item = flowers[i];
           final isUnread = !item.sentByMe && !readFlowerIds.contains(item.id);
           
-          // 예약전송 편지의 경우 scheduledAt 사용
+          // 예약전송 편지의 경우 scheduledAt 사용 (발송/수신 구분)
           final timeLabel = formatTimeAgo(
             item.sentAt,
             scheduledAt: item.scheduledAt,
+            sentByMe: item.sentByMe,
           );
           
           return ChatBubble(

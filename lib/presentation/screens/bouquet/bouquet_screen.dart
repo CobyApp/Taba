@@ -228,6 +228,40 @@ class _BouquetScreenState extends State<BouquetScreen> {
     return (baseUnreadCount - readCount).clamp(0, baseUnreadCount);
   }
 
+  /// 예약전송 편지 안내 팝업 표시
+  void _showScheduledLetterInfoDialog(BuildContext context, Locale locale, DateTime scheduledAt) {
+    TabaModalSheet.show(
+      context: context,
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ModalSheetHeader(
+              title: AppStrings.scheduledLetterDialogTitle(locale),
+              onClose: () => Navigator.of(context).pop(),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              AppStrings.scheduledLetterDialogMessage(locale, scheduledAt),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            TabaButton(
+              onPressed: () => Navigator.of(context).pop(),
+              label: AppStrings.confirm(locale),
+              isFullWidth: true,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _openFlower(SharedFlower flower) async {
     if (!flower.sentByMe && (flower.isRead == false) && !_readFlowerIds.contains(flower.id)) {
       setState(() {
@@ -278,13 +312,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
     if (!flower.sentByMe && flower.scheduledAt != null) {
       final now = DateTime.now();
       if (now.isBefore(flower.scheduledAt!)) {
-        // 예약 시간 전이면 접근 불가
+        // 예약 시간 전이면 접근 불가 - 팝업으로 안내
         final locale = AppLocaleController.localeNotifier.value;
         if (mounted) {
-          showTabaError(
-            context,
-            message: AppStrings.scheduledLetterNotAvailable(locale, flower.scheduledAt!),
-          );
+          _showScheduledLetterInfoDialog(context, locale, flower.scheduledAt!);
         }
         return;
       }
@@ -436,10 +467,10 @@ class _BouquetScreenState extends State<BouquetScreen> {
                             alignment: Alignment.topCenter,
                             child: Transform.translate(
                               offset: const Offset(0, -60),
-                              child: EmptyState(
-                                icon: Icons.mail_outline,
-                                title: AppStrings.noLettersYet(locale),
-                                subtitle: AppStrings.writeLetterToStart(locale),
+                            child: EmptyState(
+                              icon: Icons.mail_outline,
+                              title: AppStrings.noLettersYet(locale),
+                              subtitle: AppStrings.writeLetterToStart(locale),
                               ),
                             ),
                           ),

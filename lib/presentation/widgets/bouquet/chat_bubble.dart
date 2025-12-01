@@ -142,18 +142,19 @@ class ChatBubble extends StatelessWidget {
 
 /// 시간 표시 헬퍼 함수
 /// 예약전송 편지의 경우 scheduledAt 또는 sentAt(미래)을 사용하여 "언제 발송 예정인지" 표시
-String formatTimeAgo(DateTime time, {DateTime? scheduledAt}) {
+/// sentByMe: 내가 보낸 편지인지 여부 (발송/수신 구분)
+String formatTimeAgo(DateTime time, {DateTime? scheduledAt, required bool sentByMe}) {
   final locale = AppLocaleController.localeNotifier.value;
   final now = DateTime.now();
   
   // 예약전송 편지인 경우: scheduledAt이 있고 미래인 경우
   if (scheduledAt != null && scheduledAt.isAfter(now)) {
-    return _formatScheduledTime(locale, scheduledAt);
+    return _formatScheduledTime(locale, scheduledAt, sentByMe: sentByMe);
   }
   
   // sentAt이 미래인 경우 (예약전송 편지일 수 있음, API 명세서: sentAt이 scheduledAt으로 표시됨)
   if (time.isAfter(now)) {
-    return _formatScheduledTime(locale, time);
+    return _formatScheduledTime(locale, time, sentByMe: sentByMe);
   }
   
   // 일반 편지 또는 이미 발송된 예약전송 편지
@@ -162,7 +163,8 @@ String formatTimeAgo(DateTime time, {DateTime? scheduledAt}) {
 }
 
 /// 예약전송 시간 포맷팅 (로컬라이즈)
-String _formatScheduledTime(Locale locale, DateTime scheduledAt) {
+/// sentByMe: 내가 보낸 편지인지 여부 (발송/수신 구분)
+String _formatScheduledTime(Locale locale, DateTime scheduledAt, {required bool sentByMe}) {
   final now = DateTime.now();
   final diff = scheduledAt.difference(now);
   
@@ -177,37 +179,75 @@ String _formatScheduledTime(Locale locale, DateTime scheduledAt) {
     timeStr = '곧';
   }
   
-  switch (locale.languageCode) {
-    case 'en':
-      if (diff.inDays > 0) {
-        return 'Scheduled in $timeStr';
-      } else if (diff.inHours > 0) {
-        return 'Scheduled in $timeStr';
-      } else if (diff.inMinutes > 0) {
-        return 'Scheduled in $timeStr';
-      } else {
-        return 'Scheduled soon';
-      }
-    case 'ja':
-      if (diff.inDays > 0) {
-        return '$timeStr後に送信予定';
-      } else if (diff.inHours > 0) {
-        return '$timeStr後に送信予定';
-      } else if (diff.inMinutes > 0) {
-        return '$timeStr後に送信予定';
-      } else {
-        return 'まもなく送信予定';
-      }
-    default:
-      if (diff.inDays > 0) {
-        return '$timeStr 후 발송 예정';
-      } else if (diff.inHours > 0) {
-        return '$timeStr 후 발송 예정';
-      } else if (diff.inMinutes > 0) {
-        return '$timeStr 후 발송 예정';
-      } else {
-        return '곧 발송 예정';
-      }
+  // 발송일 때와 수신일 때 구분
+  if (sentByMe) {
+    // 내가 보낸 편지: 발송 예정
+    switch (locale.languageCode) {
+      case 'en':
+        if (diff.inDays > 0) {
+          return 'Scheduled in $timeStr';
+        } else if (diff.inHours > 0) {
+          return 'Scheduled in $timeStr';
+        } else if (diff.inMinutes > 0) {
+          return 'Scheduled in $timeStr';
+        } else {
+          return 'Scheduled soon';
+        }
+      case 'ja':
+        if (diff.inDays > 0) {
+          return '$timeStr後に送信予定';
+        } else if (diff.inHours > 0) {
+          return '$timeStr後に送信予定';
+        } else if (diff.inMinutes > 0) {
+          return '$timeStr後に送信予定';
+        } else {
+          return 'まもなく送信予定';
+        }
+      default:
+        if (diff.inDays > 0) {
+          return '$timeStr 후 발송 예정';
+        } else if (diff.inHours > 0) {
+          return '$timeStr 후 발송 예정';
+        } else if (diff.inMinutes > 0) {
+          return '$timeStr 후 발송 예정';
+        } else {
+          return '곧 발송 예정';
+        }
+    }
+  } else {
+    // 상대방이 보낸 편지: 수신 예정
+    switch (locale.languageCode) {
+      case 'en':
+        if (diff.inDays > 0) {
+          return 'Will arrive in $timeStr';
+        } else if (diff.inHours > 0) {
+          return 'Will arrive in $timeStr';
+        } else if (diff.inMinutes > 0) {
+          return 'Will arrive in $timeStr';
+        } else {
+          return 'Will arrive soon';
+        }
+      case 'ja':
+        if (diff.inDays > 0) {
+          return '$timeStr後に到着予定';
+        } else if (diff.inHours > 0) {
+          return '$timeStr後に到着予定';
+        } else if (diff.inMinutes > 0) {
+          return '$timeStr後に到着予定';
+        } else {
+          return 'まもなく到着予定';
+        }
+      default:
+        if (diff.inDays > 0) {
+          return '$timeStr 후 수신 예정';
+        } else if (diff.inHours > 0) {
+          return '$timeStr 후 수신 예정';
+        } else if (diff.inMinutes > 0) {
+          return '$timeStr 후 수신 예정';
+        } else {
+          return '곧 수신 예정';
+        }
+    }
   }
 }
 
