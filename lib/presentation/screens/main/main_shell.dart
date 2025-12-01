@@ -1,6 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:taba_app/core/services/app_badge_service.dart';
 import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/notification.dart';
 import 'package:taba_app/data/models/bouquet.dart';
@@ -313,14 +312,6 @@ class _MainShellState extends State<MainShell> {
         (sum, friend) => sum + friend.unreadLetterCount,
       );
 
-      // 서버에서 읽지 않은 알림 개수 조회하여 앱 아이콘 뱃지 업데이트
-      try {
-        final unreadNotificationCount = await _repository.getUnreadNotificationCount();
-        await _updateAppBadge(unreadNotificationCount);
-      } catch (e) {
-        // 뱃지 업데이트 실패해도 앱은 계속 진행
-        print('앱 뱃지 업데이트 실패: $e');
-      }
 
       if (mounted) {
         setState(() {
@@ -349,19 +340,6 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  /// 앱 아이콘 뱃지 업데이트
-  /// 서버에서 받은 읽지 않은 알림 개수로 뱃지 설정
-  Future<void> _updateAppBadge(int unreadCount) async {
-    try {
-      if (unreadCount > 0) {
-        await AppBadgeService.instance.updateBadge(unreadCount);
-      } else {
-        await AppBadgeService.instance.removeBadge();
-      }
-    } catch (e) {
-      print('앱 뱃지 업데이트 중 오류 발생: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

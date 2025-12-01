@@ -24,7 +24,6 @@ class FcmService {
       // 알림 권한 요청 (iOS에서는 권한 요청 후 APNS 토큰이 설정됨)
       final settings = await _firebaseMessaging.requestPermission(
         alert: true,
-        badge: true,
         sound: true,
       );
 
