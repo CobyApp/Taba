@@ -59,6 +59,33 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
   /// API 명세서: GET /letters/{letterId} 호출 시 자동으로 읽음 처리됨
   Future<void> _loadLetterFromServer() async {
     try {
+      // 예약전송 편지 접근 제한 확인
+      // API 명세서: 예약전송 편지는 받는 사람이 예약 시간 전까지 열람할 수 없음
+      // 보낸 사람은 언제든지 열람 가능
+      if (!_isMyLetter && widget.letter.scheduledAt != null) {
+        final now = DateTime.now();
+        if (now.isBefore(widget.letter.scheduledAt!)) {
+          // 예약 시간 전이면 접근 불가
+          final locale = AppLocaleController.localeNotifier.value;
+          if (mounted) {
+            setState(() {
+              _letterDeleted = true;
+            });
+            showTabaError(
+              context,
+              message: AppStrings.scheduledLetterNotAvailable(locale, widget.letter.scheduledAt!),
+            );
+            // 잠시 후 이전 화면으로 돌아가기
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.of(context).pop(true);
+              }
+            });
+          }
+          return;
+        }
+      }
+
       // 서버에서 편지 상세 정보를 조회 (읽음 처리 자동 수행)
       // 에러 정보도 함께 확인하여 삭제된 편지인지 판단
       final result = await _repository.getLetterWithError(widget.letter.id);
@@ -90,6 +117,32 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
         
         // 서버에서 받은 최신 편지 정보 확인
         final updatedLetter = result.letter!;
+        
+        // 예약전송 편지 접근 제한 재확인 (서버에서 받은 최신 정보 기준)
+        if (!_isMyLetter && updatedLetter.scheduledAt != null) {
+          final now = DateTime.now();
+          if (now.isBefore(updatedLetter.scheduledAt!)) {
+            // 예약 시간 전이면 접근 불가
+            final locale = AppLocaleController.localeNotifier.value;
+            if (mounted) {
+              setState(() {
+                _letterDeleted = true;
+              });
+              showTabaError(
+                context,
+                message: AppStrings.scheduledLetterNotAvailable(locale, updatedLetter.scheduledAt!),
+              );
+              // 잠시 후 이전 화면으로 돌아가기
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) {
+                  Navigator.of(context).pop(true);
+                }
+              });
+            }
+            return;
+          }
+        }
+        
         // API에서 자동으로 읽음 처리가 되었으므로, 서버에서 받아온 isRead 상태를 확인
         // 이전에 읽지 않았던 편지를 읽은 경우에만 UI 업데이트 필요
         final wasUnread = widget.letter.isRead != true;

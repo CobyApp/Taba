@@ -16,6 +16,7 @@ class LetterDto {
   final List<String>? attachedImages;
   final Map<String, double>? position; // 하늘 화면용 좌표
   final bool? isRead; // API에서 받아온 읽음 상태 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
+  final DateTime? scheduledAt; // 예약 전송 시간 (null이면 즉시 전송)
 
   LetterDto({
     required this.id,
@@ -31,6 +32,7 @@ class LetterDto {
     this.attachedImages,
     this.position,
     this.isRead,
+    this.scheduledAt,
   });
 
   factory LetterDto.fromJson(Map<String, dynamic> json) {
@@ -84,6 +86,10 @@ class LetterDto {
       // - false: 읽지 않음
       // - null: 작성자인 경우 또는 비로그인 사용자
       isRead: LetterDto._parseIsRead(json['isRead']),
+      // scheduledAt 파싱 (예약 전송 시간, 선택사항)
+      scheduledAt: json['scheduledAt'] != null
+          ? DateTime.parse(json['scheduledAt'] as String)
+          : null,
     );
   }
 
@@ -96,7 +102,7 @@ class LetterDto {
       'visibility': visibility,
       'template': template?.toJson(),
       'attachedImages': attachedImages,
-      'scheduledAt': null, // 필요시 추가
+      if (scheduledAt != null) 'scheduledAt': scheduledAt.toIso8601String(),
       'recipientId': null, // 필요시 추가
     };
   }
@@ -116,6 +122,7 @@ class LetterDto {
       template: template?.toModel(),
       attachedImages: attachedImages ?? [],
       isRead: isRead,
+      scheduledAt: scheduledAt,
     );
   }
 

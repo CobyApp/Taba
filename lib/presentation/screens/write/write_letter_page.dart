@@ -191,6 +191,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isSending = false;
   final ValueNotifier<bool> _isSendingNotifier = ValueNotifier<bool>(false);
+  DateTime? _scheduledAt; // 예약 전송 시간
 
   @override
   void initState() {
@@ -1025,9 +1026,149 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
                             ],
                           ],
                         ],
+                        // 예약전송 UI (친구에게 보낼 때만 표시)
+                        if (localSendToFriend && localFriend != null) ...[
+                          const SizedBox(height: AppSpacing.xl),
+                          Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: AppColors.midnightGlass,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.schedule, color: AppColors.neonPink, size: 20),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Text(
+                                      AppStrings.scheduledSend(locale),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  AppStrings.scheduledSendSubtitle(locale),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                SwitchListTile(
+                                  value: _scheduledAt != null,
+                                  onChanged: (value) {
+                                    if (value) {
+                                      // 예약전송 활성화: 현재 시간 + 1시간을 기본값으로 설정
+                                      _scheduledAt = DateTime.now().add(const Duration(hours: 1));
+                                    } else {
+                                      _scheduledAt = null;
+                                    }
+                                    setLocal(() {});
+                                  },
+                                  title: Text(AppStrings.scheduledSend(locale)),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                if (_scheduledAt != null) ...[
+                                  const SizedBox(height: AppSpacing.md),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final pickedDate = await showDatePicker(
+                                              context: context,
+                                              initialDate: _scheduledAt!,
+                                              firstDate: DateTime.now(),
+                                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                                            );
+                                            if (pickedDate != null) {
+                                              setLocal(() {
+                                                _scheduledAt = DateTime(
+                                                  pickedDate.year,
+                                                  pickedDate.month,
+                                                  pickedDate.day,
+                                                  _scheduledAt!.hour,
+                                                  _scheduledAt!.minute,
+                                                );
+                                              });
+                                            }
+                                          },
+                                          icon: const Icon(Icons.calendar_today, size: 16),
+                                          label: Text(AppStrings.selectDate(locale)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final pickedTime = await showTimePicker(
+                                              context: context,
+                                              initialTime: TimeOfDay.fromDateTime(_scheduledAt!),
+                                            );
+                                            if (pickedTime != null) {
+                                              setLocal(() {
+                                                _scheduledAt = DateTime(
+                                                  _scheduledAt!.year,
+                                                  _scheduledAt!.month,
+                                                  _scheduledAt!.day,
+                                                  pickedTime.hour,
+                                                  pickedTime.minute,
+                                                );
+                                                // 과거 시간이면 현재 시간으로 설정
+                                                if (_scheduledAt!.isBefore(DateTime.now())) {
+                                                  _scheduledAt = DateTime.now();
+                                                }
+                                              });
+                                            }
+                                          },
+                                          icon: const Icon(Icons.access_time, size: 16),
+                                          label: Text(AppStrings.selectTime(locale)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Text(
+                                    AppStrings.scheduledLetterMessage(locale, _scheduledAt!),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.neonPink,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: AppSpacing.xl * 1.5),
                         TabaButton(
                           onPressed: isSending ? null : () async {
+                            // 예약전송 유효성 검사
+                            if (localSendToFriend && _scheduledAt != null) {
+                              if (_scheduledAt!.isBefore(DateTime.now())) {
+                                showTabaError(
+                                  context,
+                                  message: AppStrings.pastTimeError(locale),
+                                );
+                                return;
+                              }
+                              if (localFriend == null) {
+                                showTabaError(
+                                  context,
+                                  message: AppStrings.scheduledLetterOnlyForFriends(locale),
+                                );
+                                return;
+                              }
+                            }
+                            
                             // Commit local state to parent, then send
                             setState(() {
                               _sendToFriend = localSendToFriend;
@@ -1327,6 +1468,12 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
         );
       } else {
         // 일반 편지 작성 API 사용
+        // 예약전송은 친구에게만 가능 (API 명세서)
+        DateTime? scheduledAt = null;
+        if (_sendToFriend && _selectedFriend != null && _scheduledAt != null) {
+          scheduledAt = _scheduledAt;
+        }
+        
         success = await _repository.createLetter(
           title: title,
           content: content,
@@ -1336,6 +1483,7 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
           attachedImages: uploadedImageUrls.isNotEmpty ? uploadedImageUrls : null,
           recipientId: _sendToFriend ? _selectedFriend?.user.id : null,
           language: language,
+          scheduledAt: scheduledAt, // 예약전송 시간 (친구에게만 가능)
         );
       }
 

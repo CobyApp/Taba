@@ -3550,5 +3550,42 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
         return '임시 파일 생성 실패';
     }
   }
+
+  // 예약전송 관련
+  static String scheduledLetterNotAvailable(Locale locale, DateTime scheduledAt) {
+    final now = DateTime.now();
+    final diff = scheduledAt.difference(now);
+    
+    String timeStr;
+    if (diff.inDays > 0) {
+      timeStr = '${diff.inDays}일';
+    } else if (diff.inHours > 0) {
+      timeStr = '${diff.inHours}시간';
+    } else if (diff.inMinutes > 0) {
+      timeStr = '${diff.inMinutes}분';
+    } else {
+      timeStr = '곧';
+    }
+    
+    switch (locale.languageCode) {
+      case 'en':
+        return 'This letter is scheduled to be sent in $timeStr. You cannot view it until the scheduled time.';
+      case 'ja':
+        return 'この手紙は$timeStr後に送信予定です。予定時刻まで閲覧できません。';
+      default:
+        return '이 편지는 $timeStr 후에 전송 예정입니다. 예약 시간 전까지는 열람할 수 없습니다.';
+    }
+  }
+
+  static String scheduledLetterOnlyForFriends(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Scheduled sending is only available for friends.';
+      case 'ja':
+        return '予約送信は友達にのみ利用できます。';
+      default:
+        return '예약전송은 친구에게만 보낼 수 있습니다.';
+    }
+  }
 }
 

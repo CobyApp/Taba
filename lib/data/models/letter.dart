@@ -56,6 +56,7 @@ class Letter {
     this.template,
     this.attachedImages = const [],
     this.isRead,
+    this.scheduledAt, // 예약 전송 시간 (null이면 즉시 전송)
   });
 
   final String id;
@@ -70,6 +71,7 @@ class Letter {
   final LetterStyle? template;
   final List<String> attachedImages; // 사진 첨부 경로/URL 리스트
   final bool? isRead; // API에서 받아온 읽음 상태 (true: 읽음, false: 읽지 않음, null: 작성자인 경우 또는 비로그인 사용자)
+  final DateTime? scheduledAt; // 예약 전송 시간 (null이면 즉시 전송)
 
   String get senderDisplay => sender.nickname;
   

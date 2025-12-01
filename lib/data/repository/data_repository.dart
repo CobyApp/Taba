@@ -195,6 +195,7 @@ class DataRepository {
     List<String>? attachedImages,
     String? recipientId,
     String? language,
+    DateTime? scheduledAt, // 예약 전송 시간 (선택사항)
   }) async {
     try {
       final response = await _letterService.createLetter(
@@ -204,7 +205,7 @@ class DataRepository {
         visibility: visibility,
         template: template,
         attachedImages: attachedImages,
-        scheduledAt: null, // 예약 발송 기능 제거
+        scheduledAt: scheduledAt,
         recipientId: recipientId,
         language: language,
       );
