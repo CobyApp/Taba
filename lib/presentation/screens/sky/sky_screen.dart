@@ -223,18 +223,26 @@ class _SkyScreenState extends State<SkyScreen> {
                 valueListenable: AppLocaleController.localeNotifier,
                 builder: (context, locale, _) {
                   return widget.letters.isEmpty
-                      ? EmptyState(
-                          icon: Icons.cloud_outlined,
-                          title: AppStrings.mainScreenEmptyTitle(locale),
-                          subtitle: AppStrings.mainScreenEmptySubtitle(locale),
-                          action: widget.onRefresh != null
-                              ? TabaButton(
-                                  onPressed: widget.onRefresh,
-                                  label: AppStrings.refreshButton(locale),
-                                  icon: Icons.refresh,
-                                  isFullWidth: false,
-                                )
-                              : null,
+                      ? Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: MediaQuery.of(context).size.height * 0.12,
+                            ),
+                            child: EmptyState(
+                              icon: Icons.cloud_outlined,
+                              title: AppStrings.mainScreenEmptyTitle(locale),
+                              subtitle: AppStrings.mainScreenEmptySubtitle(locale),
+                              action: widget.onRefresh != null
+                                  ? TabaButton(
+                                      onPressed: widget.onRefresh,
+                                      label: AppStrings.refreshButton(locale),
+                                      icon: Icons.refresh,
+                                      isFullWidth: false,
+                                    )
+                                  : null,
+                            ),
+                          ),
                         )
                   : NotificationListener<ScrollNotification>(
                       onNotification: (notification) {

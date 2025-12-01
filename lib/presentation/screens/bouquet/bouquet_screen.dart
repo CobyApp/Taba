@@ -432,14 +432,17 @@ class _BouquetScreenState extends State<BouquetScreen> {
                   : _selectedFlowers.isEmpty && !isLoading
                       ? SliverFillRemaining(
                           hasScrollBody: false,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: MediaQuery.of(context).size.height * 0.15, // 화면 높이의 15%만큼 위에서 여백 추가
-                            ),
-                            child: EmptyState(
-                              icon: Icons.mail_outline,
-                              title: AppStrings.noLettersYet(locale),
-                              subtitle: AppStrings.writeLetterToStart(locale),
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: MediaQuery.of(context).size.height * 0.08,
+                              ),
+                              child: EmptyState(
+                                icon: Icons.mail_outline,
+                                title: AppStrings.noLettersYet(locale),
+                                subtitle: AppStrings.writeLetterToStart(locale),
+                              ),
                             ),
                           ),
                     )
