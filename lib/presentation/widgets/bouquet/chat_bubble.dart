@@ -3,6 +3,8 @@ import 'package:taba_app/core/constants/app_colors.dart';
 import 'package:taba_app/core/constants/app_spacing.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/presentation/widgets/user_avatar.dart';
+import 'package:taba_app/core/locale/app_strings.dart';
+import 'package:taba_app/core/locale/app_locale.dart';
 
 /// 채팅 버블 컴포넌트
 class ChatBubble extends StatelessWidget {
@@ -139,10 +141,75 @@ class ChatBubble extends StatelessWidget {
 }
 
 /// 시간 표시 헬퍼 함수
-String formatTimeAgo(DateTime time) {
+/// 예약전송 편지의 경우 scheduledAt을 사용하여 "언제 발송 예정인지" 표시
+String formatTimeAgo(DateTime time, {DateTime? scheduledAt}) {
+  final locale = AppLocaleController.localeNotifier.value;
+  
+  // 예약전송 편지인 경우 scheduledAt 사용
+  if (scheduledAt != null) {
+    final now = DateTime.now();
+    // 아직 발송되지 않은 경우 (scheduledAt이 미래인 경우)
+    if (scheduledAt.isAfter(now)) {
+      return _formatScheduledTime(locale, scheduledAt);
+    }
+  }
+  
+  // 일반 편지 또는 이미 발송된 예약전송 편지
   final diff = DateTime.now().difference(time);
-  if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-  if (diff.inHours < 24) return '${diff.inHours}시간 전';
-  return '${diff.inDays}일 전';
+  if (diff.isNegative) {
+    // 마이너스 시간 방지: 미래 시간인 경우 "곧" 표시
+    return AppStrings.timeAgo(locale, time);
+  }
+  return AppStrings.timeAgo(locale, time);
+}
+
+/// 예약전송 시간 포맷팅 (로컬라이즈)
+String _formatScheduledTime(Locale locale, DateTime scheduledAt) {
+  final now = DateTime.now();
+  final diff = scheduledAt.difference(now);
+  
+  String timeStr;
+  if (diff.inDays > 0) {
+    timeStr = '${diff.inDays}일';
+  } else if (diff.inHours > 0) {
+    timeStr = '${diff.inHours}시간';
+  } else if (diff.inMinutes > 0) {
+    timeStr = '${diff.inMinutes}분';
+  } else {
+    timeStr = '곧';
+  }
+  
+  switch (locale.languageCode) {
+    case 'en':
+      if (diff.inDays > 0) {
+        return 'Scheduled in $timeStr';
+      } else if (diff.inHours > 0) {
+        return 'Scheduled in $timeStr';
+      } else if (diff.inMinutes > 0) {
+        return 'Scheduled in $timeStr';
+      } else {
+        return 'Scheduled soon';
+      }
+    case 'ja':
+      if (diff.inDays > 0) {
+        return '$timeStr後に送信予定';
+      } else if (diff.inHours > 0) {
+        return '$timeStr後に送信予定';
+      } else if (diff.inMinutes > 0) {
+        return '$timeStr後に送信予定';
+      } else {
+        return 'まもなく送信予定';
+      }
+    default:
+      if (diff.inDays > 0) {
+        return '$timeStr 후 발송 예정';
+      } else if (diff.inHours > 0) {
+        return '$timeStr 후 발송 예정';
+      } else if (diff.inMinutes > 0) {
+        return '$timeStr 후 발송 예정';
+      } else {
+        return '곧 발송 예정';
+      }
+  }
 }
 

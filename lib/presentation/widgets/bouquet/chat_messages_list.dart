@@ -34,12 +34,18 @@ class ChatMessagesList extends StatelessWidget {
           final item = flowers[i];
           final isUnread = !item.sentByMe && !readFlowerIds.contains(item.id);
           
+          // 예약전송 편지의 경우 scheduledAt 사용
+          final timeLabel = formatTimeAgo(
+            item.sentAt,
+            scheduledAt: item.scheduledAt,
+          );
+          
           return ChatBubble(
             contentTitle: item.title,
             contentPreview: item.preview,
             emoji: '🌸', // 기본 꽃 이모지 (꽃 종류 제거됨)
             isMine: item.sentByMe,
-            timeLabel: formatTimeAgo(item.sentAt),
+            timeLabel: timeLabel,
             isUnread: isUnread,
             friendUser: friendUser,
             onTap: () => onOpen(item),
