@@ -22,8 +22,10 @@ class FcmService {
   Future<void> initialize() async {
     try {
       // 알림 권한 요청 (iOS에서는 권한 요청 후 APNS 토큰이 설정됨)
+      // 배지 권한 포함 (앱 아이콘에 배지 숫자 표시용)
       final settings = await _firebaseMessaging.requestPermission(
         alert: true,
+        badge: true,
         sound: true,
       );
 
