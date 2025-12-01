@@ -34,7 +34,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isLoadingData = false; // 데이터 로딩 중 플래그 (중복 호출 방지)
   List<String> _selectedLanguages = []; // 선택된 언어 필터 (ko, en, ja)
-  bool _isSyncingBadge = false; // 뱃지 동기화 중 플래그
 
   @override
   void initState() {
@@ -200,10 +199,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   ),
                 ),
               );
-              // 편지를 읽었으면 데이터 새로고침 및 뱃지 동기화
+              // 편지를 읽었으면 데이터 새로고침
+              // 뱃지는 서버에서 자동 업데이트되고 FCM으로 전송됨
               if (result == true && mounted) {
                 _loadData();
-                _syncBadgeQuietly();
               }
             }
           }
@@ -263,10 +262,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   ),
                 ),
               );
-              // 편지를 읽었거나 삭제되었으면 데이터 새로고침 및 뱃지 동기화
+              // 편지를 읽었거나 삭제되었으면 데이터 새로고침
+              // 뱃지는 서버에서 자동 업데이트되고 FCM으로 전송됨
               if (result == true && mounted) {
                 _loadData();
-                _syncBadgeQuietly();
               }
             }
           }
@@ -368,8 +367,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         });
       }
 
-      // 앱 아이콘 뱃지 동기화 (서버 API 사용)
-      _syncBadgeQuietly();
+      // 뱃지는 FCM 푸시 알림을 통해 자동 업데이트됨 (백그라운드/포그라운드 모두)
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -391,23 +389,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
-  /// 앱 아이콘 뱃지 동기화 (서버 API 사용)
-  /// POST /notifications/badge/sync
-  Future<void> _syncBadgeQuietly() async {
-    if (_isSyncingBadge) return;
-    
-    _isSyncingBadge = true;
-    try {
-      final unreadCount = await _repository.syncBadge();
-      await _updateAppBadge(unreadCount);
-    } catch (e) {
-      // 에러 발생해도 조용히 무시
-    } finally {
-      _isSyncingBadge = false;
-    }
-  }
-
   /// 앱 아이콘 뱃지 업데이트
+  /// FCM 푸시 알림을 통해 자동 업데이트됨 (백그라운드/포그라운드 모두)
   Future<void> _updateAppBadge(int unreadCount) async {
     try {
       if (unreadCount > 0) {
@@ -509,10 +492,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         ),
       );
       
-      // BouquetScreen이 닫힐 때 데이터 새로고침 및 뱃지 동기화
+      // BouquetScreen이 닫힐 때 데이터 새로고침
+      // 뱃지는 서버에서 자동 업데이트되고 FCM으로 전송됨
       if (mounted) {
         _loadData();
-        _syncBadgeQuietly();
       }
     } catch (e) {
       if (!mounted) return;
