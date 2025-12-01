@@ -213,12 +213,9 @@ class _BouquetScreenState extends State<BouquetScreen> {
   }
 
 
+  /// UI 표시용: 각 친구별 읽지 않은 편지 개수 계산
   int _unreadFor(FriendBouquet bouquet) {
-    // API에서 받은 unreadLetterCount를 직접 사용
-    // 편지를 읽을 때는 로컬에서 차감하지만, 기본값은 API에서 받은 값 사용
     final baseUnreadCount = bouquet.friend.unreadLetterCount;
-    
-    // 로드된 편지 중에서 이미 읽은 편지 개수를 차감
     final flowers = _loadedFlowers[bouquet.friend.user.id] ?? [];
     final readCount = flowers
         .where(
@@ -228,8 +225,6 @@ class _BouquetScreenState extends State<BouquetScreen> {
         )
         .length;
     
-    // API에서 받은 값에서 이미 읽은 편지 개수를 차감
-    // 단, 음수가 되지 않도록 최소값은 0
     return (baseUnreadCount - readCount).clamp(0, baseUnreadCount);
   }
 

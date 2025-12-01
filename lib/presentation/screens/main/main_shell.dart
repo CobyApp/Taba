@@ -54,7 +54,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // 포그라운드 뱃지 체크 제거 - 데이터 새로고침 시에만 뱃지 업데이트
+    // 포그라운드 뱃지 체크는 제거됨 - 데이터 새로고침 시에만 뱃지 동기화
   }
 
   void _setupPushNotificationHandlers() {
@@ -64,25 +64,19 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     fcmService.setOnMessageHandler((message) {
       if (!mounted) return;
       
-      // FCM data payload에서 뱃지 업데이트 확인
       final data = message.data;
       final badgeType = data['type'] as String?;
-      
-      // 뱃지 업데이트만 하는 경우 (type: "badge_update")
-      if (badgeType == 'badge_update') {
-        final badgeString = data['badge'] as String?;
-        if (badgeString != null) {
-          final badge = int.tryParse(badgeString) ?? 0;
-          _updateAppBadge(badge);
-        }
-        return; // 뱃지 업데이트만 하는 경우 알림 표시하지 않음
-      }
-      
-      // 일반 알림인 경우 뱃지 업데이트 (data payload에 badge가 있는 경우)
       final badgeString = data['badge'] as String?;
+      
+      // 뱃지 업데이트 처리
       if (badgeString != null) {
         final badge = int.tryParse(badgeString) ?? 0;
         _updateAppBadge(badge);
+      }
+      
+      // 뱃지 업데이트만 하는 경우 알림 표시하지 않음
+      if (badgeType == 'badge_update') {
+        return;
       }
       
       // 데이터 새로고침
@@ -167,7 +161,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     
     final data = message.data;
     
-    // FCM data payload에서 뱃지 업데이트 확인
+    // 뱃지 업데이트 처리
     final badgeString = data['badge'] as String?;
     if (badgeString != null) {
       final badge = int.tryParse(badgeString) ?? 0;
@@ -209,7 +203,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
               // 편지를 읽었으면 데이터 새로고침 및 뱃지 동기화
               if (result == true && mounted) {
                 _loadData();
-                // 편지를 읽었으므로 뱃지 동기화
                 _syncBadgeQuietly();
               }
             }
@@ -273,7 +266,6 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
               // 편지를 읽었거나 삭제되었으면 데이터 새로고침 및 뱃지 동기화
               if (result == true && mounted) {
                 _loadData();
-                // 편지를 읽었으므로 뱃지 동기화
                 _syncBadgeQuietly();
               }
             }
@@ -361,8 +353,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       final notifications = await _repository.getNotifications();
       final friends = await _repository.getFriends();
       
-      // API에서 받은 unreadLetterCount 합산 (API 명세서: 안 읽은 개인편지(DIRECT) 개수)
-      // 각 친구의 unreadLetterCount를 합산하여 전체 안 읽은 편지 수 계산
+      // UI 표시용: 각 친구의 unreadLetterCount 합산
       final unreadCount = friends.fold<int>(
         0,
         (sum, friend) => sum + friend.unreadLetterCount,
@@ -377,7 +368,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         });
       }
 
-      // 데이터 새로고침 후 서버 API를 통해 뱃지 동기화
+      // 앱 아이콘 뱃지 동기화 (서버 API 사용)
       _syncBadgeQuietly();
     } catch (e) {
       if (mounted) {
@@ -400,27 +391,23 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
-  /// 뱃지 조용히 동기화 (서버 API 사용)
-  /// API 명세서: POST /notifications/badge/sync
-  /// 에러 발생해도 무시, 로그 최소화
+  /// 앱 아이콘 뱃지 동기화 (서버 API 사용)
+  /// POST /notifications/badge/sync
   Future<void> _syncBadgeQuietly() async {
-    if (_isSyncingBadge) return; // 이미 동기화 중이면 스킵
+    if (_isSyncingBadge) return;
     
     _isSyncingBadge = true;
     try {
-      // 서버에서 계산한 unreadCount로 뱃지 동기화
       final unreadCount = await _repository.syncBadge();
       await _updateAppBadge(unreadCount);
     } catch (e) {
-      // 에러 발생해도 조용히 무시 (로그만 출력)
-      // print('뱃지 동기화 실패 (무시): $e');
+      // 에러 발생해도 조용히 무시
     } finally {
       _isSyncingBadge = false;
     }
   }
 
   /// 앱 아이콘 뱃지 업데이트
-  /// 동기화된 unreadCount 값으로 뱃지 설정
   Future<void> _updateAppBadge(int unreadCount) async {
     try {
       if (unreadCount > 0) {
@@ -501,15 +488,14 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       }
       
       // 친구 목록을 FriendBouquet 형태로 변환
-      // API에서 받은 unreadLetterCount 사용 (API 명세서: 안 읽은 개인편지(DIRECT) 개수)
       final friendBouquets = friends.map((friend) {
-            return FriendBouquet(
-              friend: friend,
-              bloomLevel: 0.0, // 계산 로직이 없으므로 기본값
-              trustScore: 0, // 계산 로직이 없으므로 기본값
-              bouquetName: friend.user.nickname, // 친구 이름을 기본 꽃다발 이름으로 사용
-          unreadCount: friend.unreadLetterCount, // API에서 받은 안 읽은 개인편지 개수 사용
-            );
+        return FriendBouquet(
+          friend: friend,
+          bloomLevel: 0.0,
+          trustScore: 0,
+          bouquetName: friend.user.nickname,
+          unreadCount: friend.unreadLetterCount,
+        );
       }).toList();
       
       if (!mounted) return;
@@ -523,11 +509,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         ),
       );
       
-      // BouquetScreen이 닫힐 때마다 데이터 새로고침 및 뱃지 동기화
-      // (편지를 읽었을 때 서버의 unreadLetterCount가 변경되었을 수 있음)
+      // BouquetScreen이 닫힐 때 데이터 새로고침 및 뱃지 동기화
       if (mounted) {
         _loadData();
-        // 편지 목록 화면에서 돌아왔으므로 뱃지 동기화
         _syncBadgeQuietly();
       }
     } catch (e) {
