@@ -417,6 +417,17 @@ class DataRepository {
     return 0;
   }
 
+  /// 뱃지 동기화
+  /// API 명세서: POST /notifications/badge/sync
+  /// 앱이 포그라운드로 올라오거나 알림 목록 화면 진입 시 호출
+  Future<int> syncBadge() async {
+    final response = await _notificationService.syncBadge();
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    return 0;
+  }
+
   // Friends
   Future<List<FriendProfile>> getFriends() async {
     final response = await _friendService.getFriends();

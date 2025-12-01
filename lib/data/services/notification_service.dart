@@ -267,5 +267,64 @@ class NotificationService {
       );
     }
   }
+
+  /// 뱃지 동기화
+  /// API 명세서: POST /notifications/badge/sync
+  /// 앱이 포그라운드로 올라오거나 알림 목록 화면 진입 시 호출
+  Future<ApiResponse<int>> syncBadge() async {
+    try {
+      final response = await _apiClient.dio.post('/notifications/badge/sync');
+
+      if (response.data is! Map<String, dynamic>) {
+        return ApiResponse<int>(
+          success: false,
+          error: ApiError(
+            code: 'SYNC_BADGE_ERROR',
+            message: 'Invalid response format',
+          ),
+        );
+      }
+
+      return ApiResponse<int>.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) {
+          // API 명세서: {success: true, data: {unreadCount: 3}}
+          if (data is Map<String, dynamic>) {
+            return (data['unreadCount'] as int?) ?? 0;
+          }
+          return 0;
+        },
+      );
+    } on DioException catch (e) {
+      String errorMessage = '뱃지 동기화에 실패했습니다.';
+      if (e.response?.statusCode == 401) {
+        errorMessage = '인증이 필요합니다. 다시 로그인해주세요.';
+      } else if (e.response?.data != null) {
+        try {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          errorMessage = errorData['message'] ?? 
+                        (errorData['error'] is Map ? (errorData['error'] as Map)['message'] : errorData['error']) ??
+                        errorData['errorMessage'] ?? 
+                        errorMessage;
+        } catch (_) {}
+      }
+      
+      return ApiResponse<int>(
+        success: false,
+        error: ApiError(
+          code: 'SYNC_BADGE_ERROR',
+          message: errorMessage,
+        ),
+      );
+    } catch (e) {
+      return ApiResponse<int>(
+        success: false,
+        error: ApiError(
+          code: 'SYNC_BADGE_ERROR',
+          message: '예상치 못한 오류가 발생했습니다: ${e.toString()}',
+        ),
+      );
+    }
+  }
 }
 

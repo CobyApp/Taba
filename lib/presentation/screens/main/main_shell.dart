@@ -26,7 +26,7 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   final _repository = DataRepository.instance;
   List<Letter> _letters = [];
   List<NotificationItem> _notifications = [];
@@ -37,9 +37,25 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadLanguageFilters();
     _loadData();
     _setupPushNotificationHandlers();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 앱이 포그라운드로 올라올 때 뱃지 동기화
+    if (state == AppLifecycleState.resumed) {
+      _syncBadge();
+    }
   }
 
   void _setupPushNotificationHandlers() {
@@ -313,16 +329,9 @@ class _MainShellState extends State<MainShell> {
         (sum, friend) => sum + friend.unreadLetterCount,
       );
 
-      // API 명세서: GET /notifications/unread-count를 사용하여 앱 아이콘 뱃지 업데이트
-      // 읽지 않은 알림 개수로 뱃지 숫자 설정
-      try {
-        final unreadNotificationCount = await _repository.getUnreadNotificationCount();
-        print('📊 읽지 않은 알림 개수: $unreadNotificationCount');
-        await _updateAppBadge(unreadNotificationCount);
-      } catch (e) {
-        // 뱃지 업데이트 실패해도 앱은 계속 진행
-        print('❌ 앱 뱃지 업데이트 실패: $e');
-      }
+      // API 명세서: POST /notifications/badge/sync를 사용하여 앱 아이콘 뱃지 동기화
+      // 앱이 포그라운드로 올라오거나 데이터 새로고침 시 뱃지 동기화
+      await _syncBadge();
 
       if (mounted) {
         setState(() {
@@ -351,8 +360,29 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  /// 뱃지 동기화
+  /// API 명세서: POST /notifications/badge/sync
+  /// 앱이 포그라운드로 올라오거나 데이터 새로고침 시 호출
+  Future<void> _syncBadge() async {
+    try {
+      final unreadCount = await _repository.syncBadge();
+      print('📊 뱃지 동기화 완료: $unreadCount');
+      await _updateAppBadge(unreadCount);
+    } catch (e) {
+      // 뱃지 동기화 실패 시 기존 방식으로 fallback
+      print('⚠️ 뱃지 동기화 실패, fallback 사용: $e');
+      try {
+        final unreadNotificationCount = await _repository.getUnreadNotificationCount();
+        print('📊 읽지 않은 알림 개수 (fallback): $unreadNotificationCount');
+        await _updateAppBadge(unreadNotificationCount);
+      } catch (e2) {
+        print('❌ 앱 뱃지 업데이트 실패: $e2');
+      }
+    }
+  }
+
   /// 앱 아이콘 뱃지 업데이트
-  /// API 명세서: GET /notifications/unread-count의 unreadCount 값으로 뱃지 설정
+  /// 동기화된 unreadCount 값으로 뱃지 설정
   Future<void> _updateAppBadge(int unreadCount) async {
     try {
       if (unreadCount > 0) {
@@ -361,7 +391,7 @@ class _MainShellState extends State<MainShell> {
         await AppBadgeService.instance.removeBadge();
       }
     } catch (e) {
-      print('앱 뱃지 업데이트 중 오류 발생: $e');
+      print('❌ 앱 뱃지 업데이트 중 오류 발생: $e');
     }
   }
 
