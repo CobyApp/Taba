@@ -64,12 +64,33 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     fcmService.setOnMessageHandler((message) {
       if (!mounted) return;
       
+      // FCM data payload에서 뱃지 업데이트 확인
+      final data = message.data;
+      final badgeType = data['type'] as String?;
+      
+      // 뱃지 업데이트만 하는 경우 (type: "badge_update")
+      if (badgeType == 'badge_update') {
+        final badgeString = data['badge'] as String?;
+        if (badgeString != null) {
+          final badge = int.tryParse(badgeString) ?? 0;
+          _updateAppBadge(badge);
+        }
+        return; // 뱃지 업데이트만 하는 경우 알림 표시하지 않음
+      }
+      
+      // 일반 알림인 경우 뱃지 업데이트 (data payload에 badge가 있는 경우)
+      final badgeString = data['badge'] as String?;
+      if (badgeString != null) {
+        final badge = int.tryParse(badgeString) ?? 0;
+        _updateAppBadge(badge);
+      }
+      
       // 데이터 새로고침
       _loadData();
       
       // 스낵바로 알림 표시
       final locale = AppLocaleController.localeNotifier.value;
-      final category = message.data['category'] as String? ?? message.data['type'] as String?;
+      final category = data['category'] as String? ?? data['type'] as String?;
       
       // 친구 추가 알림인 경우 로컬라이즈된 메시지 사용
       String title;
@@ -145,6 +166,14 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     if (!mounted) return;
     
     final data = message.data;
+    
+    // FCM data payload에서 뱃지 업데이트 확인
+    final badgeString = data['badge'] as String?;
+    if (badgeString != null) {
+      final badge = int.tryParse(badgeString) ?? 0;
+      _updateAppBadge(badge);
+    }
+    
     final deepLink = data['deepLink'] as String?;
     final category = data['category'] as String? ?? data['type'] as String?;
     final relatedId = data['relatedId'] as String?;
@@ -177,9 +206,11 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   ),
                 ),
               );
-              // 편지를 읽었으면 데이터 새로고침하여 뱃지 카운트 업데이트
+              // 편지를 읽었으면 데이터 새로고침 및 뱃지 동기화
               if (result == true && mounted) {
-              _loadData();
+                _loadData();
+                // 편지를 읽었으므로 뱃지 동기화
+                _syncBadgeQuietly();
               }
             }
           }
@@ -239,9 +270,11 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
                   ),
                 ),
               );
-              // 편지를 읽었거나 삭제되었으면 데이터 새로고침
+              // 편지를 읽었거나 삭제되었으면 데이터 새로고침 및 뱃지 동기화
               if (result == true && mounted) {
                 _loadData();
+                // 편지를 읽었으므로 뱃지 동기화
+                _syncBadgeQuietly();
               }
             }
           }
@@ -344,8 +377,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         });
       }
 
-      // 데이터 새로고침 후 조용히 뱃지 업데이트 (에러 발생해도 무시)
-      _updateBadgeQuietly(unreadCount);
+      // 데이터 새로고침 후 서버 API를 통해 뱃지 동기화
+      _syncBadgeQuietly();
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -367,18 +400,20 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
-  /// 뱃지 조용히 업데이트 (에러 발생해도 무시, 로그 최소화)
-  /// 데이터 새로고침 후 로컬 계산된 unreadCount로 뱃지 업데이트
-  Future<void> _updateBadgeQuietly(int unreadCount) async {
+  /// 뱃지 조용히 동기화 (서버 API 사용)
+  /// API 명세서: POST /notifications/badge/sync
+  /// 에러 발생해도 무시, 로그 최소화
+  Future<void> _syncBadgeQuietly() async {
     if (_isSyncingBadge) return; // 이미 동기화 중이면 스킵
     
     _isSyncingBadge = true;
     try {
-      // 로컬에서 계산한 unreadCount로 뱃지 업데이트
+      // 서버에서 계산한 unreadCount로 뱃지 동기화
+      final unreadCount = await _repository.syncBadge();
       await _updateAppBadge(unreadCount);
     } catch (e) {
       // 에러 발생해도 조용히 무시 (로그만 출력)
-      // print('뱃지 업데이트 실패 (무시): $e');
+      // print('뱃지 동기화 실패 (무시): $e');
     } finally {
       _isSyncingBadge = false;
     }
@@ -488,10 +523,12 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         ),
       );
       
-      // BouquetScreen이 닫힐 때마다 데이터 새로고침하여 뱃지 카운트 업데이트
+      // BouquetScreen이 닫힐 때마다 데이터 새로고침 및 뱃지 동기화
       // (편지를 읽었을 때 서버의 unreadLetterCount가 변경되었을 수 있음)
       if (mounted) {
         _loadData();
+        // 편지 목록 화면에서 돌아왔으므로 뱃지 동기화
+        _syncBadgeQuietly();
       }
     } catch (e) {
       if (!mounted) return;
