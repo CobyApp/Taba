@@ -3638,5 +3638,226 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
         return '예약전송은 친구에게만 보낼 수 있습니다.';
     }
   }
+
+  // 차단 관련 문자열
+  static String blockUser(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Block User';
+      case 'ja':
+        return 'ユーザーをブロック';
+      default:
+        return '사용자 차단';
+    }
+  }
+
+  static String blockUserConfirm(Locale locale, String nickname) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Are you sure you want to block $nickname?\n\nBlocking will remove the friend relationship and hide their public letters.';
+      case 'ja':
+        return '$nicknameをブロックしてもよろしいですか？\n\nブロックすると友達関係が解除され、公開手紙が非表示になります。';
+      default:
+        return '$nickname님을 차단하시겠습니까?\n\n차단하면 친구 관계가 끊기고 공개 편지를 볼 수 없게 됩니다.';
+    }
+  }
+
+  static String block(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Block';
+      case 'ja':
+        return 'ブロック';
+      default:
+        return '차단';
+    }
+  }
+
+  static String userBlocked(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'User blocked';
+      case 'ja':
+        return 'ユーザーをブロックしました';
+      default:
+        return '사용자를 차단했습니다';
+    }
+  }
+
+  static String userBlockedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'The user has been blocked. You will no longer see their public letters.';
+      case 'ja':
+        return 'ユーザーをブロックしました。今後、公開手紙は表示されません。';
+      default:
+        return '사용자를 차단했습니다. 이제 공개 편지를 볼 수 없습니다.';
+    }
+  }
+
+  static String blockFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to block user';
+      case 'ja':
+        return 'ブロックに失敗しました';
+      default:
+        return '차단에 실패했습니다';
+    }
+  }
+
+  static String unblock(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Unblock';
+      case 'ja':
+        return 'ブロック解除';
+      default:
+        return '차단 해제';
+    }
+  }
+
+  static String unblockConfirm(Locale locale, String nickname) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Are you sure you want to unblock $nickname?\n\nNote: You will need to add them as a friend again to exchange letters.';
+      case 'ja':
+        return '$nicknameのブロックを解除しますか？\n\n注意：手紙をやり取りするには、再度友達追加が必要です。';
+      default:
+        return '$nickname님의 차단을 해제하시겠습니까?\n\n참고: 편지를 주고받으려면 다시 친구 추가를 해야 합니다.';
+    }
+  }
+
+  static String userUnblocked(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'User unblocked';
+      case 'ja':
+        return 'ブロックを解除しました';
+      default:
+        return '차단을 해제했습니다';
+    }
+  }
+
+  static String userUnblockedMessage(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'The user has been unblocked. You can now see their public letters again.';
+      case 'ja':
+        return 'ブロックを解除しました。今後、公開手紙が表示されます。';
+      default:
+        return '차단을 해제했습니다. 이제 공개 편지를 볼 수 있습니다.';
+    }
+  }
+
+  static String unblockFailed(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Failed to unblock user';
+      case 'ja':
+        return 'ブロック解除に失敗しました';
+      default:
+        return '차단 해제에 실패했습니다';
+    }
+  }
+
+  static String blockedUsers(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Blocked Users';
+      case 'ja':
+        return 'ブロックしたユーザー';
+      default:
+        return '차단한 사용자';
+    }
+  }
+
+  static String blockedUsersEmpty(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'No blocked users';
+      case 'ja':
+        return 'ブロックしたユーザーはいません';
+      default:
+        return '차단한 사용자가 없습니다';
+    }
+  }
+
+  static String blockedUsersEmptySubtitle(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Users you block will appear here';
+      case 'ja':
+        return 'ブロックしたユーザーがここに表示されます';
+      default:
+        return '차단한 사용자가 여기에 표시됩니다';
+    }
+  }
+
+  static String blockedAt(Locale locale, DateTime blockedAt) {
+    final diff = DateTime.now().difference(blockedAt);
+    
+    if (diff.inDays > 0) {
+      switch (locale.languageCode) {
+        case 'en':
+          return 'Blocked ${diff.inDays} days ago';
+        case 'ja':
+          return '${diff.inDays}日前にブロック';
+        default:
+          return '${diff.inDays}일 전 차단';
+      }
+    } else if (diff.inHours > 0) {
+      switch (locale.languageCode) {
+        case 'en':
+          return 'Blocked ${diff.inHours} hours ago';
+        case 'ja':
+          return '${diff.inHours}時間前にブロック';
+        default:
+          return '${diff.inHours}시간 전 차단';
+      }
+    } else {
+      switch (locale.languageCode) {
+        case 'en':
+          return 'Blocked recently';
+        case 'ja':
+          return '最近ブロック';
+        default:
+          return '최근 차단';
+      }
+    }
+  }
+
+  static String cannotBlockSelf(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'You cannot block yourself';
+      case 'ja':
+        return '自分をブロックすることはできません';
+      default:
+        return '자신을 차단할 수 없습니다';
+    }
+  }
+
+  static String alreadyBlocked(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'This user is already blocked';
+      case 'ja':
+        return 'このユーザーは既にブロックされています';
+      default:
+        return '이미 차단한 사용자입니다';
+    }
+  }
+
+  static String blockAndReport(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'Block & Report';
+      case 'ja':
+        return 'ブロック＆報告';
+      default:
+        return '차단 및 신고';
+    }
+  }
 }
 

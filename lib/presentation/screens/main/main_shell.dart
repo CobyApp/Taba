@@ -34,6 +34,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   bool _isLoading = true;
   bool _isLoadingData = false; // 데이터 로딩 중 플래그 (중복 호출 방지)
   List<String> _selectedLanguages = []; // 선택된 언어 필터 (ko, en, ja)
+  final Set<String> _blockedUserIds = {}; // 차단된 사용자 ID (즉시 필터링용)
 
   @override
   void initState() {
@@ -364,6 +365,9 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
           _notifications = notifications;
           _unreadBouquetCount = unreadCount;
           _isLoading = false;
+          // 서버에서 새로 받은 데이터이므로 로컬 차단 목록 초기화
+          // (서버에서 이미 차단된 사용자의 편지는 필터링되어 옴)
+          _blockedUserIds.clear();
         });
       }
 
@@ -411,13 +415,24 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       );
     }
 
+    // 차단된 사용자의 편지를 필터링
+    final filteredLetters = _letters
+        .where((letter) => !_blockedUserIds.contains(letter.sender.id))
+        .toList();
+    
     return SkyScreen(
-      letters: _letters,
+      letters: filteredLetters,
       notifications: _notifications,
       unreadBouquetCount: _unreadBouquetCount,
       onOpenBouquet: () => _openBouquet(context),
       onOpenSettings: () => _openSettings(context),
       onRefresh: _loadData,
+      onUserBlocked: (blockedUserId) {
+        // 사용자가 차단되었을 때 호출
+        setState(() {
+          _blockedUserIds.add(blockedUserId);
+        });
+      },
       onLoadMore: (page) async {
         try {
           final letters = await _repository.getPublicLetters(
@@ -425,7 +440,8 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
             size: 10,
             languages: _selectedLanguages.length == 3 ? null : _selectedLanguages,
           );
-          return letters;
+          // 차단된 사용자의 편지 필터링
+          return letters.where((l) => !_blockedUserIds.contains(l.sender.id)).toList();
         } catch (e) {
           print('다음 페이지 로드 실패: $e');
           return <Letter>[];
@@ -433,11 +449,16 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       },
       onLoadMoreWithPagination: (page) async {
         try {
-          return await _repository.getPublicLettersWithPagination(
+          final result = await _repository.getPublicLettersWithPagination(
             page: page, 
             size: 10,
             languages: _selectedLanguages.length == 3 ? null : _selectedLanguages,
           );
+          // 차단된 사용자의 편지 필터링
+          final filteredLetters = result.letters
+              .where((l) => !_blockedUserIds.contains(l.sender.id))
+              .toList();
+          return (letters: filteredLetters, hasMore: result.hasMore);
         } catch (e) {
           print('다음 페이지 로드 실패: $e');
           return (letters: <Letter>[], hasMore: false);

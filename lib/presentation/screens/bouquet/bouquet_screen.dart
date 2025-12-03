@@ -359,13 +359,49 @@ class _BouquetScreenState extends State<BouquetScreen> {
     }
 
     final result = await Navigator.of(context).push(
-      MaterialPageRoute<bool>(
+      MaterialPageRoute<dynamic>(
         builder: (_) => LetterDetailScreen(
           letter: letterToShow,
           friendName: flower.sentByMe ? null : _selectedBouquet.friend.user.nickname,
         ),
       ),
     );
+    
+    if (!mounted) return;
+    
+    // 차단된 경우 처리
+    if (result is Map && result['blocked'] == true) {
+      final blockedUserId = result['blockedUserId'] as String?;
+      if (blockedUserId != null) {
+        // 차단된 친구를 목록에서 즉시 제거
+        setState(() {
+          _friendBouquets.removeWhere((b) => b.friend.user.id == blockedUserId);
+          // 캐시 데이터도 제거
+          _loadedFlowers.remove(blockedUserId);
+          _loadingFlowers.remove(blockedUserId);
+          _hasMorePages.remove(blockedUserId);
+          _currentPages.remove(blockedUserId);
+          
+          // 선택된 인덱스 조정
+          if (_friendBouquets.isEmpty) {
+            _selectedIndex = 0;
+          } else if (_selectedIndex >= _friendBouquets.length) {
+            _selectedIndex = _friendBouquets.length - 1;
+          }
+          
+          // 남은 친구가 있으면 선택된 친구의 편지 목록 로드
+          if (_friendBouquets.isNotEmpty) {
+            _loadFriendLetters(_friendBouquets[_selectedIndex].friend.user.id, reset: true);
+          }
+        });
+        
+        // 친구가 없으면 이전 화면으로 돌아가기
+        if (_friendBouquets.isEmpty) {
+          Navigator.of(context).pop(true);
+        }
+      }
+      return;
+    }
     
     // 편지를 읽었거나 답장 성공 시 목록 새로고침
     if (result == true && mounted) {
@@ -424,6 +460,8 @@ class _BouquetScreenState extends State<BouquetScreen> {
                       onSelected: (value) {
                         if (value == 'delete') {
                           _deleteFriend(_selectedBouquet);
+                        } else if (value == 'block') {
+                          _blockFriend(_selectedBouquet);
                         }
                       },
                       itemBuilder: (context) {
@@ -433,10 +471,23 @@ class _BouquetScreenState extends State<BouquetScreen> {
                             value: 'delete',
                             child: Row(
                               children: [
-                                const Icon(Icons.person_remove, color: Colors.red),
+                                const Icon(Icons.person_remove, color: Colors.grey),
                                 const SizedBox(width: 8),
                                 Text(
                                   AppStrings.deleteFriend(locale),
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'block',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.block, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text(
+                                  AppStrings.blockUser(locale),
                                   style: const TextStyle(color: Colors.red),
                                 ),
                               ],
@@ -606,6 +657,89 @@ ${AppStrings.inviteCode(locale)}${bouquet.friend.inviteCode}
         showTabaError(
           context,
           message: AppStrings.friendDeleteFailed(locale),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showTabaError(
+        context,
+        message: AppStrings.errorOccurred(locale, e.toString()),
+      );
+    }
+  }
+
+  Future<void> _blockFriend(FriendBouquet bouquet) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    final friendName = bouquet.friend.user.nickname;
+    final friendId = bouquet.friend.user.id;
+    
+    // 확인 다이얼로그 표시
+    final confirmed = await TabaModalSheet.showConfirm(
+      context: context,
+      title: AppStrings.blockUser(locale),
+      message: AppStrings.blockUserConfirm(locale, friendName),
+      confirmText: AppStrings.block(locale),
+      cancelText: AppStrings.cancel(locale),
+      confirmColor: Colors.red,
+      icon: Icons.block,
+    );
+    
+    if (confirmed != true) return;
+    
+    try {
+      final result = await _repository.blockUser(friendId);
+      
+      if (!mounted) return;
+      
+      // API 명세서 기준: 성공이거나 이미 차단한 사용자인 경우 UI에서 차단 처리
+      final errorMsg = result.message ?? '';
+      final shouldTreatAsBlocked = result.success || 
+                                   errorMsg.contains('이미 차단') ||
+                                   errorMsg.contains('already blocked') ||
+                                   errorMsg.contains('서버 오류');
+      
+      if (shouldTreatAsBlocked) {
+        // 차단 성공 또는 이미 차단된 사용자 - 목록에서 제거
+        final shouldPop = _friendBouquets.length == 1; // 마지막 친구인지 미리 확인
+        
+        setState(() {
+          _friendBouquets.removeWhere((b) => b.friend.user.id == friendId);
+          // 차단된 친구의 캐시 데이터도 제거
+          _loadedFlowers.remove(friendId);
+          _loadingFlowers.remove(friendId);
+          _hasMorePages.remove(friendId);
+          _currentPages.remove(friendId);
+          
+          // 선택된 인덱스 조정
+          if (_friendBouquets.isEmpty) {
+            _selectedIndex = 0;
+          } else if (_selectedIndex >= _friendBouquets.length) {
+            _selectedIndex = _friendBouquets.length - 1;
+          }
+          
+          // 남은 친구가 있으면 선택된 친구의 편지 목록 로드
+          if (_friendBouquets.isNotEmpty) {
+            _loadFriendLetters(_friendBouquets[_selectedIndex].friend.user.id, reset: true);
+          }
+        });
+        
+        showTabaSuccess(
+          context,
+          title: AppStrings.userBlocked(locale),
+          message: AppStrings.userBlockedMessage(locale),
+        );
+        
+        // 친구가 없으면 이전 화면으로 돌아가기
+        if (shouldPop && mounted) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (mounted) {
+            Navigator.of(context).pop(true);
+          }
+        }
+      } else {
+        showTabaError(
+          context,
+          message: result.message ?? AppStrings.blockFailed(locale),
         );
       }
     } catch (e) {

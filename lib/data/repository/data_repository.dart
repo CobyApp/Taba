@@ -4,12 +4,14 @@ import 'package:taba_app/data/models/letter.dart';
 import 'package:taba_app/data/models/notification.dart';
 import 'package:taba_app/data/models/user.dart';
 import 'package:taba_app/data/services/auth_service.dart';
+import 'package:taba_app/data/services/block_service.dart';
 import 'package:taba_app/data/services/bouquet_service.dart';
 import 'package:taba_app/data/services/file_service.dart';
 import 'package:taba_app/data/services/friend_service.dart';
 import 'package:taba_app/data/services/invite_code_service.dart';
 import 'package:taba_app/data/dto/invite_code_dto.dart';
 import 'package:taba_app/data/dto/add_friend_response_dto.dart';
+import 'package:taba_app/data/dto/block_dto.dart';
 import 'package:taba_app/data/services/letter_service.dart';
 import 'package:taba_app/data/services/notification_service.dart';
 import 'package:taba_app/data/services/settings_service.dart';
@@ -32,6 +34,7 @@ class DataRepository {
   final InviteCodeService _inviteCodeService = InviteCodeService();
   final SettingsService _settingsService = SettingsService();
   final FcmService _fcmService = FcmService.instance;
+  final BlockService _blockService = BlockService();
 
   // Auth
   Future<bool> login(String email, String password) async {
@@ -587,6 +590,56 @@ class DataRepository {
     } catch (e) {
       print('deleteUser 예외: $e');
       return false;
+    }
+  }
+
+  // Block (차단)
+  
+  /// 사용자 차단
+  /// POST /blocks/{userId}
+  /// 차단하면 친구 관계가 자동으로 삭제됩니다.
+  Future<({bool success, String? message})> blockUser(String userId) async {
+    try {
+      final response = await _blockService.blockUser(userId);
+      if (response.isSuccess) {
+        return (success: true, message: response.message ?? response.data);
+      }
+      return (success: false, message: response.error?.message ?? '사용자 차단에 실패했습니다.');
+    } catch (e) {
+      print('blockUser 예외: $e');
+      return (success: false, message: '예상치 못한 오류가 발생했습니다.');
+    }
+  }
+
+  /// 차단 해제
+  /// DELETE /blocks/{userId}
+  Future<({bool success, String? message})> unblockUser(String userId) async {
+    try {
+      final response = await _blockService.unblockUser(userId);
+      if (response.isSuccess) {
+        return (success: true, message: response.message ?? response.data);
+      }
+      return (success: false, message: response.error?.message ?? '차단 해제에 실패했습니다.');
+    } catch (e) {
+      print('unblockUser 예외: $e');
+      return (success: false, message: '예상치 못한 오류가 발생했습니다.');
+    }
+  }
+
+  /// 차단한 사용자 목록 조회
+  /// GET /blocks
+  Future<List<BlockedUserDto>> getBlockedUsers() async {
+    try {
+      final response = await _blockService.getBlockedUsers();
+      print('📋 getBlockedUsers API 응답: success=${response.isSuccess}, data=${response.data?.length ?? 0}명');
+      if (response.isSuccess && response.data != null) {
+        return response.data!;
+      }
+      print('📋 getBlockedUsers 실패: ${response.error?.message}');
+      return [];
+    } catch (e) {
+      print('getBlockedUsers 예외: $e');
+      return [];
     }
   }
 }

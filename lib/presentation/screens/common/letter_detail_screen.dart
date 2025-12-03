@@ -303,23 +303,53 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
                               ),
                             ),
                           )
-                          // 내가 보낸 편지가 아닐 때만 신고 버튼 표시
+                          // 내가 보낸 편지가 아닐 때 더보기 메뉴 표시 (신고/차단)
                           else
-                          TextButton(
-                            onPressed: () => _openReportSheet(context),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          PopupMenuButton<String>(
+                            icon: const Icon(
+                              Icons.more_vert,
+                              color: Colors.white70,
+                              size: 22,
                             ),
-                            child: Text(
-                              AppStrings.reportButton(locale),
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontSize: 14,
-                                fontFamily: Theme.of(context).textTheme.labelMedium?.fontFamily,
+                            color: AppColors.midnightSoft,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onSelected: (value) {
+                              if (value == 'report') {
+                                _openReportSheet(context);
+                              } else if (value == 'block') {
+                                _blockUser(context, widget.letter.sender);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'report',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.flag_outlined, color: Colors.white70, size: 20),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      AppStrings.reportButton(locale),
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                              PopupMenuItem(
+                                value: 'block',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.block, color: Colors.redAccent, size: 20),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      AppStrings.blockUser(locale),
+                                      style: const TextStyle(color: Colors.redAccent),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -593,6 +623,62 @@ class _LetterDetailScreenState extends State<LetterDetailScreen> {
       fixedSize: true,
       child: _ReportSheet(letterId: widget.letter.id),
     );
+  }
+
+  Future<void> _blockUser(BuildContext context, TabaUser user) async {
+    final locale = AppLocaleController.localeNotifier.value;
+    
+    final confirmed = await TabaModalSheet.showConfirm(
+      context: context,
+      title: AppStrings.blockUser(locale),
+      message: AppStrings.blockUserConfirm(locale, user.nickname),
+      confirmText: AppStrings.block(locale),
+      cancelText: AppStrings.cancel(locale),
+      confirmColor: Colors.redAccent,
+      icon: Icons.block,
+    );
+
+    if (confirmed != true) return;
+
+    final result = await _repository.blockUser(user.id);
+    
+    if (!mounted) return;
+    
+    // API 명세서 기준:
+    // - 201 Created: 차단 성공
+    // - 400 Bad Request: 자기 자신 차단 또는 이미 차단한 사용자
+    // - 404 Not Found: 사용자를 찾을 수 없음
+    // - 500 Internal Server Error: 서버 오류 (이미 차단된 사용자일 가능성 포함)
+    
+    final errorMsg = result.message ?? '';
+    
+    // 성공이거나, 이미 차단한 사용자인 경우 UI에서 차단 처리
+    // 서버에서 500 에러를 반환해도 이미 차단된 상태일 수 있으므로 처리
+    final shouldTreatAsBlocked = result.success || 
+                                 errorMsg.contains('이미 차단') ||
+                                 errorMsg.contains('already blocked') ||
+                                 errorMsg.contains('서버 오류');
+    
+    print('🚫 차단 결과: success=${result.success}, shouldTreatAsBlocked=$shouldTreatAsBlocked');
+    
+    if (shouldTreatAsBlocked) {
+      // 성공 메시지 표시
+      showTabaSuccess(
+        context,
+        title: AppStrings.userBlocked(locale),
+        message: AppStrings.userBlockedMessage(locale),
+      );
+      
+      // 이전 화면으로 돌아가면서 차단된 사용자 ID 전달
+      if (mounted) {
+        Navigator.of(context).pop({'blocked': true, 'blockedUserId': user.id});
+      }
+    } else {
+      showTabaError(
+        context,
+        message: result.message ?? AppStrings.blockFailed(locale),
+      );
+    }
   }
 
   Future<void> _deleteLetter(BuildContext context) async {

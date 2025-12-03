@@ -21,6 +21,7 @@ import 'package:taba_app/core/locale/app_strings.dart';
 import 'package:taba_app/core/storage/language_filter_storage.dart';
 import 'package:taba_app/data/services/fcm_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:taba_app/presentation/screens/settings/block_list_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -352,6 +353,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 32),
                       // 6. 계정 섹션 (개인 정보 및 보안)
                       _SectionHeader(title: AppStrings.accountSection(locale)),
+                      ListTile(
+                        leading: const Icon(Icons.block_outlined),
+                        title: Text(AppStrings.blockedUsers(locale)),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _openBlockList(context),
+                      ),
                       ListTile(
                         leading: const Icon(Icons.lock_outline),
                         title: Text(AppStrings.changePassword(locale)),
@@ -929,6 +936,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       showTabaError(context, message: AppStrings.logoutError(locale) + e.toString());
     }
   }
+
+  void _openBlockList(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const BlockListScreen(),
+      ),
+    );
+  }
 }
 
 class _ProfileCard extends StatelessWidget {
@@ -1194,90 +1209,118 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: ValueListenableBuilder<Locale>(
-          valueListenable: AppLocaleController.localeNotifier,
-          builder: (context, locale, _) {
-            return Text(AppStrings.editProfileTitle(locale));
-          },
+      backgroundColor: AppColors.midnightSoft,
+      appBar: PreferredSize(
+        preferredSize: Size.zero,
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          toolbarHeight: 0,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        centerTitle: false,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : ValueListenableBuilder<Locale>(
-                    valueListenable: AppLocaleController.localeNotifier,
-                    builder: (context, locale, _) {
-                      return Text(AppStrings.save(locale));
-                    },
-                  ),
-          ),
-        ],
       ),
-      body: ValueListenableBuilder<Locale>(
-        valueListenable: AppLocaleController.localeNotifier,
-        builder: (context, locale, _) {
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // 프로필 이미지
-              Center(
-                child: GestureDetector(
-                  onTap: _showImagePickerOptions,
-                  child: Stack(
-                    children: [
-                      _ProfileImageAvatar(
-                        radius: 60,
-                        profileImage: _isRemovingImage ? null : _profileImage,
-                        avatarUrl: _currentAvatarUrl,
-                        user: widget.currentUser,
-                        hasError: _hasImageError,
-                        onImageError: () {
-                          setState(() {
-                            _hasImageError = true;
-                          });
-                        },
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                                color: AppColors.neonPink,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white,
-                              width: 2,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 20,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            NavHeader(
+              showBackButton: true,
+              actions: [
+                _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.only(right: AppSpacing.sm),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                             color: Colors.white,
                           ),
                         ),
+                      )
+                    : TextButton(
+                        onPressed: _saveProfile,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.neonPink,
+                        ),
+                        child: ValueListenableBuilder<Locale>(
+                          valueListenable: AppLocaleController.localeNotifier,
+                          builder: (context, locale, _) {
+                            return Text(
+                              AppStrings.save(locale),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            );
+                          },
+                        ),
                       ),
+              ],
+            ),
+            Expanded(
+              child: ValueListenableBuilder<Locale>(
+                valueListenable: AppLocaleController.localeNotifier,
+                builder: (context, locale, _) {
+                  return ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      // 프로필 이미지
+                      Center(
+                        child: GestureDetector(
+                          onTap: _showImagePickerOptions,
+                          child: Stack(
+                            children: [
+                              _ProfileImageAvatar(
+                                radius: 60,
+                                profileImage: _isRemovingImage ? null : _profileImage,
+                                avatarUrl: _currentAvatarUrl,
+                                user: widget.currentUser,
+                                hasError: _hasImageError,
+                                onImageError: () {
+                                  setState(() {
+                                    _hasImageError = true;
+                                  });
+                                },
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.neonPink,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // 닉네임
+                      TabaTextField(
+                        controller: _nicknameCtrl,
+                        labelText: AppStrings.nickname(locale),
+                      ),
+                      // 상태 메시지 제거됨
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
-              const SizedBox(height: 24),
-              // 닉네임
-              TabaTextField(
-                controller: _nicknameCtrl,
-                labelText: AppStrings.nickname(locale),
-              ),
-              // 상태 메시지 제거됨
-            ],
-          );
-        },
+            ),
+          ],
+        ),
       ),
     );
   }

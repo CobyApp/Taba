@@ -27,6 +27,7 @@ class SkyScreen extends StatefulWidget {
     this.onLoadMore,
     this.onLoadMoreWithPagination,
     this.onLanguageFilterChanged,
+    this.onUserBlocked,
     this.floatingActionButton,
   });
 
@@ -39,6 +40,7 @@ class SkyScreen extends StatefulWidget {
   final Future<List<Letter>> Function(int page)? onLoadMore;
   final Future<({List<Letter> letters, bool hasMore})> Function(int page)? onLoadMoreWithPagination;
   final Function(List<String>)? onLanguageFilterChanged;
+  final Function(String blockedUserId)? onUserBlocked; // 사용자 차단 시 콜백
   final Widget? floatingActionButton;
 
   @override
@@ -55,6 +57,8 @@ class _SkyScreenState extends State<SkyScreen> {
   bool _hasMorePages = true;
   // 읽음 상태 오버라이드: 편지 ID -> 읽음 상태 (true: 읽음, false: 읽지 않음)
   final Map<String, bool> _readStatusOverrides = {};
+  // 차단된 사용자 ID 목록 (즉시 필터링용)
+  final Set<String> _blockedUserIds = {};
 
   @override
   void initState() {
@@ -227,7 +231,7 @@ class _SkyScreenState extends State<SkyScreen> {
                           alignment: Alignment.topCenter,
                           child: Padding(
                             padding: EdgeInsets.only(
-                              top: MediaQuery.of(context).size.height * 0.12,
+                              top: MediaQuery.of(context).size.height * 0.12 - 40,
                             ),
                             child: EmptyState(
                               icon: Icons.cloud_outlined,
@@ -360,7 +364,7 @@ class _SkyScreenState extends State<SkyScreen> {
 
   Future<void> _openLetterPreview(BuildContext context, Letter letter) async {
     final result = await Navigator.of(context).push(
-      PageRouteBuilder<bool>(
+      PageRouteBuilder<dynamic>(
         opaque: false,
         barrierColor: Colors.black.withAlpha(204),
         pageBuilder: (context, animation, secondaryAnimation) {
@@ -374,6 +378,35 @@ class _SkyScreenState extends State<SkyScreen> {
         },
       ),
     );
+    
+    // 결과 처리
+    if (result == null) return;
+    
+    // 차단된 경우 처리
+    if (result is Map && result['blocked'] == true) {
+      final blockedUserId = result['blockedUserId'] as String?;
+      if (blockedUserId != null) {
+        setState(() {
+          // 차단된 사용자 ID 추가
+          _blockedUserIds.add(blockedUserId);
+          
+          // 해당 사용자의 편지를 모든 페이지에서 제거
+          _allLetters.removeWhere((l) => l.sender.id == blockedUserId);
+          for (final pageIndex in _pageLetters.keys.toList()) {
+            _pageLetters[pageIndex] = _pageLetters[pageIndex]!
+                .where((l) => l.sender.id != blockedUserId)
+                .toList();
+          }
+          
+          // 위치 캐시 초기화 (재계산 필요)
+        });
+        
+        // 부모에게 차단 알림
+        widget.onUserBlocked?.call(blockedUserId);
+      }
+      return;
+    }
+    
     // 편지를 읽었거나 삭제되었으면 해당 편지의 읽음 상태만 업데이트
     // 전체 새로고침 대신 해당 편지만 꽃으로 표시
     if (result == true) {
@@ -429,14 +462,17 @@ class _SkyCanvasState extends State<_SkyCanvas> {
           _stars = _generateBackgroundDots(width, height);
         }
         
-        // 화면 크기나 편지 목록이 변경되면 위치 재계산
+        // 화면 크기가 변경되면 전체 위치 재계산
         if (_positionCache == null || 
             _cachedWidth != width || 
-            _cachedHeight != height ||
-            _positionCache!.length != widget.letters.length) {
+            _cachedHeight != height) {
           _positionCache = _calculateAllPositions(widget.letters, width, height);
           _cachedWidth = width;
           _cachedHeight = height;
+        } else {
+          // 화면 크기가 같으면, 캐시에 없는 새 편지만 위치 계산
+          // (기존 편지들은 필터링되어도 원래 위치 유지)
+          _addPositionsForNewLetters(widget.letters, width, height);
         }
         
         return Stack(
@@ -579,6 +615,88 @@ class _SkyCanvasState extends State<_SkyCanvas> {
     }
     
     return positions;
+  }
+
+  // 캐시에 없는 새 편지만 위치를 추가 (기존 위치는 유지)
+  void _addPositionsForNewLetters(List<Letter> allLetters, double width, double height) {
+    if (_positionCache == null) return;
+    
+    // 캐시에 없는 편지 찾기
+    final newLetters = allLetters.where((letter) => !_positionCache!.containsKey(letter.id)).toList();
+    if (newLetters.isEmpty) return;
+    
+    // 씨앗 크기와 최소 간격
+    const seedSize = 56.0;
+    const seedRadius = seedSize / 2;
+    const shadowBlur = 12.0;
+    const extraPadding = 24.0;
+    
+    final effectiveRadius = seedRadius + shadowBlur + extraPadding;
+    const minDistance = seedSize + 20.0;
+    
+    final safeArea = EdgeInsets.only(
+      left: effectiveRadius,
+      top: 120.0,
+      right: effectiveRadius,
+      bottom: 200.0,
+    );
+    
+    final availableWidth = width - safeArea.left - safeArea.right;
+    final availableHeight = height - safeArea.top - safeArea.bottom;
+    
+    const maxAttempts = 500;
+    
+    for (final letter in newLetters) {
+      final hash = letter.id.hashCode;
+      final random = math.Random(hash);
+      
+      Offset? bestPosition;
+      double bestDistance = 0;
+      
+      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        final x = safeArea.left + (random.nextDouble() * availableWidth);
+        final y = safeArea.top + (random.nextDouble() * availableHeight);
+        final candidate = Offset(x, y);
+        
+        if (x < effectiveRadius || x > width - effectiveRadius ||
+            y < effectiveRadius || y > height - effectiveRadius) {
+          continue;
+        }
+        
+        bool overlaps = false;
+        double minDistToExisting = double.infinity;
+        
+        for (final existingPos in _positionCache!.values) {
+          final distance = (candidate - existingPos).distance;
+          minDistToExisting = math.min(minDistToExisting, distance);
+          if (distance < minDistance) {
+            overlaps = true;
+            break;
+          }
+        }
+        
+        if (!overlaps) {
+          _positionCache![letter.id] = candidate;
+          bestPosition = null;
+          break;
+        }
+        
+        if (bestPosition == null || minDistToExisting > bestDistance) {
+          bestPosition = candidate;
+          bestDistance = minDistToExisting;
+        }
+      }
+      
+      if (!_positionCache!.containsKey(letter.id)) {
+        if (bestPosition != null) {
+          _positionCache![letter.id] = bestPosition;
+        } else {
+          final x = safeArea.left + (random.nextDouble() * availableWidth);
+          final y = safeArea.top + (random.nextDouble() * availableHeight);
+          _positionCache![letter.id] = Offset(x, y);
+        }
+      }
+    }
   }
 
   List<_StarDot> _generateBackgroundDots(double width, double height) {
