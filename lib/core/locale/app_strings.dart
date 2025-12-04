@@ -3859,5 +3859,17 @@ Taba("회사")는 편지 교환 서비스를 제공하기 위하여 개인정보
         return '차단 및 신고';
     }
   }
+
+  // 페이지네이션 - 더 이상 씨앗이 없을 때
+  static String noMoreSeeds(Locale locale) {
+    switch (locale.languageCode) {
+      case 'en':
+        return 'No more seeds';
+      case 'ja':
+        return 'これ以上の種はありません';
+      default:
+        return '더 이상 씨앗이 없어요';
+    }
+  }
 }
 

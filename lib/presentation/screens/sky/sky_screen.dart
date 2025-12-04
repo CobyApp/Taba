@@ -311,14 +311,31 @@ class _SkyScreenState extends State<SkyScreen> {
                         }
                         
                         final pageLetters = _pageLetters[index] ?? [];
+                        final isPageLoaded = _pageLetters.containsKey(index);
                         
-                        // 로딩 중이면 로딩 인디케이터 표시
-                        if (pageLetters.isEmpty && (_isLoadingMore || index > 0)) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white70,
-                            ),
-                          );
+                        // 빈 페이지 처리
+                        if (pageLetters.isEmpty) {
+                          // 로드 완료됐지만 빈 페이지인 경우 (더 이상 데이터 없음)
+                          if (isPageLoaded && !_isLoadingMore) {
+                            return Center(
+                              child: Text(
+                                AppStrings.noMoreSeeds(locale),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            );
+                          }
+                          
+                          // 아직 로딩 중인 경우에만 인디케이터 표시
+                          if (_isLoadingMore || !isPageLoaded) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white70,
+                              ),
+                            );
+                          }
                         }
                         
                         return _SkyCanvas(
