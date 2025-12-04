@@ -221,7 +221,7 @@ flutter build ipa --release --dart-define=API_ENV=dev --export-options-plist=ios
 
 - **패키지명**: `com.coby.taba`
 - **앱 이름**: Taba
-- **버전**: 1.0.0+1
+- **버전**: 1.0.1+1
 
 ## 🌍 지원 언어
 
