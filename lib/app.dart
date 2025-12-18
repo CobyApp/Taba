@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taba_app/core/locale/app_locale.dart';
@@ -33,14 +34,18 @@ class _TabaAppState extends State<TabaApp> {
   
   Future<void> _initializeApp() async {
     try {
-      // Firebase 초기화 (Flutter 측)
-      await Firebase.initializeApp();
+      // Firebase 초기화 (웹에서는 건너뛰기 - firebase_options.dart 설정 필요)
+      if (!kIsWeb) {
+        await Firebase.initializeApp();
+      }
       
       // 앱 언어 초기화 (시스템 언어 감지 및 저장)
       await AppLocaleController.initialize();
       
-      // FCM 초기화
-      await FcmService.instance.initialize();
+      // FCM 초기화 (웹에서는 건너뛰기)
+      if (!kIsWeb) {
+        await FcmService.instance.initialize();
+      }
       
       _checkAuth();
     } catch (e) {
