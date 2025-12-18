@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -655,7 +656,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.settings,
         );
         
-        if (shouldOpenSettings == true) {
+        if (shouldOpenSettings == true && !kIsWeb) {
           await AppSettings.openAppSettings();
         }
         

@@ -12,3 +12,4 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // 여기서는 로깅만 수행
 }
 
+

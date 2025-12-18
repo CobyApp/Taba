@@ -1,0 +1,35 @@
+{
+    "name": "Taba - 마음을 전하는 편지",
+    "short_name": "Taba",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0A0024",
+    "theme_color": "#0A0024",
+    "description": "소중한 사람에게 마음을 담은 편지를 보내세요",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

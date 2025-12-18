@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_io/io.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
@@ -20,6 +21,13 @@ class FcmService {
 
   /// FCM 토큰 초기화 및 등록
   Future<void> initialize() async {
+    // 웹에서는 FCM 초기화 건너뛰기
+    if (kIsWeb) {
+      print('📱 FCM: 웹 플랫폼에서는 푸시 알림이 지원되지 않습니다.');
+      _isInitialized = true;
+      return;
+    }
+    
     try {
       // 알림 권한 요청 (iOS에서는 권한 요청 후 APNS 토큰이 설정됨)
       // 배지 권한 포함 (앱 아이콘에 배지 숫자 표시용)
@@ -32,7 +40,7 @@ class FcmService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         // iOS인 경우 APNS 토큰을 기다림 (비동기로 설정되므로)
         bool apnsTokenReady = false;
-        if (Platform.isIOS) {
+        if (!kIsWeb && Platform.isIOS) {
           // APNS 토큰 가져오기 시도 (최대 5초 대기)
           for (int i = 0; i < 5; i++) {
             try {
@@ -77,7 +85,7 @@ class FcmService {
         });
 
         // iOS에서 APNS 토큰이 나중에 설정될 수 있으므로 백그라운드에서 주기적으로 확인
-        if (Platform.isIOS && !apnsTokenReady) {
+        if (!kIsWeb && Platform.isIOS && !apnsTokenReady) {
           _waitForApnsTokenAndGetFcmToken();
         }
 

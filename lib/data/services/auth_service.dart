@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'package:dio/dio.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';

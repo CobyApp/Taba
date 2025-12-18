@@ -18,7 +18,7 @@ import 'package:taba_app/data/services/settings_service.dart';
 import 'package:taba_app/data/services/user_service.dart';
 import 'package:taba_app/data/services/fcm_service.dart';
 import 'package:taba_app/core/services/app_badge_service.dart';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 class DataRepository {
   DataRepository._();

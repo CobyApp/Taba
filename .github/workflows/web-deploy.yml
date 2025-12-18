@@ -1,0 +1,75 @@
+name: Web Build & Deploy
+
+# 웹 빌드: release 브랜치 → 프로덕션 서버 (www.taba.asia:80)
+# SCP를 통해 서버에 직접 배포
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+      
+      - name: Enable Web Support
+        run: flutter config --enable-web
+      
+      - run: flutter pub get
+      
+      - name: Build Web
+        run: |
+          echo "🌐 프로덕션 웹 빌드 (서버: https://www.taba.asia/api/v1)"
+          flutter build web --release \
+            --dart-define=API_ENV=prod \
+            --base-href="/"
+      
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 30
+      
+      - name: Deploy to Server via SCP
+        if: env.SERVER_HOST != ''
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_WEB_PATH: ${{ secrets.SERVER_WEB_PATH }}
+        run: |
+          # SSH 키 설정
+          mkdir -p ~/.ssh
+          echo "$SERVER_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # known_hosts 추가 (첫 연결 시 호스트 키 확인 건너뛰기)
+          ssh-keyscan -H $SERVER_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+          
+          # 기본 웹 경로 설정 (비어있으면 /var/www/taba-web 사용)
+          WEB_PATH="${SERVER_WEB_PATH:-/var/www/taba-web}"
+          
+          echo "📦 웹 빌드 파일을 $SERVER_HOST:$WEB_PATH 로 배포합니다..."
+          
+          # 서버에 배포 디렉토리 생성
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "mkdir -p $WEB_PATH"
+          
+          # 기존 파일 백업 (옵션)
+          ssh -i ~/.ssh/deploy_key $SERVER_USER@$SERVER_HOST "if [ -d $WEB_PATH ]; then rm -rf ${WEB_PATH}_backup; mv $WEB_PATH ${WEB_PATH}_backup 2>/dev/null || true; mkdir -p $WEB_PATH; fi"
+          
+          # 빌드 파일 전송
+          scp -i ~/.ssh/deploy_key -r build/web/* $SERVER_USER@$SERVER_HOST:$WEB_PATH/
+          
+          # 퍼미션 설정
+          ssh -i ~/.ssh/deploy_key $SERVER_USER@$SERVER_HOST "chmod -R 755 $WEB_PATH"
+          
+          echo "✅ 웹 배포 완료: https://www.taba.asia"
+

@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -391,6 +392,12 @@ class _WriteLetterPageState extends State<WriteLetterPage> {
 
 
   Future<File?> _compressImage(File imageFile) async {
+    // 웹에서는 이미지 압축이 지원되지 않으므로 원본 반환
+    if (kIsWeb) {
+      print('웹 플랫폼: 이미지 압축 건너뛰기');
+      return imageFile;
+    }
+    
     try {
       // 파일 존재 확인
       if (!imageFile.existsSync()) {

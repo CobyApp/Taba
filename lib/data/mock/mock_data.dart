@@ -186,6 +186,7 @@ class MockDataRepository {
       friendCount: 32,
       sentLetters: 15,
       inviteCode: 'MINT-SEED',
+      unreadLetterCount: 0,
       group: '친한 친구',
     );
     final neonFriend = FriendProfile(
@@ -196,6 +197,7 @@ class MockDataRepository {
       friendCount: 18,
       sentLetters: 23,
       inviteCode: 'NEON-SEED',
+      unreadLetterCount: 0,
       group: '동료',
     );
     friends.addAll([mintFriend, neonFriend]);
