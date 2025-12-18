@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:universal_io/io.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'
+    if (dart.library.html) 'package:taba_app/data/services/firebase_messaging_stub.dart';
 import 'package:taba_app/core/network/api_client.dart';
 import 'package:taba_app/core/storage/token_storage.dart';
 import 'package:taba_app/data/dto/api_response.dart';
 
 /// 푸시 알림 메시지 핸들러 콜백 타입
-typedef PushMessageHandler = void Function(RemoteMessage message);
+typedef PushMessageHandler = void Function(dynamic message);
 
 class FcmService {
   FcmService._();
   static final FcmService instance = FcmService._();
   
   final ApiClient _apiClient = ApiClient.instance;
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   String? _currentToken;
   bool _isInitialized = false;
   PushMessageHandler? _onMessageHandler;
@@ -29,9 +29,11 @@ class FcmService {
     }
     
     try {
+      final firebaseMessaging = FirebaseMessaging.instance;
+      
       // 알림 권한 요청 (iOS에서는 권한 요청 후 APNS 토큰이 설정됨)
       // 배지 권한 포함 (앱 아이콘에 배지 숫자 표시용)
-      final settings = await _firebaseMessaging.requestPermission(
+      final settings = await firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
@@ -40,11 +42,11 @@ class FcmService {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         // iOS인 경우 APNS 토큰을 기다림 (비동기로 설정되므로)
         bool apnsTokenReady = false;
-        if (!kIsWeb && Platform.isIOS) {
+        if (Platform.isIOS) {
           // APNS 토큰 가져오기 시도 (최대 5초 대기)
           for (int i = 0; i < 5; i++) {
             try {
-              final apnsToken = await _firebaseMessaging.getAPNSToken();
+              final apnsToken = await firebaseMessaging.getAPNSToken();
               if (apnsToken != null) {
                 print('📱 APNS Token: $apnsToken');
                 apnsTokenReady = true;
@@ -64,7 +66,7 @@ class FcmService {
 
         // FCM 토큰 가져오기 시도 (APNS 토큰이 있거나 Android인 경우)
         try {
-          final token = await _firebaseMessaging.getToken();
+          final token = await firebaseMessaging.getToken();
           if (token != null) {
             _currentToken = token;
             print('📱 FCM Token: $token');
@@ -77,7 +79,7 @@ class FcmService {
         }
 
         // 토큰 갱신 리스너
-        _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        firebaseMessaging.onTokenRefresh.listen((newToken) {
           _currentToken = newToken;
           print('📱 FCM Token refreshed: $newToken');
           // 토큰이 갱신되면 서버에 업데이트
@@ -85,12 +87,12 @@ class FcmService {
         });
 
         // iOS에서 APNS 토큰이 나중에 설정될 수 있으므로 백그라운드에서 주기적으로 확인
-        if (!kIsWeb && Platform.isIOS && !apnsTokenReady) {
+        if (Platform.isIOS && !apnsTokenReady) {
           _waitForApnsTokenAndGetFcmToken();
         }
 
         // 포그라운드 메시지 핸들러 설정
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        FirebaseMessaging.onMessage.listen((message) {
           print('📬 포그라운드 메시지 수신: ${message.messageId}');
           print('   제목: ${message.notification?.title}');
           print('   본문: ${message.notification?.body}');
@@ -99,7 +101,7 @@ class FcmService {
         });
 
         // 백그라운드에서 알림 탭 시 핸들러 설정
-        FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        FirebaseMessaging.onMessageOpenedApp.listen((message) {
           print('📬 백그라운드에서 알림 탭: ${message.messageId}');
           print('   제목: ${message.notification?.title}');
           print('   데이터: ${message.data}');
@@ -129,16 +131,20 @@ class FcmService {
 
   /// iOS에서 APNS 토큰이 설정될 때까지 기다리고 FCM 토큰 가져오기
   Future<void> _waitForApnsTokenAndGetFcmToken() async {
+    if (kIsWeb) return;
+    
+    final firebaseMessaging = FirebaseMessaging.instance;
+    
     // 백그라운드에서 최대 30초 동안 APNS 토큰을 기다림
     for (int i = 0; i < 30; i++) {
       await Future.delayed(const Duration(seconds: 1));
       try {
-        final apnsToken = await _firebaseMessaging.getAPNSToken();
+        final apnsToken = await firebaseMessaging.getAPNSToken();
         if (apnsToken != null) {
           print('📱 APNS Token이 설정되었습니다: $apnsToken');
           // APNS 토큰이 설정되었으므로 FCM 토큰 가져오기 시도
           try {
-            final fcmToken = await _firebaseMessaging.getToken();
+            final fcmToken = await firebaseMessaging.getToken();
             if (fcmToken != null) {
               _currentToken = fcmToken;
               print('📱 FCM Token: $fcmToken');
@@ -163,14 +169,18 @@ class FcmService {
 
   /// 현재 FCM 토큰 가져오기
   Future<String?> getToken() async {
+    if (kIsWeb) return null;
+    
     if (_currentToken == null) {
-      _currentToken = await _firebaseMessaging.getToken();
+      _currentToken = await FirebaseMessaging.instance.getToken();
     }
     return _currentToken;
   }
 
   /// 서버에 FCM 토큰 등록
   Future<bool> registerTokenToServer(String userId) async {
+    if (kIsWeb) return false;
+    
     try {
       final token = await getToken();
       if (token == null) {
@@ -228,8 +238,10 @@ class FcmService {
 
   /// FCM 토큰 삭제 (로그아웃 시)
   Future<void> deleteToken() async {
+    if (kIsWeb) return;
+    
     try {
-      await _firebaseMessaging.deleteToken();
+      await FirebaseMessaging.instance.deleteToken();
       _currentToken = null;
       print('🗑️ FCM 토큰이 삭제되었습니다.');
     } catch (e) {
@@ -249,8 +261,10 @@ class FcmService {
 
   /// 현재 알림 권한 상태 확인
   Future<AuthorizationStatus> getNotificationPermissionStatus() async {
+    if (kIsWeb) return AuthorizationStatus.notDetermined;
+    
     try {
-      final settings = await _firebaseMessaging.getNotificationSettings();
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
       return settings.authorizationStatus;
     } catch (e) {
       print('❌ 알림 권한 상태 확인 실패: $e');
@@ -260,9 +274,10 @@ class FcmService {
 
   /// 알림 권한이 허용되었는지 확인
   Future<bool> isNotificationPermissionGranted() async {
+    if (kIsWeb) return false;
+    
     final status = await getNotificationPermissionStatus();
     return status == AuthorizationStatus.authorized ||
            status == AuthorizationStatus.provisional;
   }
 }
-
